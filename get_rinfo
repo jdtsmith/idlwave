@@ -166,16 +166,16 @@ require 5.004;
 # -------------
 # Set the default list of files to be scanned for routine info
 # These are the files which contain "Syntax" descriptions.
-@rifiles = ("refguide.pdf","sdf.pdf","datamine.pdf","edg.pdf","obsolete.pdf",
-	    "whatsnew55.pdf");
+@rifiles = ("refguide.pdf","datamine.pdf","obsolete.pdf");
+#	    "whatsnew55.pdf");
 #@rifiles= ("refguide.pdf");
 
 # Set the list of files which will be used to create fast online help.
 # More or less the same files as above, but you can leave out long
 # files which have only one or two Syntax entries, like edg.pdf or
 # insight.pdf.  Leaving them out makes the help file smaller.
-@olhfiles = ("refguide.pdf","sdf.pdf","datamine.pdf","obsolete.pdf",
-	     "whatsnew55.pdf");
+@olhfiles = ("refguide.pdf","datamine.pdf","obsolete.pdf");
+#	     "whatsnew55.pdf");
 #@olhfiles=("refguide.pdf");
 # Parse command line options and make file names
 use Getopt::Long;
@@ -332,8 +332,8 @@ foreach $file (@files) {
 	       "Keywords?"                  => "kwds",
 	       "Examples?"                  => "examples",
 	       "Using [a-zA-Z0-9_]+"        => "using",
-	       "See Also"                   => "see",
-	       "Graphics Keywords Accepted" => "graphics");
+	       "See Also"                   => "see");
+#	       "Graphics Keywords Accepted" => "graphics");
 
   # Make a regexp matching these, making sure to save everything.
   $section_re = ("(?=^ *(?:" . join('|',keys %sections) . ") *\$)");
@@ -1132,10 +1132,11 @@ BEGIN {
 
      sname("SYNTAX") =>
      sub {
-       if ($syntax =~ /Syntax\s*The\s*syntax\s*section/i) {
+       if ($syntax =~ /Syntax\s*The\s*"?syntax"?\s*section/si) {
 	 # Ignore when Syntax is used to explain itself
+	 push @rejects, "Rejecting SYNTAX section explanation.";
 	 $syntax = "";
-	 $act = 1;
+	 $act = 2;
        } else {0}
      },
 
@@ -1154,7 +1155,7 @@ BEGIN {
 			   IDL_VPTR    |
 			   Client
 			  )\b
-	   /x) {
+	   /xsi) {
 	 push @rejects, "Seems to be a C routine";
 	 $syntax = "";
 	 $act = 2;
@@ -1394,8 +1395,10 @@ BEGIN {
      sname("PLOT") =>
      sub { # Missing keyword
        if ($syntax =~ /\s*Syntax\s*PLOT\b/si) {
-	 push @{$e{""}{pro}{PLOT}{kwds}}, "ISOTROPIC";
-	 push @complains,"Syntax missing keyword ISOTROPIC";
+	 unless ($syntax =~ m|,\s*/ISOTROPIC|) {
+	   push @{$e{""}{pro}{PLOT}{kwds}}, "ISOTROPIC";
+	   push @complains,"Syntax missing keyword ISOTROPIC";
+	 }
 	 1;
        } else {0}
      },
@@ -1466,9 +1469,9 @@ BEGIN {
 
      sname("THREAD POOL KEYWORDS") =>
      sub {
-       if ($syntax =~ /Graphics +Keywords *:/i) {
+       if ($parts{kwds} =~ /^[ \t]*Thread Pool Keywords[ \t]*$/mi) {
 	 $act = 1;
-	 $has_special_keywords{Graphics} = 1;
+	 $has_special_keywords{MultiThreading} = 1;
 	 1;
        } else {0}
      },
@@ -1766,7 +1769,7 @@ sub parse_syntax {
 
   # Final whitespace and parens are killed.
   $call =~ s/[ \n\t\[\]\{\}\|,]*$//; #]
-  # We may have killed nedded closing parenthesis - fix this.
+  # We may have killed needed closing parenthesis - fix this.
   $call = close_open_parens($call);
 
   # Find the name of the routine in the calling sequence.
@@ -1899,7 +1902,7 @@ EOF
 }
 
 sub write_rinfo_footer {
-  print RINFO <<EOF
+  print RINFO <<EOF;
 (provide 'idlw-rinfo)
 (provide 'idlwave-rinfo)
 
@@ -1993,7 +1996,7 @@ sub write_help_header {
   ($progname = $0) =~ s|.*/||;
   chomp $progname;
   $n_files_scanned = @files;
-  print HELP <<EOF
+  print HELP <<EOF;
 ### $helpfile --- Help file for IDLWAVE
 
  ##############################################################
@@ -2014,7 +2017,7 @@ EOF
 }
 
 sub write_help_footer {
-  print HELP <<EOF
+  print HELP <<EOF;
 
  ## idlw-help.txt ends here
 EOF
@@ -2022,16 +2025,53 @@ EOF
 
 #======================================================================
 #
-# Writing the TOPICS file
+# Writing the Help TOPICS file
 #
 #======================================================================
+
+sub write_topics_header {
+  $date = localtime;
+  chomp $date;
+  ($progname = $0) =~ s|.*/||;
+  chomp $progname;
+  $n_files_scanned = @files;
+  print TOPICS <<EOF;
+;;; idlw-help-topics.el --- IDLWAVE topics in the help text file.
+;; Copyright (c) 2002 J.D. Smith
+;;
+;; Author: J.D. Smith <jdsmith\@as.arizona.edu>
+;; Version: VERSIONTAG
+;; Keywords: languages
+;;
+$lisp_not_part_of_gnu_emacs
+;;; Commentary:
+;;
+;; The constants which contain the locations of topics in the online
+;; text help file, scanned from the text file source.
+;;
+;; Created by $progname on $date, IDL version: $idlversion
+;;
+;; New versions of IDLWAVE, documentation, and more information
+;; available from:
+;;                 http://idlwave.org
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Code:
+EOF
+}
+
 
 sub write_topics_file {
   # Write the topics file for fast online help
   open HELP,   "$helpfile"   or die "Cannot read $helpfile\n";
   open TOPICS, ">$topicsfile"  or die "Cannot write to $topicsfile\n";
   write_topics_header();
-  print TOPICS "(setq idlwave-help-topics\n '(\n";
+  print TOPICS <<EOF;
+(defvar idlwave-help-topics)
+(setq idlwave-help-topics
+ '(
+EOF
   my $sysvar_region = 0;
   my $cnt = -1;
  LINE:
@@ -2082,8 +2122,10 @@ sub write_topics_file {
   print TOPICS <<EOF;
 ;; Some routines need to be searched under a different name.
 ;; Here are the required translations.
+(defvar idlwave-help-name-translations)
+(setq idlwave-help-name-translations
+ '(
 EOF
-  print TOPICS "(setq idlwave-help-name-translations\n '(\n";
   foreach $from (sort keys %name_translations) {
     printf TOPICS qq{  ("%s" . "%s")\n},
     lc($from),lc($name_translations{$from});
@@ -2099,8 +2141,10 @@ EOF
 ;; descriptions might be found.  Currently we assume that we do not need to
 ;; look in different object classes.  This would be necessary for inheritance,
 ;; but we do not treat this case currently.
+(defvar idlwave-help-alt-names)
+(setq idlwave-help-alt-names
+ '(
 EOF
-  print TOPICS "(setq idlwave-help-alt-names\n '(\n";
   foreach $name (sort keys %extra_keyword_topics) {
     printf TOPICS qq{  ("%s" %s)\n},lc($name),'"'.
     join('" "',@{$extra_keyword_topics{$name}}).'"';
@@ -2120,23 +2164,11 @@ EOF
   print TOPICS <<EOF;
 ;; What would be a good width for a dedicated help frame?
 EOF
-  printf TOPICS "(setq idlwave-help-frame-width %d)\n",
-    $nowrap ? 102 : $wrapwidth+2;
+  printf TOPICS "(defvar idlwave-help-frame-width)\n" .
+    "(setq idlwave-help-frame-width %d)\n", $nowrap ? 102 : $wrapwidth+2;
   close TOPICS;
   printf STDERR "Wrote file $topicsfile   (%4d kBytes)\n", 
   (-s $topicsfile)/1000.;
-}
-
-sub write_topics_header {
-  $date = localtime;
-  chomp $date;
-  ($progname = $0) =~ s|.*/||;
-  chomp $progname;
-  $n_files_scanned = @files;
-  print TOPICS <<EOF;
-;; Created by $progname on $date
-;; IDL version: $idlversion
-EOF
 }
 
 sub talk_to_idl {
