@@ -68,7 +68,8 @@ CP = cp -p
 ##----------------------------------------------------------------------
 
 # The following variables need to be defined by the maintainer
-LISPFILES  = idlwave.el idlw-shell.el idlw-rinfo.el idlw-toolbar.el
+LISPFILES  = idlwave.el idlw-shell.el idlw-rinfo.el idlw-toolbar.el \
+	     idlw-complete-structtag.el idlw-roprompt.el
 LISPFILES1 = $(LISPFILES) idlw-help.el
 ELCFILES   = $(LISPFILES:.el=.elc)
 TEXIFILES  = idlwave.texi
@@ -77,6 +78,7 @@ RINFOFILES = idlw-help.el idlw-help.txt idlw-rinfo.el
 HELPFILES  = idlw-help.el idlw-help.txt
 DLDIR     = /var/www/html/idlwave/download
 HTMLDIR    = /var/www/html/idlwave/
+XEMACSDIR  = packages/xemacs-packages/idlwave
 
 # An alternative installation point
 #MY_INFODIR = /home/strw/dominik/lib/emacs/info
@@ -87,14 +89,14 @@ SHELL = /bin/sh
 
 DISTFILES= README INSTALL CHANGES ChangeLog COPYING Makefile\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES) lpath.el\
-	idltags get_rinfo helpcode help55fixup.txt tutorial.pro\
-	idlw-complete-structtag.el
+	idltags get_rinfo helpcode help55fixup.txt tutorial.pro
 
 WEBDISTFILES= idlwave.ps idlwave.pdf idlwave.html CHANGES
 HELPDISTFILES= README.hlp $(HELPFILES)
 
-XEMACSDISTFILES= CHANGES $(LISPFILES) $(TEXIFILES) Makefile.xemacs-package \
-	package-info.in
+XEMACSDISTFILES= README INSTALL CHANGES ChangeLog COPYING\
+	$(LISPFILES) $(TEXIFILES) $(INFOFILES)\
+	idltags get_rinfo helpcode help55fixup.txt tutorial.pro
 
 EMACSDISTFILES= $(LISPFILES) $(TEXIFILES) ChangeLog
 
@@ -211,17 +213,20 @@ ccompile:
 #	if [ ! -d $(MY_INFODIR) ]; then mkdir $(MY_INFODIR); else true; fi ;
 #	$(CP) $(INFOFILES) $(MY_INFODIR)
 
+.PHONY: distfile
 distfile: $(DISTFILES)
 	@if [ "X$(TAG)" = "X" ]; then echo "*** No tag ***"; exit 1; fi
 #	make rinfo
 	rm -rf idlwave-$(TAG)
 	mkdir idlwave-$(TAG)
 	cp -p $(DISTFILES) idlwave-$(TAG)/
+	chmod ug+rw idlwave-$(TAG)/*
 	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' idlwave-$(TAG)/* $(HELPDISTFILES)
 	tar czvf idlwave-$(TAG).tar.gz idlwave-$(TAG)
 	tar czvf idlwave-$(TAG)-help.tar.gz $(HELPDISTFILES)
-	rm -rf idlwave-$(TAG)
+	rm -rf idlwave-$(TAG)	
 
+.PHONY: dist
 dist: $(WEBDISTFILES)
 	make distfile TAG=$(TAG)
 	cp -p idlwave-$(TAG).tar.gz $(DLDIR)
@@ -231,6 +236,20 @@ dist: $(WEBDISTFILES)
 	(cd $(DLDIR); ln -sf idlwave-$(TAG).tar.gz idlwave-alpha.tar.gz)
 	cp -f $(WEBDISTFILES) $(HTMLDIR)
 	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' $(HTMLDIR)/CHANGES
+
+.PHONY: xemacsdistfile
+xemacsdistfile: $(XEMACSDISTFILES)
+	@if [ "X$(TAG)" = "X" ]; then echo "*** No tag ***"; exit 1; fi
+	cp -pf $(XEMACSDISTFILES) $(XEMACSDIR)/
+	perl -pi -e 's/^((?:AUTHOR_)?VERSION\s*=\s*)([0-9]\.[0-9.a-z]+)/$${1}$(TAG)/' $(XEMACSDIR)/Makefile
+	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' $(XEMACSDIR)/*
+	(cd $(XEMACSDIR); make bindist)
+
+.PHONY: xemacsdist
+xemacsdist: 
+	make xemacsdistfile TAG=$(TAG)
+	cp -p xemacs-packages/idlwave-$(TAG)-pkg.tar.gz $(DLDIR)
+	(cd $(DLDIR); ln -sf idlwave-$(TAG)-pkg.tar.gz idlwave-xemacs.tar.gz)
 
 alphadist: $(WEBDISTFILES)
 	make distfile TAG=$(TAG)
