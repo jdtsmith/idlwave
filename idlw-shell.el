@@ -1,11 +1,11 @@
-;;; idlw-shell.el --- run IDL as an inferior process of Emacs.
+;; idlw-shell.el --- run IDL as an inferior process of Emacs.
 ;; Copyright (c) 1999, 2000, 2001 Free Software Foundation
 
 ;; Author: Carsten Dominik <dominik@astro.uva.nl>
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/04/24 00:20:21 $
+;; Date: $Date: 2002/05/13 21:51:28 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -277,15 +277,36 @@ because these are used as separators by IDL."
   :group 'idlwave-shell-general-setup
   :type 'hook)
 
-(defcustom idlwave-shell-print-expression-function nil
-  "When non-nil, a function to handle display of evaluated expressions.
-This can be used to arrange for displaying the value of an expression
-in (e.g.) a special frame.  The function must accept one argument:
-the expression which was evaluated.  The output from IDL will be
-available in the variable `idlwave-shell-command-output'."
-  :group 'idlwave-shell-highlighting-and-faces
-  :type 'symbol)
+(defvar idlwave-shell-print-expression-function nil
+  "*OBSOLETE VARIABLE, is no longer used.")
 
+(defcustom idlwave-shell-examine-alist 
+  '(("Print"          	. "print,___")
+    ("Help"           	. "help,___")
+    ("Structure Help"  	. "help,___,/STRUCTURE")
+    ("Dimensions"     	. "print,size(___,/DIMENSIONS)")
+    ("Type"           	. "print,size(___,/TNAME)")
+    ("N_Elements"     	. "print,n_elements(___)")
+    ("All Size Info"  	. "help,(__IWsz__=size(___,/STRUCTURE)),/STRUCTURE & print,__IWsz__.DIMENSIONS")
+    ("Ptr Valid"      	. "print,ptr_valid(___)")
+    ("Widget Valid"     . "print,widget_info(___,/VALID)")
+    ("Widget Geometry"  . "help,widget_info(___,/GEOMETRY)"))
+  "Alist of special examine commands for popup selection.  
+The keys are used in the selection popup created by
+`idlwave-shell-examine-select', and the corresponding value is sent as
+a command to the shell, with special sequence `___' replaced by the
+expression being examined."
+  :group 'idlwave-shell-general-setup
+  :type '(repeat
+	  (cons 
+	   (string :tag "Label  ")
+	   (string :tag "Command"))))
+
+(defcustom idlwave-shell-separate-examine-output t
+  "*Non-nil mean, put output of examine commands in their own buffer."
+  :group 'idlwave-shell-general-setup
+  :type 'boolean)
+  
 (defcustom idlwave-shell-use-input-mode-magic nil
   "*Non-nil means, IDLWAVE should check for input mode spells in output.
 The spells are strings printed by your IDL program and matched
@@ -450,24 +471,54 @@ the expression printed by IDL."
   :group 'idlwave-shell-highlighting-and-faces
   :type 'symbol)
 
+(defcustom idlwave-shell-output-face 'secondary-selection
+  "*The face for `idlwave-shell-output-overlay'.
+Allows you to choose the font, color and other properties for
+the expression output by IDL."
+  :group 'idlwave-shell-highlighting-and-faces
+  :type 'symbol)
+
 ;;; End user customization variables
 
 ;;; External variables
 (defvar comint-last-input-start)
 (defvar comint-last-input-end)
 
+(defun idlwave-shell-temp-file (type)
+  "Return a temp file, creating it if necessary.
+
+TYPE is either 'pro or 'rinfo, and idlwave-shell-temp-pro-file or
+idlwave-shell-temp-rinfo-save-file is set (respectively)."
+  (cond 
+   ((eq type 'rinfo)
+    (or idlwave-shell-temp-rinfo-save-file 
+	(setq idlwave-shell-temp-rinfo-save-file 
+	      (idlwave-shell-make-temp-file idlwave-shell-temp-pro-prefix))))
+   ((eq type 'pro)
+    (or idlwave-shell-temp-pro-file
+	(setq idlwave-shell-temp-pro-file 
+	      (idlwave-shell-make-temp-file idlwave-shell-temp-pro-prefix))))
+   (t (error "Wrong argument (idlwave-shell-temp-file): %s" 
+	     (symbol-name type)))))
+    
+
 (defun idlwave-shell-make-temp-file (prefix)
   "Create a temporary file."
   ; Hard coded make-temp-file for Emacs<21
   (if (fboundp 'make-temp-file)
       (make-temp-file prefix)
-    (let (file)
+    (let (file
+	  (temp-file-dir (if (boundp 'temporary-file-directory)
+			     temporary-file-directory
+			   "/tmp")))
       (while (condition-case ()
 		 (progn
 		   (setq file
 			 (make-temp-name
-			  (expand-file-name prefix temporary-file-directory)))
-                   (write-region "" nil file nil 'silent nil 'excl)
+			  (expand-file-name prefix temp-file-dir)))
+                   (if (featurep 'xemacs)
+		       (write-region "" nil file nil 'silent nil)
+		     (write-region "" nil file nil 'silent nil 'excl))
 		   nil)
 	       (file-already-exists t))
 	;; the file was somehow created by someone else between
@@ -476,12 +527,12 @@ the expression printed by IDL."
       file)))
 
 ;; Other variables
-(defvar idlwave-shell-temp-pro-file 
-  (idlwave-shell-make-temp-file idlwave-shell-temp-pro-prefix)
+(defvar idlwave-shell-temp-pro-file
+  nil
   "Absolute pathname for temporary IDL file for compiling regions")
 
 (defvar idlwave-shell-temp-rinfo-save-file
-  (idlwave-shell-make-temp-file idlwave-shell-temp-pro-prefix)
+  nil
   "Absolute pathname for temporary IDL file save file for routine_info.
 This is used to speed up the reloading of the routine info procedure
 before use by the shell.")
@@ -515,15 +566,22 @@ the directory stack.")
 (defvar idlwave-shell-is-stopped nil)
 (defvar idlwave-shell-expression-overlay nil
   "The overlay for where IDL is currently stopped.")
+(defvar idlwave-shell-output-overlay nil
+  "The overlay for the last IDL output.")
+
 ;; If these were already overlays, delete them.  This probably means that we
 ;; are reloading this file.
 (if (overlayp idlwave-shell-stop-line-overlay)
     (delete-overlay idlwave-shell-stop-line-overlay))
 (if (overlayp idlwave-shell-expression-overlay)
     (delete-overlay idlwave-shell-expression-overlay))
+(if (overlayp idlwave-shell-output-overlay)
+    (delete-overlay idlwave-shell-output-overlay))
+
 ;; Set to nil initially
 (setq idlwave-shell-stop-line-overlay nil
-      idlwave-shell-expression-overlay nil)
+      idlwave-shell-expression-overlay nil
+      idlwave-shell-output-overlay nil)
 
 ;; Define the shell stop overlay.  When left nil, the arrow will be used.
 (cond
@@ -551,10 +609,14 @@ the directory stack.")
 	(overlay-put idlwave-shell-stop-line-overlay 
 		     'face idlwave-shell-stop-line-face)))))
 
-;; Now the expression overlay
+;; Now the expression and output overlays
 (setq idlwave-shell-expression-overlay (make-overlay 1 1))
 (overlay-put idlwave-shell-expression-overlay
 	     'face idlwave-shell-expression-face)
+(setq idlwave-shell-output-overlay (make-overlay 1 1))
+(overlay-put idlwave-shell-output-overlay
+	     'face idlwave-shell-output-face)
+
 (defvar idlwave-shell-bp-query "help,/breakpoints"
   "Command to obtain list of breakpoints")
 
@@ -1165,10 +1227,7 @@ and then calls `idlwave-shell-send-command' for any pending commands."
             ;; May change the original match data.
 	    (while (setq p (string-match "\C-M" string))
 	      (aset string p ?\  ))
-;;; Test/Debug code
-;;          (save-excursion (set-buffer (get-buffer-create "*test*"))
-;;                          (goto-char (point-max))
-;;                          (insert "%%%" string))
+
             ;;
             ;; Keep output
 
@@ -1191,7 +1250,7 @@ and then calls `idlwave-shell-send-command' for any pending commands."
                   (goto-char (point-max))
                   (insert string))
               (idlwave-shell-comint-filter proc string))
-            ;; Watch for prompt - need to accumulate the current line
+            ;; Watch for magic - need to accumulate the current line
             ;; since it may not be sent all at once.
             (if (string-match "\n" string)
 		(progn
@@ -1206,7 +1265,13 @@ and then calls `idlwave-shell-send-command' for any pending commands."
                     (concat idlwave-shell-accumulation string)))
 
 
-            ;; Check for prompt in current line 
+;;; Test/Debug code
+;	     (save-excursion (set-buffer
+;			      (get-buffer-create "*idlwave-shell-output*"))
+;			     (goto-char (point-max))
+;			     (insert "\nSTRING===>\n" string "\n<====\n"))
+	    
+            ;; Check for prompt in current accumulating line 
             (if (setq idlwave-shell-ready
                       (string-match idlwave-shell-prompt-pattern
                                     idlwave-shell-accumulation))
@@ -1214,10 +1279,19 @@ and then calls `idlwave-shell-send-command' for any pending commands."
                   (if idlwave-shell-hide-output
                       (save-excursion
                         (set-buffer idlwave-shell-hidden-output-buffer)
-                        (goto-char (point-min))
-                        (re-search-forward idlwave-shell-prompt-pattern nil t)
+;                        (goto-char (point-min))
+;                        (re-search-forward idlwave-shell-prompt-pattern nil t)
+                        (goto-char (point-max))
+                        (re-search-backward idlwave-shell-prompt-pattern nil t)
+			(goto-char (match-end 0))
                         (setq idlwave-shell-command-output
                               (buffer-substring (point-min) (point)))
+;; Test/Debug
+;			 (save-excursion (set-buffer
+;					  (get-buffer-create "*idlwave-shell-output*"))
+;					 (goto-char (point-max))
+;					 (insert "\nOUPUT===>\n" idlwave-shell-command-output "\n<===\n"))
+
                         (delete-region (point-min) (point)))
                     (setq idlwave-shell-command-output
                           (save-excursion
@@ -1229,11 +1303,6 @@ and then calls `idlwave-shell-send-command' for any pending commands."
                                (beginning-of-line nil)
                                (point))
                              comint-last-input-end))))
-;;; Test/Debug code
-;;                (save-excursion (set-buffer
-;;                                 (get-buffer-create "*idlwave-shell-output*"))
-;;                                (goto-char (point-max))
-;;                                (insert "%%%" string))
                   ;; Scan for state and do post command - bracket them
                   ;; with idlwave-shell-ready=nil since they
                   ;; may call idlwave-shell-send-command.
@@ -2179,7 +2248,7 @@ Runs to the last statement and then steps 1 statement.  Use the .out command."
   (interactive "P")
   (idlwave-shell-print arg 'help))
 
-(defmacro idlwave-shell-mouse-examine (help)
+(defmacro idlwave-shell-mouse-examine (help &optional ev)
   "Create a function for generic examination of expressions."
   `(lambda (event)
      "Expansion function for expression examination."
@@ -2188,9 +2257,9 @@ Runs to the last statement and then steps 1 statement.  Use the .out command."
 	   (zmacs-regions t)
 	   (tracker (if (featurep 'xemacs) 'mouse-track 
 		      'mouse-drag-region)))
-       (funcall tracker event))
-     (idlwave-shell-print (if (idlwave-region-active-p) '(16) nil)
-			  ,help 'mouse)))
+       (funcall tracker event)
+       (idlwave-shell-print (if (idlwave-region-active-p) '(16) nil)
+			    ,help ,ev))))
 
 (defun idlwave-shell-mouse-print (event)
   "Print value of variable at the mouse position, with `help'"
@@ -2201,6 +2270,11 @@ Runs to the last statement and then steps 1 statement.  Use the .out command."
   "Print value of variable at the mouse position, with `print'."
   (interactive "e")
   (funcall (idlwave-shell-mouse-examine 'help) event))
+
+(defun idlwave-shell-examine-select (event)
+  "Pop-up a list to select from for examining the expression"
+  (interactive "e")
+  (funcall (idlwave-shell-mouse-examine nil event) event))
 
 (defmacro idlwave-shell-examine (help)
   "Create a function for key-driven expression examination."
@@ -2213,15 +2287,18 @@ Runs to the last statement and then steps 1 statement.  Use the .out command."
   (define-key idlwave-mode-map key hook)
   (define-key idlwave-shell-mode-map key hook))
 
-(defun idlwave-shell-print (arg &optional help mouse)
+(defvar idlwave-shell-examine-label nil
+  "Label to include with examine text if separate.")
+
+(defun idlwave-shell-print (arg &optional help ev)
   "Print current expression.  
 
 With HELP non-nil, show help on expression.  If HELP is a string,
-expression will be put in place of ___, e.g.:
+the expression will be put in place of ___, e.g.:
 
    print,size(___,/DIMENSIONS)
 
-Otherwise, print, is called on the expression.
+Otherwise, print is called on the expression.
 
 An expression is an identifier plus 1 pair of matched parentheses
 directly following the identifier - an array or function call.
@@ -2231,21 +2308,29 @@ identifier. If point is at the beginning or within an expression
 return the inner-most containing expression, otherwise, return the
 preceding expression.
 
-With prefix arg ARG, or when called from the shell buffer, prompt
-for an expression.
+With prefix arg ARG prompt for an expression.
 
-With double prefix arg, use the current region."
+With double prefix arg, use the current region.
+
+If EV is a valid event passed, pop-up a list from
+idlw-shell-examine-alist from which to select the help command text."
   (interactive "P")
   (save-excursion
-    (let (expr beg end cmd)
+    (let* ((process (get-buffer-process (current-buffer)))
+	   (process-mark (if process (process-mark process)))
+	   (stack-label 
+	    (if (and (integerp idlwave-shell-calling-stack-index)
+		     (> idlwave-shell-calling-stack-index 0))
+		(format "  [-%d:%s]" 
+			idlwave-shell-calling-stack-index 
+			idlwave-shell-calling-stack-routine)))
+	   expr beg end cmd examine-hook)
       (cond
        ((and (equal arg '(16))
 	     (< (- (region-end) (region-beginning)) 2000))
 	(setq beg (region-beginning)
-	      end (region-end)
-	      expr (buffer-substring beg end)))
-       ((and (not mouse) arg)
-;	     (or arg (eq major-mode 'idlwave-shell-mode)))
+	      end (region-end)))
+       (arg
 	(setq expr (read-string "Expression: ")))
        (t
 	(idlwave-with-special-syntax1
@@ -2266,36 +2351,125 @@ With double prefix arg, use the current region."
 	 (while (looking-at "\\>[[(]\\|\\.")
 	   ;; an array
 	   (forward-sexp))
-	 (setq end (point))
-	 (setq expr (buffer-substring beg end)))))
+	 (setq end (point)))))
+      
+      ;; Get expression, but first move the begin mark if a
+      ;; process-mark is inside the region, to keep the overlay from
+      ;; wandering in the Shell.
+      (when (and beg end)
+	(if (and process-mark (> process-mark beg) (< process-mark end))
+	    (setq beg (marker-position process-mark)))
+	(setq expr (buffer-substring beg end)))
+
+      ;; Show the overlay(s) and attach any necessary hooks and filters
       (when (and beg end idlwave-shell-expression-overlay)
 	(move-overlay idlwave-shell-expression-overlay beg end 
 		      (current-buffer))
-	(add-hook 'pre-command-hook 'idlwave-shell-delete-expression-overlay))
-      ;; Remove empty lines
-      (while (string-match "\n[ \t\r]*\n" expr)
+	(add-hook 'pre-command-hook 
+		  'idlwave-shell-delete-expression-overlay))
+      (setq examine-hook 
+	    (if idlwave-shell-separate-examine-output
+		'idlwave-shell-examine-display
+	      'idlwave-shell-examine-highlight))
+      (add-hook 'pre-command-hook
+		'idlwave-shell-delete-output-overlay)
+      
+      ;; Remove empty or comment-only lines
+      (while (string-match "\n[ \t]*\\(;.*\\)?\r*\n" expr)
 	(setq expr (replace-match "\n" t t expr)))
       ;; Concatenate continuation lines
-      (while (string-match "[ \t]\\$.*\n" expr)
+      (while (string-match "[ \t]*\\$.*\\(;.*\\)?\\(\n[ \t]*\\|$\\)" expr)
 	(setq expr (replace-match "" t t expr)))
       ;; Remove final newline
       (if (string-match "\n[ \t\r]*\\'" expr)
 	  (setq expr (replace-match "" t t expr)))
-      (if (and (integerp idlwave-shell-calling-stack-index)
-	       (> idlwave-shell-calling-stack-index 0))
+      ;; Pop-up the examine selection list, if appropriate
+      (if (and ev idlwave-shell-examine-alist)
+	  (let* ((help-cons 
+		  (assoc 
+		   (idlwave-popup-select 
+		    ev (mapcar 'car idlwave-shell-examine-alist)
+		    "Examine with")
+		   idlwave-shell-examine-alist)))
+	    (setq help (cdr help-cons))
+	    (if idlwave-shell-separate-examine-output
+		(setq idlwave-shell-examine-label 
+		      (concat 
+		       (format "==>%s<==\n%s:" expr (car help-cons))
+		       stack-label "\n"))))
+	(setq idlwave-shell-examine-label
+	      (concat
+	       (format "==>%s<==\n%s:" expr 
+		       (cond ((null help) "print")
+			     ((stringp help) help)
+			     (t (symbol-name help))))
+	       stack-label "\n")))
+
+      ;; Send the command
+      (if stack-label
 	  (setq cmd (idlwave-retrieve-expression-from-level
 		     expr
 		     idlwave-shell-calling-stack-index
 		     idlwave-shell-calling-stack-routine
 		     help))
 	(setq cmd (idlwave-shell-help-statement help expr)))
-      (if idlwave-shell-print-expression-function
-	  (idlwave-shell-send-command 
-	   cmd
-	   (list idlwave-shell-print-expression-function expr)
-	   'hide)
-	(idlwave-shell-recenter-shell-window)
-	(idlwave-shell-send-command cmd)))))
+      (idlwave-shell-recenter-shell-window)
+      (idlwave-shell-send-command 
+       cmd 
+       examine-hook 
+       (if idlwave-shell-separate-examine-output 'hide)))))
+
+(defun idlwave-shell-examine-display ()
+  "View the examine command output in a separate buffer."
+  (let (win)
+    (save-excursion
+      (move-marker idlwave-rinfo-marker (point))
+      (set-buffer (get-buffer-create "*Examine*"))
+      (use-local-map idlwave-shell-examine-map)
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (if (string-match "^% Syntax error." idlwave-shell-command-output)
+	  (insert "% Syntax error.")
+	(insert idlwave-shell-command-output)
+	;; Just take the last bit between the prompts (if more than one).
+	(let* ((end (or
+		    (re-search-backward idlwave-shell-prompt-pattern nil t)
+		    (point-max)))
+	      (beg (progn 
+		     (goto-char
+		      (or (progn (if (re-search-backward 
+				      idlwave-shell-prompt-pattern nil t)
+				     (match-end 0)))
+			  (point-min)))
+		     (re-search-forward "\n")))
+	      (str (buffer-substring beg end)))
+	  (erase-buffer)
+	  (insert str))
+	(when idlwave-shell-examine-label
+	  (goto-char (point-min))
+	  (insert idlwave-shell-examine-label)
+	  (setq idlwave-shell-examine-label nil)))
+      (setq buffer-read-only t)
+      (display-buffer "*Examine*")
+      (move-overlay idlwave-shell-output-overlay (point-min) (point-max)
+		    (current-buffer))
+      (when (setq win (get-buffer-window "*Examine*"))
+	(let ((ww (selected-window)))
+	  (unwind-protect
+	      (progn
+		(select-window win)
+		(enlarge-window (- (/ (frame-height) 2) 
+				   (window-height)))
+		(shrink-window-if-larger-than-buffer))
+	    (select-window ww)))))))
+
+(defvar idlwave-shell-examine-map (make-sparse-keymap))
+(define-key idlwave-shell-examine-map "q" 'idlwave-shell-examine-display-quit)
+
+(defun idlwave-shell-examine-display-quit ()
+  (interactive)
+  (let ((win (get-buffer-window "*Examine*")))
+    (if (window-live-p win) (delete-window win))))
 
 (defun idlwave-retrieve-expression-from-level (expr level routine help)
   "Return IDL command to print the expression EXPR from stack level LEVEL.
@@ -2348,7 +2522,7 @@ there is no guarantee that this will work with future versions of IDL."
 	(format "%s = routine_names('%s',fetch=%d)" (cdr x) (car x) fetch))
       (nreverse fetch-vars)
       " & ")
-     (if idlwave-shell-print-expression-function " & " "\n")
+     "\n"
      (idlwave-shell-help-statement help expr)
      (format " ; [-%d:%s]" level routine))))
 
@@ -2368,12 +2542,45 @@ size(___,/DIMENSIONS)"
    (t (concat "help, " expr))))
    
 
+(defun idlwave-shell-examine-highlight ()
+  "Highlight the most recent IDL output."
+  (let* ((buffer (get-buffer (idlwave-shell-buffer)))
+	 (process (get-buffer-process buffer))
+	 (process-mark (if process (process-mark process)))
+	 output-begin output-end)
+    (save-excursion 
+      (set-buffer buffer)
+      (goto-char process-mark)
+      (beginning-of-line)
+      (setq output-end (point))
+      (re-search-backward idlwave-shell-prompt-pattern nil t)
+      (beginning-of-line 2)
+      (setq output-begin (point)))
+	    
+    ;; First make sure the shell window is visible
+    (idlwave-display-buffer (idlwave-shell-buffer)
+			    nil (idlwave-shell-shell-frame))
+    (if (and idlwave-shell-output-overlay process-mark)
+	(move-overlay idlwave-shell-output-overlay 
+		      output-begin output-end buffer))))
+
+(defun idlwave-shell-delete-output-overlay ()
+  (if (eq this-command 'idlwave-shell-mouse-nop)
+      nil
+    (condition-case nil
+	(if idlwave-shell-output-overlay
+	    (delete-overlay idlwave-shell-output-overlay))
+      (error nil))
+    (remove-hook 'pre-command-hook 'idlwave-shell-delete-output-overlay)))
+  
 (defun idlwave-shell-delete-expression-overlay ()
-  (condition-case nil
-      (if idlwave-shell-expression-overlay
-	  (delete-overlay idlwave-shell-expression-overlay))
-    (error nil))
-  (remove-hook 'pre-command-hook 'idlwave-shell-delete-expression-overlay))
+  (if (eq this-command 'idlwave-shell-mouse-nop)
+      nil
+    (condition-case nil
+	(if idlwave-shell-expression-overlay
+	    (delete-overlay idlwave-shell-expression-overlay))
+      (error nil))
+    (remove-hook 'pre-command-hook 'idlwave-shell-delete-expression-overlay)))
 
 (defvar idlwave-shell-bp-alist nil
   "Alist of breakpoints.
@@ -2411,7 +2618,9 @@ If there is a prefix argument, display IDL process."
   (let ((oldbuf (current-buffer)))
     (save-excursion
       (set-buffer (idlwave-find-file-noselect
-		   idlwave-shell-temp-pro-file 'tmp))
+		   (idlwave-shell-temp-file 'pro) 'tmp))
+      (set (make-local-variable 'comment-start-skip) ";+[ \t]*")
+      (set (make-local-variable 'comment-start) ";")
       (erase-buffer)
       (insert-buffer-substring oldbuf beg end)
       (if (not (save-excursion
@@ -3012,25 +3221,22 @@ Otherwise, just expand the file name."
 (define-key idlwave-mode-map "\C-c\C-x" 'idlwave-shell-send-char)
 
 ;; The mouse bindings for PRINT and HELP
-(define-key idlwave-mode-map 
-  (if (featurep 'xemacs) [(shift button2)]
-    [(shift down-mouse-2)])
-  'idlwave-shell-mouse-print)
-(define-key idlwave-mode-map 
-  (if (featurep 'xemacs)
-      [(shift control button2)]
-    [(shift control down-mouse-2)])
+(idlwave-shell-define-key-both
+ (if (featurep 'xemacs) 
+     [(shift button2)] 
+   [(shift down-mouse-2)])
+ 'idlwave-shell-mouse-print)
+(idlwave-shell-define-key-both
+ (if (featurep 'xemacs) 
+     [(control meta button2)] 
+   [(control meta down-mouse-2)])
   'idlwave-shell-mouse-help)
-(define-key idlwave-shell-mode-map 
-  (if (featurep 'xemacs)
-      [(shift button2)]
-    [(shift down-mouse-2)])
-  'idlwave-shell-mouse-print)
-(define-key idlwave-shell-mode-map 
-  (if (featurep 'xemacs)
-      [(shift control button2)]
-    [(shift control down-mouse-2)])
-  'idlwave-shell-mouse-help)
+(idlwave-shell-define-key-both
+ (if (featurep 'xemacs)
+     [(control shift button2)]
+   [(control shift down-mouse-2)])
+ 'idlwave-shell-examine-select)
+;; Add this one from the idlwave-mode-map
 (define-key idlwave-shell-mode-map 
   (if (featurep 'xemacs)
       [(shift button3)]
@@ -3041,16 +3247,14 @@ Otherwise, just expand the file name."
 (defun idlwave-shell-mouse-nop (event) 
   (interactive "e"))
 (unless (featurep 'xemacs)
-  (define-key idlwave-mode-map
-    [(shift mouse-2)] 'idlwave-shell-mouse-nop)
-  (define-key idlwave-mode-map
-    [(shift control mouse-2)] 'idlwave-shell-mouse-nop)
-  (define-key idlwave-shell-mode-map
-    [(shift mouse-2)] 'idlwave-shell-mouse-nop)
-  (define-key idlwave-shell-mode-map
-    [(shift control mouse-2)] 'idlwave-shell-mouse-nop))
-  
+  (idlwave-shell-define-key-both
+   [(shift mouse-2)] 'idlwave-shell-mouse-nop)
+  (idlwave-shell-define-key-both
+   [(shift control mouse-2)] 'idlwave-shell-mouse-nop)
+  (idlwave-shell-define-key-both
+   [(control meta mouse-2)] 'idlwave-shell-mouse-nop))
 
+  
 ;; The following set of bindings is used to bind the debugging keys.
 ;; If `idlwave-shell-activate-prefix-keybindings' is non-nil, the first key
 ;; in the list gets bound the C-c C-d prefix map.
