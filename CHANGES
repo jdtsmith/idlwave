@@ -4,6 +4,16 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
+Revision 5.4
+=============
+   - Update routine info and help for IDL v6.1.
+   - Improved breakpoint handling, including new enable/disable
+     breakpoint toggle command (C-c C-d C-\), and greyed-out
+     glyph/highlight appearance for disabled breakpoints.
+   - Fix continuation indent bug with function calls with keywords in
+     continued "IF" statements.
+
+
 Revision 5.3
 =============
    - New command for visiting routines in a file.  With one arg
