@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2004/06/28 04:17:42 $
+;; Date: $Date: 2004/10/13 20:24:15 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -781,6 +781,7 @@ IDL has currently stepped.")
   a          Clear all breakpoints.
   i   	     Set breakpoint in routine named here.
   j          Set breakpoint at beginning of containing routine.
+  \\          Toggle breakpoint disable
   ]          Go to next breakpoint in file.
   [          Go to previous breakpoint in file.
 
@@ -1550,7 +1551,11 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 		    
 		    ;; Call the post-command hook
                     (if (listp idlwave-shell-post-command-hook)
-                        (eval idlwave-shell-post-command-hook)
+                        (progn
+			  ;(message "Calling list")
+			  ;(prin1 idlwave-shell-post-command-hook)
+			  (eval idlwave-shell-post-command-hook))
+		      ;(message "Calling command function")
                       (funcall idlwave-shell-post-command-hook))
 
 		    ;; Reset to default state for next command.
@@ -1680,6 +1685,7 @@ the above."
 		  (nth 0 idlwave-shell-halt-frame)
 		  (nth 1 idlwave-shell-halt-frame))
 		 idlwave-shell-bp-alist)))
+	;(message "Scanning with %s" bp)
 	(if bp
 	    (let ((cmd (idlwave-shell-bp-get bp 'cmd)))
 	      (if cmd ;; Execute any breakpoint command
@@ -1689,7 +1695,6 @@ the above."
 	  (idlwave-shell-bp-query)))
       (setq idlwave-shell-current-state 'breakpoint)      
       (idlwave-shell-display-line (idlwave-shell-pc-frame)))
-
      
      ;; Last Priority: Can't Step errors
      ((string-match idlwave-shell-cant-continue-error
@@ -2409,7 +2414,7 @@ Uses IDL's stepover executive command which does not enter called functions."
    (concat ".so " (if (integerp arg) (int-to-string arg) arg))
    nil (if (idlwave-shell-hide-p 'debug) 'mostly) nil t))
 
-(defun idlwave-shell-break-here (&optional count cmd condition)
+(defun idlwave-shell-break-here (&optional count cmd condition no-show)
   "Set breakpoint at current line.  
 
 If Count is nil then an ordinary breakpoint is set.  We treat a count
@@ -2428,8 +2433,9 @@ the breakpoint."
   (idlwave-shell-set-bp
    ;; Create breakpoint
    (idlwave-shell-bp (idlwave-shell-current-frame)
-		     (list count cmd condition)
-		     (idlwave-shell-current-module))))
+		     (list count cmd condition nil)
+		     (idlwave-shell-current-module))
+   no-show))
 
 (defun idlwave-shell-set-bp-check (bp)
   "Check for failure to set breakpoint.
@@ -2473,10 +2479,11 @@ breakpoint can not be set."
   ;; Clear pending commands
   (setq idlwave-shell-pending-commands nil))
 
-(defun idlwave-shell-cont ()
+(defun idlwave-shell-cont (&optional no-show)
   "Continue executing."
   (interactive)
-  (idlwave-shell-send-command ".c" '(idlwave-shell-redisplay 'hide)
+  (idlwave-shell-send-command ".c" (unless no-show 
+				     '(idlwave-shell-redisplay 'hide))
 			      (if (idlwave-shell-hide-p 'debug) 'mostly) 
 			      nil t))
 
@@ -2508,8 +2515,7 @@ Clears in IDL and in `idlwave-shell-bp-alist'."
     (if index
         (progn
           (idlwave-shell-send-command
-           (concat "breakpoint,/clear," 
-		   (if (integerp index) (int-to-string index) index))
+           (concat "breakpoint,/clear," (int-to-string index))
 	   nil (idlwave-shell-hide-p 'breakpoint) nil t)
 	  (idlwave-shell-bp-query)))))
 
@@ -2545,36 +2551,49 @@ Returns nil if unable to obtain a module name."
 This command can be called from the shell buffer if IDL is currently stopped
 at a breakpoint."
   (interactive)
-  (let ((bp (idlwave-shell-find-bp (idlwave-shell-current-frame))))
-    (if bp (idlwave-shell-clear-bp bp)
-      ;; Try moving to beginning of statement
-      (save-excursion
-        (idlwave-shell-goto-frame)
-        (idlwave-beginning-of-statement)
-        (setq bp (idlwave-shell-find-bp (idlwave-shell-current-frame)))
-        (if bp (idlwave-shell-clear-bp bp)
-          (beep)
-          (message "Cannot identify breakpoint for this line"))))))
+  (let ((bp (idlwave-shell-find-current-bp)))
+    (if bp (idlwave-shell-clear-bp bp))))
 
-(defun idlwave-shell-disable-all-bp (&optional enable)
-  "Disable all breakpoints we know about.
-If ENABLE is non-nil, enable them instead."
-  (let  ((bpl idlwave-shell-bp-alist))
-    (while bpl
+
+(defun idlwave-shell-toggle-enable-current-bp (&optional bp force
+							 no-update)
+  "Disable or enable current bp."
+  (interactive)
+  (let* ((bp (or bp (idlwave-shell-find-current-bp)))
+	 (disabled (idlwave-shell-bp-get bp 'disabled)))
+    (cond ((eq force 'disable) (setq disabled nil))
+	  ((eq force 'enable) (setq disabled t)))
+    (when bp
+      (setf (nth 3 (cdr (cdr bp))) (not disabled))
       (idlwave-shell-send-command 
        (concat "breakpoint,"
-	       (if enable "/enable," "/disable," )
-	       (idlwave-shell-bp-get (car bpl)))
+	       (if disabled "/enable," "/disable,")
+	       (int-to-string (idlwave-shell-bp-get bp)))
        nil (idlwave-shell-hide-p 'breakpoint) nil t)
-      (setq bpl (cdr bpl)))))
+      (unless no-update (idlwave-shell-bp-query)))))
+
+(defun idlwave-shell-enable-all-bp (&optional enable no-update bpl)
+  "Disable all breakpoints we know about which need disabling.
+If ENABLE is non-nil, enable them instead."
+  (let  ((bpl (or bpl idlwave-shell-bp-alist)) disabled modified)
+    (while bpl
+      (setq disabled (idlwave-shell-bp-get (car bpl) 'disabled))
+      (when (idlwave-xor (not disabled) (eq enable 'enable))
+	(idlwave-shell-toggle-enable-current-bp 
+	 (car bpl) (if (eq enable 'enable) 'enable 'disable) no-update)
+	(push (car bpl) modified))
+      (setq bpl (cdr bpl)))
+    (unless no-update (idlwave-shell-bp-query))
+    modified))
   
 (defun idlwave-shell-to-here ()
   "Set a breakpoint with count 1 then continue."
   (interactive)
-  (idlwave-shell-disable-all-bp)
-  (idlwave-shell-break-here 1)
-  (idlwave-shell-cont)
-  (idlwave-shell-disable-all-bp 'enable))
+  (let ((disabled (idlwave-shell-enable-all-bp 'disable 'no-update)))
+    (idlwave-shell-break-here 1 nil nil 'no-show)
+    (idlwave-shell-cont 'no-show)
+    (idlwave-shell-enable-all-bp 'enable 'no-update disabled))
+  (idlwave-shell-redisplay)) ; sync up everything at the end
 
 (defun idlwave-shell-break-this-module (&optional arg)
   (interactive "P")
@@ -2682,18 +2701,20 @@ Runs to the last statement and then steps 1 statement.  Use the .out command."
   "Move to the next or previous breakpoint, depending on direction DIR."
   (let* ((frame (idlwave-shell-current-frame))
 	 (file (car frame))
-	 (bp-line (nth 1 frame))
+	 (orig-bp-line (nth 1 frame))
 	 (bp-alist idlwave-shell-bp-alist)
-	 bp got-bp)
+	 (orig-func (if (> dir 0) '> '<))
+	 (closer-func (if (> dir 0) '< '>))
+	 bp got-bp bp-line cur-line)
     (while (setq bp (pop bp-alist))
       (when (string= file (car (car bp)))
 	(setq got-bp 1)
-	(if (funcall (if (> dir 0) '> '<)
-		     (nth 1 (car bp)) bp-line)
-	    (setq bp-line (nth 1 (car bp))))))
-    (unless got-bp (error "No breakpoints set in this file."))
-    (unless (not (equal bp-line (nth 1 frame)))
-      (error "No further breakpoints."))
+	(setq cur-line (nth 1 (car bp)))
+	(if (and
+	     (funcall orig-func cur-line orig-bp-line)
+	     (or (not bp-line) (funcall closer-func cur-line bp-line)))
+	    (setq bp-line cur-line))))
+    (unless bp-line (error "No further breakpoints."))
     (goto-line bp-line)))
 
 ;; Examine Commands ------------------------------------------------------
@@ -3120,7 +3141,7 @@ size(___,/DIMENSIONS)"
   "Alist of breakpoints.
 A breakpoint is a cons cell \(\(file line\) . \(\(index module\) data\)\)
 
-The car is the frame for the breakpoint:
+The car is the `frame' for the breakpoint:
 file - full path file name.
 line - line number of breakpoint - integer.
 
@@ -3130,7 +3151,7 @@ module - the module for breakpoint internal to IDL.
 
 Remaining elements of the cdr:
 data - Data associated with the breakpoint by idlwave-shell currently
-contains three items:
+contains four items:
 
 count - number of times to execute breakpoint. When count reaches 0
   the breakpoint is cleared and removed from the alist.
@@ -3139,7 +3160,9 @@ command - command to execute when breakpoint is reached, either a
   lisp function to be called with `funcall' with no arguments or a
   list to be evaluated with `eval'.
 
-condition - any condition to apply to the breakpoint.")
+condition - any condition to apply to the breakpoint.
+
+disabled - whether the bp is disabled")
 
 (defun idlwave-shell-run-region (beg end &optional n)
   "Compile and run the region using the IDL process.
@@ -3226,21 +3249,22 @@ Does not work for a region with multiline blocks - use
 (defvar idlwave-shell-bp-buffer " *idlwave-shell-bp*"
   "Scratch buffer for parsing IDL breakpoint lists and other stuff.")
 
-(defun idlwave-shell-bp-query ()
+(defun idlwave-shell-bp-query (&optional no-show)
   "Reconcile idlwave-shell's breakpoint list with IDL's.
 Queries IDL using the string in `idlwave-shell-bp-query'."
   (interactive)
   (idlwave-shell-send-command idlwave-shell-bp-query
-			      'idlwave-shell-filter-bp
+			      `(progn
+				(idlwave-shell-filter-bp (quote ,no-show)))
 			      'hide))
 
 (defun idlwave-shell-bp-get (bp &optional item)
-  "Get a value for a breakpoint.
-BP has the form of elements in idlwave-shell-bp-alist.
-Optional second arg ITEM is the particular value to retrieve.
-ITEM can be 'file, 'line, 'index, 'module, 'count, 'cmd, 'condition, or 'data.
-'data returns a list of 'count, 'cmd and 'condition.
-Defaults to 'index."
+  "Get a value for a breakpoint.  
+BP has the form of elements in idlwave-shell-bp-alist.  Optional
+second arg ITEM is the particular value to retrieve.  ITEM can be
+'file, 'line, 'index, 'module, 'count, 'cmd, 'condition, 'disabled or
+'data.  'data returns a list of 'count, 'cmd and 'condition.  Defaults
+to 'index."
   (cond
    ;; Frame
    ((eq item 'line) (nth 1 (car bp)))
@@ -3250,6 +3274,7 @@ Defaults to 'index."
    ((eq item 'count) (nth 0 (cdr (cdr bp))))
    ((eq item 'cmd) (nth 1 (cdr (cdr bp))))
    ((eq item 'condition) (nth 2 (cdr (cdr bp))))
+   ((eq item 'disabled) (nth 3 (cdr (cdr bp))))
    ;; IDL breakpoint info
    ((eq item 'module) (nth 1 (car (cdr bp))))
    ;;    index - default
@@ -3269,8 +3294,19 @@ breakpoint overlays."
 	  ;; Searching the breakpoints
 	  ;; In IDL 5.5, the breakpoint reporting format changed.
 	  (bp-re54 "^[ \t]*\\([0-9]+\\)[ \t]+\\(\\S-+\\)?[ \t]+\\([0-9]+\\)[ \t]+\\(\\S-+\\)")
-	  (bp-re55 "^\\s-*\\([0-9]+\\)\\s-+\\([0-9]+\\)\\s-+\\(Uncompiled\\|\\(\\(Func=\\|Pro=\\)\\(\\$?[a-zA-Z][a-zA-Z0-9$_:]*\\$?\\)\\)\\)\\(\\s-*,\\s-*After=[0-9]+\\(/[0-9]+\\)?\\)?\\(\\s-*,\\s-*\\(Condition='.*'\\|\\S-+\\)\n?\\)*\\s-+\\(\\S-+\\)")
-	  file line index module 
+	  (bp-re55 
+	   (concat 
+	    "^\\s-*\\([0-9]+\\)"    ; 1 index
+	    "\\s-+\\([0-9]+\\)"     ; 2 line number
+	    "\\s-+\\(Uncompiled\\|" ; 3-6 either uncompiled or routine name
+	    "\\(\\(Func=\\|Pro=\\)\\(\\$?[a-zA-Z][a-zA-Z0-9$_:]*\\$?\\)\\)\\)"
+	    "\\(\\s-*,\\s-*After=[0-9]+/\\([0-9]+\\)?\\)?" ; 7-8 After part
+	    "\\(\\s-*,\\s-*\\(BreakOnce\\)\\)?"            ; 9-10 BreakOnce
+	    "\\(\\s-*,\\s-*\\(Condition='\\(.*\\)'\\)\n?\\)?" ; 11-13 Condition
+	    "\\(\\s-*,\\s-*\\(Disabled\\)\n?\\)?"          ; 14-15 Disabled
+	    "\\s-+\\(\\S-+\\)"))                           ; 16 File name
+	  file line index module
+	  count condition disabled
 	  bp-re indmap)
       (setq idlwave-shell-bp-alist (list nil))
       ;; Search for either header type, and set the correct regexp
@@ -3281,42 +3317,48 @@ breakpoint overlays."
 	     (if (re-search-forward 
 		  "^\\s-*Index\\s-*Line\\s-*Attributes\\s-*File" nil t)
 		 (setq bp-re bp-re55    ; versions >= 5.5
-		       indmap '(1 6 2 11))))
-	;; There seems to be a breakpoint listing here.
-	;; Parse breakpoint lines.
-	;; Breakpoints have the form 
-        ;;    for IDL<=v5.4:
-	;;  Index Module Line File
-	;;  All separated by whitespace. 
-	;;  Module may be missing if the file is not compiled.
-        ;;    for IDL>=v5.5:
-	;;  Index Line Attributes File
-	;;    (attributes replaces module, "Uncompiled" included)
+		       indmap '(1 6 2 16)))) ; index module line file
+	;; There seems to be a breakpoint listing here, parse breakpoint lines.
 	(while (re-search-forward bp-re nil t)
-	  (setq index (match-string (nth 0 indmap))
+	  (setq index (string-to-int (match-string (nth 0 indmap)))
 		module (match-string (nth 1 indmap))
 		line (string-to-int (match-string (nth 2 indmap)))
 		file (idlwave-shell-file-name (match-string (nth 3 indmap))))
+	  (if (eq bp-re bp-re55)
+	      (setq count (if (match-string 10) 1 
+			    (if (match-string 8)
+				(string-to-int (match-string 8))))
+		    condition (match-string 13)
+		    disabled (not (null (match-string 15)))))
+		    
 	  ;; Add the breakpoint info to the list
 	  (nconc idlwave-shell-bp-alist
 		 (list (cons (list file line)
 			     (list
 			      (list index module)
-			      ;; idlwave-shell data: count, command, condition
-			      nil nil nil))))))
+			      ;; bp data: count, command, condition, disabled
+			      count nil condition disabled))))))
       (setq idlwave-shell-bp-alist (cdr idlwave-shell-bp-alist))
       ;; Update breakpoint data
-      (mapcar 'idlwave-shell-update-bp old-bp-alist)))
+      (if (eq bp-re bp-re54) 
+	  (mapcar 'idlwave-shell-update-bp old-bp-alist)
+	(mapcar 'idlwave-shell-update-bp-command-only old-bp-alist))))
   ;; Update the breakpoint overlays
   (unless no-show (idlwave-shell-update-bp-overlays))
   ;; Return the new list
   idlwave-shell-bp-alist)
 
-(defun idlwave-shell-update-bp (bp)
+(defun idlwave-shell-update-bp-command-only (bp)
+  (idlwave-shell-update-bp bp t))
+
+(defun idlwave-shell-update-bp (bp &optional command-only)
   "Update BP data in breakpoint list.
 If BP frame is in `idlwave-shell-bp-alist' updates the breakpoint data."
   (let ((match (assoc (car bp) idlwave-shell-bp-alist)))
-    (if match (setcdr (cdr match) (cdr (cdr bp))))))
+    (if match 
+	(if command-only 
+	    (setf (nth 1 (cdr (cdr match))) (nth 1 (cdr (cdr match))))
+	  (setcdr (cdr match) (cdr (cdr bp)))))))
 
 (defun idlwave-shell-set-bp-data (bp data)
   "Set the data of BP to DATA."
@@ -3346,30 +3388,30 @@ Otherwise return the filename in bp."
         (nth 1 internal-file-list)
       bp-file)))
 
-(defun idlwave-shell-set-bp (bp)
+(defun idlwave-shell-set-bp (bp &optional no-show)
   "Try to set a breakpoint BP.  
 The breakpoint will be placed at the beginning of the statement on the
 line specified by BP or at the next IDL statement if that line is not
 a statement.  Determines IDL's internal representation for the
 breakpoint, which may have occured at a different line than
-specified."
+specified.  If NO-SHOW is non-nil, don't do any updating."
   ;; Get and save the old breakpoints
   (idlwave-shell-send-command 
    idlwave-shell-bp-query
-   '(progn
-      (idlwave-shell-filter-bp)
-      (setq idlwave-shell-old-bp idlwave-shell-bp-alist))
+   `(progn
+     (idlwave-shell-filter-bp (quote ,no-show))
+     (setq idlwave-shell-old-bp idlwave-shell-bp-alist))
    'hide)
   ;; Get sources for IDL compiled procedures followed by setting
   ;; breakpoint.
   (idlwave-shell-send-command
    idlwave-shell-sources-query
    `(progn
-      (idlwave-shell-sources-filter)
-      (idlwave-shell-set-bp2 (quote ,bp)))
+     (idlwave-shell-sources-filter)
+     (idlwave-shell-set-bp2 (quote ,bp) (quote ,no-show)))
    'hide))
 
-(defun idlwave-shell-set-bp2 (bp)
+(defun idlwave-shell-set-bp2 (bp &optional no-show)
   "Use results of breakpoint and sources query to set bp.
 Use the count argument with IDLs breakpoint command.
 We treat a count of 1 as a temporary breakpoint. 
@@ -3394,19 +3436,20 @@ only after reaching the statement count times."
 	     key)
      ;; Check for failure and look for breakpoint in IDL's list
      `(progn
-       (if (idlwave-shell-set-bp-check (quote ,bp))
-           (idlwave-shell-set-bp3 (quote ,bp))))
+	(if (idlwave-shell-set-bp-check (quote ,bp))
+           (idlwave-shell-set-bp3 (quote ,bp) (quote ,no-show))))
      ;; hide output?
      (idlwave-shell-hide-p 'breakpoint)
      'preempt t)))
 
-(defun idlwave-shell-set-bp3 (bp)
+(defun idlwave-shell-set-bp3 (bp &optional no-show)
   "Find the breakpoint in IDL's internal list of breakpoints."
   (idlwave-shell-send-command idlwave-shell-bp-query
 			      `(progn
-                                (idlwave-shell-filter-bp 'no-show)
-                                (idlwave-shell-new-bp (quote ,bp))
-				(idlwave-shell-update-bp-overlays))
+				 (idlwave-shell-filter-bp (quote ,no-show))
+				 (idlwave-shell-new-bp (quote ,bp))
+				 (unless (quote ,no-show)
+				   (idlwave-shell-update-bp-overlays)))
 			      'hide
 			      'preempt))
 
@@ -3414,6 +3457,20 @@ only after reaching the statement count times."
   "Return breakpoint from `idlwave-shell-bp-alist' for frame.
 Returns nil if frame not found."
   (assoc frame idlwave-shell-bp-alist))
+
+(defun idlwave-shell-find-current-bp ()
+  "Find breakpoint here, or at halt location."
+  (let ((bp (idlwave-shell-find-bp (idlwave-shell-current-frame))))
+    (when (not bp)
+      ;; Try moving to beginning of halted-at statement
+      (save-excursion
+	(idlwave-shell-goto-frame)
+	(idlwave-beginning-of-statement)
+	(setq bp (idlwave-shell-find-bp (idlwave-shell-current-frame))))
+      (unless bp
+	(beep)
+	(message "Cannot identify breakpoint for this line")))
+    bp))
 
 (defun idlwave-shell-new-bp (bp)
   "Find the new breakpoint in IDL's list and update with DATA.
@@ -3447,6 +3504,7 @@ considered the new breakpoint if the file name of frame matches."
 (defun idlwave-shell-update-bp-overlays ()
   "Update the overlays which mark breakpoints in the source code.
 Existing overlays are recycled, in order to minimize consumption."
+  ;(message "Updating Overlays")
   (when idlwave-shell-mark-breakpoints
     (let ((ov-alist (copy-alist idlwave-shell-bp-overlays))
 	  (bp-list idlwave-shell-bp-alist)
@@ -3473,22 +3531,33 @@ Existing overlays are recycled, in order to minimize consumption."
 		 (beg (progn (beginning-of-line 1) (point)))
 		 (condition (idlwave-shell-bp-get bp 'condition))
 		 (count (idlwave-shell-bp-get bp 'count))
+		 (disabled (idlwave-shell-bp-get bp 'disabled))
 		 (type (if idlwave-shell-bp-glyph
 			   (cond
 			    (condition 'bp-cond )
 			    (count
-			     (if (<= count 4)
-				 (intern
-				  (concat "bp-" (number-to-string count)))
-			       'bp-n))
+			     (cond
+			      ((<= count 0) 'bp)
+			      ((<= count 4)
+			       (intern
+				(concat "bp-" (number-to-string count))))
+			      (t 'bp-n)))
 			    (t 'bp))
 			 'bp))
-		 (ov-existing (assq type ov-alist))
+		 (full-type (if disabled
+				(intern (concat (symbol-name type)
+						"-disabled"))
+			      type))
+		 (ov-existing (assq full-type ov-alist))
 		 (ov (or (and (cdr ov-existing)
 			      (pop (cdr ov-existing)))
-			 (idlwave-shell-make-new-bp-overlay type))))
+			 (idlwave-shell-make-new-bp-overlay type disabled)))
+		 match)
 	    (move-overlay ov beg end)
-	    (push ov (cdr (assq type idlwave-shell-bp-overlays))))
+	    (if (setq match (assq full-type idlwave-shell-bp-overlays))
+		(push ov (cdr match))
+	      (nconc idlwave-shell-bp-overlays
+		     (list (list full-type ov)))))
 	  ;; Take care of margins if using a glyph
 	  (when use-glyph
 	    (if old-buffers 
@@ -3509,7 +3578,7 @@ Existing overlays are recycled, in order to minimize consumption."
 
 
 (defvar idlwave-shell-bp-glyph)
-(defun idlwave-shell-make-new-bp-overlay (&optional type)
+(defun idlwave-shell-make-new-bp-overlay (&optional type disabled)
   "Make a new overlay for highlighting breakpoints.  
 This stuff is strongly dependant upon the version of Emacs.  If TYPE
 is passed, make an overlay of that type ('bp or 'bp-cond, currently
@@ -3528,9 +3597,10 @@ only for glyphs)"
 	   
 	   ;; use the glyph
 	   (use-glyph
-	    (set-extent-property ov 'begin-glyph 
-				 (cdr (assq type idlwave-shell-bp-glyph)))
-	    (set-extent-property ov 'begin-glyph-layout 'outside-margin))
+	    (let ((glyph (cdr (assq type idlwave-shell-bp-glyph))))
+	      (if disabled (setq glyph (car glyph)) (setq glyph (nth 1 glyph)))
+	      (set-extent-property ov 'begin-glyph glyph)
+	      (set-extent-property ov 'begin-glyph-layout 'outside-margin)))
 
 	   ;; use the face
 	   (idlwave-shell-mark-breakpoints
@@ -3543,12 +3613,17 @@ only for glyphs)"
       (cond
        (window-system
 	(if use-glyph
-	    (let ((string 
+	    (let ((image-props (cdr (assq type idlwave-shell-bp-glyph)))
+		  string)
+	      
+	      (if disabled (setq image-props
+				 (append image-props 
+					 (list :conversion 'disabled))))
+	      (setq string 
 		   (propertize "@" 
 			       'display 
 			       (list (list 'margin 'left-margin)
-				     (cdr (assq type 
-						idlwave-shell-bp-glyph))))))
+				     image-props)))
 	      (overlay-put ov 'before-string string))
 	  ;; just the face
 	  (overlay-put ov 'face idlwave-shell-breakpoint-face)))
@@ -3881,6 +3956,7 @@ Otherwise, just expand the file name."
 	  ([(control ?j)]   ?j   idlwave-shell-break-this-module t t)
 	  ([(control ?d)]   ?d   idlwave-shell-clear-current-bp t)
 	  ([(control ?a)]   ?a   idlwave-shell-clear-all-bp t)
+	  ([(control ?\\)]  ?\\  idlwave-shell-toggle-enable-current-bp t)
 	  ([(control ?s)]   ?s   idlwave-shell-step t)
 	  ([(control ?n)]   ?n   idlwave-shell-stepover t)
 	  ([(control ?k)]   ?k   idlwave-shell-skip t)
@@ -3959,6 +4035,7 @@ Otherwise, just expand the file name."
 (define-key idlwave-shell-electric-debug-mode-map "x" 
   '(lambda (arg) (interactive "P") 
      (idlwave-shell-print arg nil nil t)))
+
 
 ; Enter the prefix map in two places.
 (fset 'idlwave-debug-map       idlwave-mode-prefix-map)
@@ -4061,7 +4138,7 @@ idlwave-shell-electric-debug-mode-map)
      idlwave-shell-electric-debug-mode
      :style toggle :selected idlwave-shell-electric-debug-mode 
      :included (eq major-mode 'idlwave-mode) :keys "C-c C-d C-v"]
-     ["--" nil (eq major-mode 'idlwave-mode)]
+    "--"
     ("Compile & Run"
      ["Save and .RUN" idlwave-shell-save-and-run
       (or (eq major-mode 'idlwave-mode)
@@ -4085,17 +4162,28 @@ idlwave-shell-electric-debug-mode-map)
     ("Breakpoints"
      ["Set Breakpoint" idlwave-shell-break-here 
       :keys "C-c C-d C-c" :active (eq major-mode 'idlwave-mode)]
+     ("Set Special Breakpoint"
+      ["Set After Count Breakpoint"
+       (progn
+	(let ((count (string-to-int (read-string "Break after count: "))))
+	      (if (integerp count) (idlwave-shell-break-here count))))
+       :active (eq major-mode 'idlwave-mode)]
+      ["Set Condition Breakpoint"
+       (idlwave-shell-break-here '(4))
+       :active (eq major-mode 'idlwave-mode)])
      ["Break in Module" idlwave-shell-break-in 
       :keys "C-c C-d C-i" :active (eq major-mode 'idlwave-mode)]
      ["Break in this Module" idlwave-shell-break-this-module
       :keys "C-c C-d C-j" :active (eq major-mode 'idlwave-mode)]
      ["Clear Breakpoint" idlwave-shell-clear-current-bp t]
      ["Clear All Breakpoints" idlwave-shell-clear-all-bp t]
+     ["Disable/Enable Breakpoint" idlwave-shell-toggle-enable-current-bp t]
      ["Goto Previous Breakpoint" idlwave-shell-goto-previous-bp 
       :keys "C-c C-d [" :active (eq major-mode 'idlwave-mode)]
      ["Goto Next Breakpoint" idlwave-shell-goto-next-bp 
       :keys "C-c C-d ]" :active (eq major-mode 'idlwave-mode)]
-     ["List All Breakpoints" idlwave-shell-list-all-bp t])
+     ["List All Breakpoints" idlwave-shell-list-all-bp t]
+     ["Resync Breakpoints" idlwave-shell-bp-query t])
     ("Continue/Step"
      ["Step (into)" idlwave-shell-step t]
      ["Step (over)" idlwave-shell-stepover t]
@@ -4338,7 +4426,12 @@ static char * file[] = {
   (while (setq im-cons (pop image-alist))
     (setq im (cond ((and (featurep 'xemacs)
 			 (featurep 'xpm))
-		    (make-glyph (cdr im-cons)))
+		    (list
+		     (let ((data (cdr im-cons)))
+		       (string-match "#FFFF00000000" data)
+		       (setq data (replace-match "#8F8F8F8F8F8F" t t data))
+		       (make-glyph data))
+		     (make-glyph (cdr im-cons))))
 		   ((and (not (featurep 'xemacs))
 			 (fboundp 'image-type-available-p)
 			 (image-type-available-p 'xpm))
