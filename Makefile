@@ -221,10 +221,15 @@ distfile: $(DISTFILES)
 	mkdir idlwave-$(TAG)
 	cp -p $(DISTFILES) idlwave-$(TAG)/
 	chmod ug+rw idlwave-$(TAG)/*
-	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' idlwave-$(TAG)/* $(HELPDISTFILES)
+	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' idlwave-$(TAG)/* 
 	tar czvf idlwave-$(TAG).tar.gz idlwave-$(TAG)
-	tar czvf idlwave-$(TAG)-help.tar.gz $(HELPDISTFILES)
 	rm -rf idlwave-$(TAG)	
+	rm -rf idlwave-help-$(TAG)
+	mkdir idlwave-help-$(TAG)
+	cp -p $(HELPDISTFILES) idlwave-help-$(TAG)/
+	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' idlwave-help-$(TAG)/*.el
+	tar czvf idlwave-$(TAG)-help.tar.gz -C idlwave-help-$(TAG) $(HELPDISTFILES)
+	rm -rf idlwave-help-$(TAG)
 
 .PHONY: dist
 dist: $(WEBDISTFILES)
