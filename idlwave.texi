@@ -252,6 +252,25 @@ Examining variables and expressions with a mouse click.
 And much, much more...
 @end itemize
 
+@ifnottex
+@cindex Screenshots
+Here are a number of screenshots showing IDLWAVE in action:
+
+@itemize @bullet
+@item
+@uref{http://idlwave.org/screenshots/emacs_21_nav.gif,An IDLWAVE buffer}
+@item
+@uref{http://idlwave.org/screenshots/emacs_21_keys.gif,A keyword being completed}
+@item
+@uref{http://idlwave.org/screenshots/emacs_21_help.gif,Online help text.}
+@item
+@uref{http://idlwave.org/screenshots/emacs_21_ri.gif,Routine information displayed}
+@item
+@uref{http://idlwave.org/screenshots/emacs_21_bp.gif,Debugging code
+stopped at a breakpoint}
+@end itemize
+@end ifnottex
+
 IDLWAVE is the successor to the @file{idl.el} and @file{idl-shell.el}
 files written by Chris Chase.  The modes and files had to be renamed
 because of a name space conflict with CORBA's @code{idl-mode}, defined in
@@ -2739,21 +2758,21 @@ several places:
 @emph{Builtin routines} are defined inside IDL itself.  The source
 code of such routines is not available.
 @item
-Routines which is @emph{part of the current program} are defined in a
+Routines which are @emph{part of the current program}, defined in a
 file which is explicitly compiled by the user.  This file may or may not
 be located on the IDL search path.
 @item 
-@emph{Library routines} are defined in special files located somewhere
-on IDL's search path.  When a library routine is called for the first
-time, IDL will find the source file and compile it dynamically.  A
-special category of library routines are the @emph{system routines}
-distributed with IDL, and usually available in the @file{lib}
-subdirectory of the IDL distribution.
+@emph{Library routines} are defined in files located on IDL's search
+path, and will need not be manually compiled.  When a library routine is
+called for the first time, IDL will find the source file and compile it
+dynamically.  A special sub-category of library routines are the
+@emph{system routines} distributed with IDL, and usually available in
+the @file{lib} subdirectory of the IDL distribution.
 @item
 External routines written in other languages (like Fortran or C) can be
 called with @code{CALL_EXTERNAL}, linked into IDL via @code{LINKIMAGE},
 or included as dynamically loaded modules (DLMs).  Currently IDLWAVE
-cannot provide routine info and completion for external routines.
+cannot provide routine info and completion for such external routines.
 @end enumerate
 
 @node Routine Information Sources, Library Catalog, Routine Definitions, Sources of Routine Info
@@ -3191,4 +3210,3 @@ instead. FIXME:  unfinished.
 @printindex cp
 
 @bye
-
