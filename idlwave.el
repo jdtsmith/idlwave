@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2004/06/28 04:16:41 $
+;; Date: $Date: 2004/10/13 20:26:26 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -3033,8 +3033,12 @@ groupings, are treated separately."
 		     (current-column)))
 		  
 		  ;; Continued assignment (with =):
-		  ((looking-at "[^=\n\r]*\\(=\\)[ \t]*")
-		   (goto-char (match-end 0))
+		  ((catch 'assign ;
+		     (while (looking-at "[^=\n\r]*\\(=\\)[ \t]*")
+		       (goto-char (match-end 0))
+		       (if (eq (car (parse-partial-sexp (match-end 0) end-reg))
+			       0)
+			   (throw 'assign t))))
 		   (unless (or
 			    (idlwave-in-quote)
 			    (looking-at "[ \t$]*\\(;.*\\)?$")
