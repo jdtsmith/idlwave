@@ -1,11 +1,11 @@
 ;;; idlwave.el --- IDL and WAVE CL editing mode for GNU Emacs
-;; Copyright (c) 1999, 2000, 2001 Free Software Foundation
+;; Copyright (c) 1999, 2000, 2001,2002 Free Software Foundation
 
 ;; Author: Carsten Dominik <dominik@astro.uva.nl>
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/04/23 20:53:54 $
+;; Date: $Date: 2002/05/13 21:53:45 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -187,29 +187,46 @@ line up with the block BEGIN lines."
 (defcustom idlwave-continuation-indent 2
   "*Extra indentation applied to continuation lines.
 This extra offset applies to the first of a set of continuation lines.
-The following lines receive the same indentation as the first.
-Also, the value of this variable applies to continuation lines inside
-parenthesis.  When the current line contains an open unmatched ([{,
-the next line is indented to that parenthesis plus the value of this variable."
+The following lines receive the same indentation as the first."
+  :group 'idlwave-code-formatting
+  :type 'integer)
+
+(defcustom idlwave-max-extra-continuation-indent 20
+  "*Maximum additional indentation for special continuation indent.
+Several special indentations are tried to help line up continuation
+lines in routine calls or definitions, other statements with
+parentheses, or assigment statements.  This variable specifies a
+maximum amount by which this special indentation can exceed the
+standard continuation indentation, otherwise defaulting to a fixed
+offset.  Set to 0 to effectively disable all special continuation
+indentation, or to a large number (like 100) to enable it in all
+cases.  See also `idlwave-indent-top-open-paren', which can override
+this variable."
   :group 'idlwave-code-formatting
   :type 'integer)
 
 (defcustom idlwave-indent-to-open-paren t
-  "*Non-nil means, indent continuation lines to innermost open parenthesis.
-This is done in a way so that matching parens are lined up.
-Example:
+  "*Non-nil means, indent continuation lines to innermost open
+parenthesis.  This indentation occurs even if otherwise disallowed by
+`idlwave-max-extra-continuation-indent'.  Matching parens and the
+interleaving args are lined up.  Example:
 
-  x = function_a(function_b(function_c( a, b, $
+  x = function_a(function_b(function_c( a, b, [1,2,3, $
+                                               4,5,6 $
+                                              ], $
                                         c, d $
                                       )))
 
-When this variable is nil, such lines only receive the normal
-`idlwave-continuation-indent'.  Example:
+When this variable is nil, paren alignment may still occur, based on
+the value of `max-extra-continuation-indent', which, if zero, would
+yield:
 
-  x = function_a(function_b(function_c( a, b, $
-    c, d $
-    )))"
-  :group 'idlwave-code-formatting
+  x = function_a(function_b(function_c( a, b, [1,2,3, $
+     4,5,6 $
+     ], $
+     c, d $
+     )))"
+ :group 'idlwave-code-formatting
   :type 'boolean)
 
 (defcustom idlwave-hanging-indent t
@@ -1573,6 +1590,7 @@ Capitalize system variables - action only
 (define-key idlwave-mode-map "\C-c\C-n" 'idlwave-next-statement)
 ;; (define-key idlwave-mode-map "\r"       'idlwave-newline)
 ;; (define-key idlwave-mode-map "\t"       'idlwave-indent-line)
+(define-key idlwave-mode-map (kbd "S-<iso-lefttab>") 'idlwave-indent-statement)
 (define-key idlwave-mode-map "\C-c\C-a" 'idlwave-auto-fill-mode)
 (define-key idlwave-mode-map "\M-q"     'idlwave-fill-paragraph)
 (define-key idlwave-mode-map "\M-s"     'idlwave-edit-in-idlde)
@@ -1647,11 +1665,14 @@ Capitalize system variables - action only
   "Abbreviation table used for IDLWAVE mode")
 (define-abbrev-table 'idlwave-mode-abbrev-table ())
 
-(defun idlwave-define-abbrev (name expansion hook &optional table)
-  "Define-abbrev with backward compatibility."
+(defun idlwave-define-abbrev (name expansion hook &optional noprefix table)
+  "Define-abbrev with backward compatibility.
+
+If NOPREFIX is non-nil, don't prepend prefix character.  Installs into
+idlwave-mode-abbrev-table unless TABLE is non-nil."
   (let ((abbrevs-changed nil)  ;; mask the current value to avoid save
 	(args (list (or table idlwave-mode-abbrev-table)
-		    (concat idlwave-abbrev-start-char name)
+		    (if noprefix name (concat idlwave-abbrev-start-char name))
 		    expansion
 		    hook)))
     (condition-case nil
@@ -1724,7 +1745,7 @@ Capitalize system variables - action only
 (idlwave-define-abbrev "t"  "then"         (idlwave-keyword-abbrev 0 t))
 (idlwave-define-abbrev "u"  "until"        (idlwave-keyword-abbrev 0 t))
 (idlwave-define-abbrev "wu" "writeu,"      (idlwave-keyword-abbrev 0))
-(idlwave-define-abbrev "iap" "if arg_present()"     (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "iap" "if arg_present() then"     (idlwave-keyword-abbrev 6))
 (idlwave-define-abbrev "ik" "if keyword_set() then" (idlwave-keyword-abbrev 6))
 (idlwave-define-abbrev "ine" "if n_elements() eq 0 then" (idlwave-keyword-abbrev 11))
 (idlwave-define-abbrev "inn" "if n_elements() ne 0 then" (idlwave-keyword-abbrev 11))
@@ -1735,45 +1756,45 @@ Capitalize system variables - action only
   
 ;; This section is reserved words only. (From IDL user manual)
 ;;
-(idlwave-define-abbrev "and"        "and"        (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "begin"      "begin"      (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "break"      "break"      (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "case"       "case"       (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "common"     "common"     (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "continue"   "continue"   (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "do"         "do"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "else"       "else"       (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "end"        "end"        'idlwave-show-begin-check)
-(idlwave-define-abbrev "endcase"    "endcase"    'idlwave-show-begin-check)
-(idlwave-define-abbrev "endelse"    "endelse"    'idlwave-show-begin-check)
-(idlwave-define-abbrev "endfor"     "endfor"     'idlwave-show-begin-check)
-(idlwave-define-abbrev "endif"      "endif"      'idlwave-show-begin-check)
-(idlwave-define-abbrev "endrep"     "endrep"     'idlwave-show-begin-check)
-(idlwave-define-abbrev "endswitch"  "endswitch"  'idlwave-show-begin-check)
-(idlwave-define-abbrev "endwhi"     "endwhi"     'idlwave-show-begin-check)
-(idlwave-define-abbrev "endwhile"   "endwhile"   'idlwave-show-begin-check)
-(idlwave-define-abbrev "eq"         "eq"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "for"        "for"        (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "function"   "function"   (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "ge"         "ge"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "goto"       "goto"       (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "gt"         "gt"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "if"         "if"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "le"         "le"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "lt"         "lt"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "mod"        "mod"        (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "ne"         "ne"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "not"        "not"        (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "of"         "of"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "on_ioerror" "on_ioerror" (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "or"         "or"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "pro"        "pro"        (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "repeat"     "repeat"     (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "switch"     "switch"     (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "then"       "then"       (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "until"      "until"      (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "while"      "while"      (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "xor"        "xor"        (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "and"        "and"       (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "begin"      "begin"     (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "break"      "break"     (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "case"       "case"      (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "common"     "common"    (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "continue"   "continue"  (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "do"         "do"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "else"       "else"      (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "end"        "end"       'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endcase"    "endcase"   'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endelse"    "endelse"   'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endfor"     "endfor"    'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endif"      "endif"     'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endrep"     "endrep"    'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endswitch"  "endswitch" 'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endwhi"     "endwhi"    'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endwhile"   "endwhile"  'idlwave-show-begin-check t)
+(idlwave-define-abbrev "eq"         "eq"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "for"        "for"       (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "function"   "function"  (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "ge"         "ge"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "goto"       "goto"      (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "gt"         "gt"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "if"         "if"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "le"         "le"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "lt"         "lt"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "mod"        "mod"       (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "ne"         "ne"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "not"        "not"       (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "of"         "of"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "on_ioerror" "on_ioerror" (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "or"         "or"        (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "pro"        "pro"       (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "repeat"     "repeat"    (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "switch"     "switch"    (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "then"       "then"      (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "until"      "until"     (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "while"      "while"     (idlwave-keyword-abbrev 0 t) t)
+(idlwave-define-abbrev "xor"        "xor"       (idlwave-keyword-abbrev 0 t) t)
 
 (defvar imenu-create-index-function)
 (defvar extract-index-name-function)
@@ -2670,9 +2691,10 @@ See `idlwave-surround'. "
 	       (idlwave-surround 0 0))
 	      (t)))))	       
 
-(defun idlwave-indent-and-action ()
-  "Call `idlwave-indent-line' and do expand actions."
-  (interactive)
+(defun idlwave-indent-and-action (&optional arg)
+  "Call `idlwave-indent-line' and do expand actions.
+With prefix ARG non-nil, indent the entire sub-statement."
+  (interactive "p")
   (save-excursion
     (if	(and idlwave-expand-generic-end 
 	     (re-search-backward "\\<\\(end\\)\\s-*\\=" 
@@ -2682,7 +2704,9 @@ See `idlwave-surround'. "
 	       ;;Expand the END abbreviation, just as RET or Space would have.
 	       (if abbrev-mode (expand-abbrev)
 		 (idlwave-show-begin)))))
-  (idlwave-indent-line t))
+  (if arg 
+      (idlwave-indent-statement)
+    (idlwave-indent-line t)))
 
 (defun idlwave-indent-line (&optional expand)
   "Indents current IDL line as code or as a comment.
@@ -2780,6 +2804,15 @@ Inserts spaces before markers at point."
       (indent-region beg (point) nil))
     (message "Indenting subprogram...done.")))
 
+(defun idlwave-indent-statement ()
+  "Indent current statement, including all continuation lines."
+  (interactive)
+  (save-excursion
+    (idlwave-beginning-of-statement)
+    (let ((beg (point)))
+      (idlwave-end-of-statement)
+      (indent-region beg (point) nil))))
+
 (defun idlwave-calculate-indent ()
   "Return appropriate indentation for current line as IDL code."
   (save-excursion
@@ -2798,7 +2831,7 @@ Inserts spaces before markers at point."
      (t (let ((the-indent
                ;; calculate indent based on previous statement
                (save-excursion
-                 (cond
+		 (cond
                   ((idlwave-previous-statement)
                    0)
                   ;; Main block
@@ -2817,78 +2850,137 @@ Inserts spaces before markers at point."
           ;; adjust the indentation based on the current statement
           (cond
            ;; End block
-           ((idlwave-look-at idlwave-end-block-reg t)
-            (+ the-indent idlwave-end-offset))
+           ((idlwave-look-at idlwave-end-block-reg)
+	    (+ the-indent idlwave-end-offset))
            (the-indent)))))))
 
 ;;
-;; Parenthesses balacing/indent
+;; Parentheses balacing/indent
 ;;
+
+(defun idlwave-calculate-paren-indent (beg-reg end-reg close-exp)
+  "Calculate the continuation indent inside a paren group.
+Returns a cons-cell with (open . indent), where open is the 
+location of the open paren"
+  (let ((open (nth 1 (parse-partial-sexp beg-reg end-reg))))
+    ;; Found an innermost open paren.
+    (when open
+      (goto-char open)
+      ;; Line up with next word unless this is a closing paren.
+      (cons open
+	    (cond
+	     ;; This is a closed paren - line up under open paren.
+	     (close-exp
+	      (current-column))
+	     ;; Empty (or just comment) - just line up next to paren
+	     ((progn
+		;; Skip paren
+		(forward-char 1)
+		(looking-at "[ \t$]*\\(;.*\\)?$"))
+	      (current-column))
+	     ;; Line up with first word after blank space
+	     ((progn
+		(skip-chars-forward " \t")
+		(current-column))))))))
 
 (defun idlwave-calculate-cont-indent ()
   "Calculates the IDL continuation indent column from the previous statement.
 Note that here previous statement means the beginning of the current
-statement if this statement is a continuation of the previous line.
-Intervening comments or comments within the previous statement can
-screw things up if the comments contain parentheses characters."
+statement if this statement is a continuation of the previous line."
   (save-excursion
     (let* (open
            (case-fold-search t)
            (end-reg (progn (beginning-of-line) (point)))
            (close-exp (progn (skip-chars-forward " \t") (looking-at "\\s)")))
-           (beg-reg (progn (idlwave-previous-statement) (point))))
-      ;;
-      ;; If PRO or FUNCTION declaration indent after name, and first comma.
-      ;;
-      (if (idlwave-look-at "\\<\\(pro\\|function\\)[ \t]+[a-zA-Z0-9$_:]+\\>")
-          (progn
-            (goto-char (match-end 0))
-            (if (looking-at "[ \t]*,[ \t]*")
-                (goto-char (match-end 0)))
-            (current-column))
-        ;;
-        ;; Not a PRO or FUNCTION
-        ;;
-        ;; Look for innermost unmatched open paren
-        ;;
-        (if (and idlwave-indent-to-open-paren
-		 (setq open (car (cdr (parse-partial-sexp beg-reg end-reg)))))
-		 
-            ;; Found innermost open paren.
-            (progn
-              (goto-char open)
-	      ;; Line up with next word unless this is a closing paren.
-              (cond
-               ;; This is a closed paren - line up under open paren.
-               (close-exp
-                (current-column))
-               ;; Empty - just add regular indent. Take into account
-               ;; the forward-char
-               ((progn
-                  ;; Skip paren
-                  (forward-char 1)
-                  (looking-at "[ \t$]*$"))
-                (+ (current-column) idlwave-continuation-indent -1))
-               ;; Line up with first word
-               ((progn
-                  (skip-chars-forward " \t")
-                  (current-column)))))
-          ;; No unmatched open paren (or the user asked us to ignore them...)
-	  ;; So we just do a simple continuation.
-          (goto-char beg-reg)
-	  ;; Handle some special cases
-	  (cond
-	   ;; Procedure call (objects ignored)
-	   ((looking-at "[ \t]*[a-zA-Z][a-zA-Z0-9$_]*[ \t]*,[ \t]*")
-	    (goto-char (match-end 0))
-	    (current-column))
-	   (t
+           (beg-reg (progn (idlwave-previous-statement) (point)))
+	   (basic-indent 	   ;; The basic, non-fancy indent
 	    (+ (idlwave-current-indent)
-	       ;; Make adjustments based on current line
+	       ;; Move else statement back over
 	       (if (and (goto-char end-reg)
 			(looking-at "[ \t]*else"))
 		   0
-		 idlwave-continuation-indent)))))))))
+		 idlwave-continuation-indent)))
+	   (fancy-nonparen-indent  ;; A smarter indent for routine/assignments
+	    ;; Try without parens first:
+	    (progn
+	      (goto-char beg-reg)
+	      (cond
+	       ;; A continued Procedure call or definition
+	       ((looking-at "\\(\\<pro\\|function\\)?[ \t]*\\([a-zA-Z0-9$_]+\\(->\\|::\\)\\)?[a-zA-Z][a-zA-Z0-9$_]*[ \t]*\\(,\\)[ \t]*")
+		(goto-char (match-end 0))
+		;; Comment only, or blank line with "$"?  Align with ,
+		(if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))
+		    (goto-char (match-end 4)))
+		(current-column))
+	       ;; Continued assignment (with =), 
+	       ;; or label/struct member (with :)
+	       ((looking-at "[ \t]*[a-zA-Z0-9$_]+[ \t]*\\([=:]\\)[ \t]*")
+		(goto-char (match-end 0))
+		;; Comment only?  Align with =
+		(if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))
+		    (goto-char (match-end 1)))
+		(current-column)))))
+	   (fancy-nonparen-indent-allowed
+ 	    (and fancy-nonparen-indent
+		 (< (- fancy-nonparen-indent basic-indent)
+		    idlwave-max-extra-continuation-indent)))
+	   (fancy-paren-indent-cons     ;; A smarter indent for paren groups
+	    ;; Look for any enclosing parens
+	    (idlwave-calculate-paren-indent beg-reg end-reg close-exp))
+	   (fancy-paren-open (car fancy-paren-indent-cons))
+	   (fancy-paren-indent (cdr fancy-paren-indent-cons))
+	   (fancy-paren-indent-allowed
+	    (and fancy-paren-indent
+		 (or idlwave-indent-to-open-paren ;; override
+		     (< (- fancy-paren-indent basic-indent)
+			idlwave-max-extra-continuation-indent))))
+	    fancy-enclosing-parent-indent)
+      (cond 
+       ;; an allowed paren indent
+       (fancy-paren-indent-allowed 
+;	(message "allowed paren indent")
+	fancy-paren-indent)
+
+       ;; a disallowed paren indent nested inside one or more other
+       ;; parens: indent relative to the first allowed enclosing paren
+       ;; set, if any... if it's actually a greater indent, just use
+       ;; the fancy-paren-indent anyway.
+       ((and fancy-paren-indent
+	     (not fancy-paren-indent-allowed)
+	     (setq fancy-enclosing-paren-indent
+		   (let ((enclose-open fancy-paren-open)
+			 enclose-indent-cons
+			 enclose-indent)
+		     (catch 'loop
+		       (while (setq enclose-indent-cons
+				    (idlwave-calculate-paren-indent 
+				     beg-reg (max (1- enclose-open) beg-reg)
+				     nil)
+				    enclose-open   (car enclose-indent-cons)
+				    enclose-indent (cdr enclose-indent-cons))
+			 (if (< (- enclose-indent basic-indent)
+				idlwave-max-extra-continuation-indent)
+			     (throw 'loop enclose-indent)))))))
+;	(message "non-allowed paren, relative to nested paren indent")
+	(min fancy-paren-indent
+	     (+ fancy-enclosing-paren-indent idlwave-continuation-indent)))
+	       	
+       ;; a disallowed paren indent inside another type: indent relative
+       ((and fancy-paren-indent 	
+	     (not fancy-paren-indent-allowed)
+	     fancy-nonparen-indent-allowed )
+;	(message "non-allowed paren-ident, relative to non-paren")
+	(+ fancy-nonparen-indent idlwave-continuation-indent))
+
+       ;; an allowed nonparen-only indent
+       (fancy-nonparen-indent-allowed
+;	(message "non-paren-indent")
+	fancy-nonparen-indent)
+
+       ;; everything else
+       (t 
+;	(message "basic indent") 
+	basic-indent)))))
 
 (defun idlwave-find-key (key-re &optional dir nomark limit)
   "Move to next match of the regular expression KEY-RE.
@@ -2970,9 +3062,16 @@ Skips any whitespace. Returns 0 if the end-of-line follows the whitespace."
           ((current-column)))))
 
 (defun idlwave-is-continuation-line ()
-  "Tests if current line is continuation line."
+  "Tests if current line is continuation line.
+Blank or comment-only lines following regular continuation lines (with
+`$') count as continuations too."
   (save-excursion
-    (idlwave-look-at "\\<\\$")))
+    (or 
+     (idlwave-look-at "\\<\\$")
+     (catch 'loop
+       (while (and (looking-at "^[ \t]*\\(;.*\\)?$") 
+		   (eq (forward-line -1) 0))
+	 (if (idlwave-look-at "\\<\\$") (throw 'loop t)))))))
 
 (defun idlwave-is-comment-line ()
   "Tests if the current line is a comment line."
@@ -4919,10 +5018,10 @@ end
   ;; the user may have killed or redefined it.  In particular,
   ;; .RESET_SESSION will kill all user procedures.
   (unless (and idlwave-idlwave_routine_info-compiled
-	       (file-readable-p idlwave-shell-temp-rinfo-save-file))
+	       (file-readable-p (idlwave-shell-temp-file 'rinfo)))
     (save-excursion
       (set-buffer (idlwave-find-file-noselect
-		   idlwave-shell-temp-pro-file))
+		   (idlwave-shell-temp-file 'pro)))
       (erase-buffer)
       (insert idlwave-routine-info.pro)
       (save-buffer 0))
@@ -4932,7 +5031,7 @@ end
 ;    (message "SENDING SAVE") ; ????????????????????????
     (idlwave-shell-send-command
      (format "save,'idlwave_routine_info','idlwave_print_info_entry',FILE='%s',/ROUTINES" 
-	     idlwave-shell-temp-rinfo-save-file)
+	     (idlwave-shell-temp-file 'rinfo))
      nil 'hide))
 
   ;; Restore and execute the procedure, analyze the output
@@ -5718,7 +5817,7 @@ This function is not general, can only be used for completion stuff."
 	 ((memq (preceding-char) '(?\; ?\$)) (throw 'exit nil))
 	 ((eq (preceding-char) ?\n)
 	  (beginning-of-line 0)
-	  (if (looking-at "\\([^;]\\)*\\$[ \t]*\\(;.*\\)?\n")
+	  (if (looking-at "\\([^;\n]*\\)\\$[ \t]*\\(;[^\n]*\\)?\n")
 	      ;; continuation line
 	      (goto-char (match-end 1))
 	    (throw 'exit nil)))
@@ -5906,6 +6005,93 @@ Show PROMPT in echo area.  TYPE is one of 'function, 'procedure or 'keyword."
 ;;----------------------------------------------------------------------
 ;;----------------------------------------------------------------------
 ;;----------------------------------------------------------------------
+(defvar rtn)
+(defun idlwave-pset (item)
+  (set 'rtn item))
+
+(defun idlwave-popup-select (ev list title &optional sort)
+  "Select an item in LIST with a popup menu.
+TITLE is the title to put atop the popup.  If SORT is non-nil,
+sort the list before displaying"
+  (let ((maxpopup idlwave-max-popup-menu-items)
+	rtn menu resp)
+    (cond ((null list))
+	  ((= 1 (length list))
+	   (setq rtn (car list)))
+	  ((featurep 'xemacs)
+	   (if sort (setq list (sort list (lambda (a b) 
+					    (string< (upcase a) (upcase b))))))
+	   (setq menu
+		 (append (list title)
+			 (mapcar (lambda (x) (vector x (list 'idlwave-pset
+							     x)))
+				 list)))
+	   (setq menu (idlwave-split-menu-xemacs menu maxpopup))
+	   (setq resp (get-popup-menu-response menu))
+	   (funcall (event-function resp) (event-object resp)))
+	  (t
+	   (if sort (setq list (sort list (lambda (a b) 
+					    (string< (upcase a) (upcase b))))))
+	   (setq menu (cons title
+			    (list
+			     (append (list "")
+				     (mapcar (lambda(x) (cons x x)) list)))))
+	   (setq menu (idlwave-split-menu-emacs menu maxpopup))
+	   (setq rtn (x-popup-menu ev menu))))
+    rtn))
+
+(defun idlwave-split-menu-xemacs (menu N)
+  "Split the MENU into submenus of maximum length N."
+  (if (<= (length menu) (1+ N))
+      ;; No splitting needed
+      menu
+    (let* ((title (car menu))
+	   (entries (cdr menu))
+	   (menu (list title))
+	   (cnt 0)
+	   (nextmenu nil))
+      (while entries
+	(while (and entries (< cnt N))
+	  (setq cnt (1+ cnt)
+		nextmenu (cons (car entries) nextmenu)
+		entries (cdr entries)))
+	(setq nextmenu (nreverse nextmenu))
+	(setq nextmenu (cons (format "%s...%s"
+				     (aref (car nextmenu) 0)
+				     (aref (nth (1- cnt) nextmenu) 0))
+			     nextmenu))
+	(setq menu (cons nextmenu menu)
+	      nextmenu nil
+	      cnt 0))
+      (nreverse menu))))
+
+(defun idlwave-split-menu-emacs (menu N)
+  "Split the MENU into submenus of maximum length N."
+  (if (<= (length (nth 1 menu)) (1+ N))
+      ;; No splitting needed
+      menu
+    (let* ((title (car menu))
+	   (entries (cdr (nth 1 menu)))
+	   (menu nil)
+	   (cnt 0)
+	   (nextmenu nil))
+      (while entries
+	(while (and entries (< cnt N))
+	  (setq cnt (1+ cnt)
+		nextmenu (cons (car entries) nextmenu)
+		entries (cdr entries)))
+	(setq nextmenu (nreverse nextmenu))
+	(prin1 nextmenu)
+	(setq nextmenu (cons (format "%s...%s"
+				     (car (car nextmenu))
+				     (car (nth (1- cnt) nextmenu)))
+			     nextmenu))
+	(setq menu (cons nextmenu menu)
+	      nextmenu nil
+	      cnt 0))
+      (setq menu (nreverse menu))
+      (setq menu (cons title menu))
+      menu)))
 
 (defvar idlwave-completion-setup-hook nil)
 
@@ -6105,6 +6291,15 @@ Point is expected just before the opening `{' of the struct definition."
 	(goto-char (match-end 0)))
       (nreverse names))))
 
+(defun idlwave-in-structure ()
+  "Return t if point is inside an IDL structure."
+  (let ((beg (point)))
+    (save-excursion
+      (if (not (or (idlwave-in-comment) (idlwave-in-quote)))
+	  (if (idlwave-find-structure-definition nil nil 'back)
+	      (let ((borders (idlwave-struct-borders)))
+		(or (= (car borders) (cdr borders)) ;; struct not yet closed...
+		    (and (> beg (car borders)) (< beg (cdr borders))))))))))
 
 (defun idlwave-struct-borders ()
   "Return the borders of the {...} after point as a cons cell."
@@ -6117,12 +6312,12 @@ Point is expected just before the opening `{' of the struct definition."
       (cons beg (point)))))
 
 (defun idlwave-find-structure-definition (&optional var name bound)
-  "Search forward for a structure definition.
+  "Search forward for a structure definition.  
 If VAR is non-nil, search for a structure assigned to variable VAR.
-If NAME is non-nil, search for a named structure NAME.
-If BOUND is an integer, limit the search.
-If BOUND is the symbol `all', we search first back and then forward
-through the entire file."
+If NAME is non-nil, search for a named structure NAME.  If BOUND is an
+integer, limit the search.  If BOUND is the symbol `all', we search
+first back and then forward through the entire file.  If BOUND is the
+symbol `back' we search only backward."
   (let* ((ws "[ \t]*\\(\\$.*\n[ \t]*\\)?")
 	 (case-fold-search t)
 	 (lim (if (integerp bound) bound nil))
@@ -6132,9 +6327,9 @@ through the entire file."
 		"\\(\\)")
 	      "=" ws "\\({\\)"
 	      (if name (concat ws "\\<" (downcase name) "[^a-zA-Z0-9_$]") ""))))
-    (if (or (and (eq bound 'all)
+    (if (or (and (or (eq bound 'all) (eq bound 'back))
 		 (re-search-backward re nil t))
-	    (re-search-forward re lim t))
+	    (and (not (eq bound 'back)) (re-search-forward re lim t)))
 	(goto-char (match-beginning 3)))))
 
 (defvar idlwave-class-info nil)
@@ -6491,7 +6686,6 @@ Works for system routines and keywords only."
   ;; work.
   (setq this-command last-command)
   (idlwave-do-mouse-completion-help ev))
-  
 
 (defvar idlwave-help-is-loaded nil
   "Is online help avaiable?")
@@ -6807,7 +7001,7 @@ keyword region, change to the appropriate Init method."
 
     ;; If this is the OBJ_NEW function, try to figure out the class and use
     ;; the keywords from the corresponding INIT method.
-    (if (and (equal name "OBJ_NEW")
+    (if (and (equal (upcase name) "OBJ_NEW")
 	     (or (eq major-mode 'idlwave-mode)
 		 (eq major-mode 'idlwave-shell-mode)))
 	(let* ((bos (save-excursion (idlwave-beginning-of-statement) (point)))
