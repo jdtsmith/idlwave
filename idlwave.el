@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/07 00:09:32 $
+;; Date: $Date: 2001/12/10 16:28:51 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -2155,8 +2155,8 @@ Also checks if the correct end statement has been used."
 
 (defun idlwave-gtr-pad-hook (char) 
   "Let the > symbol expand around -> if present.
-The variable `length' is dynamically scoped from `idlwave-surround'"
-  (setq length 2))
+A new length is returned."
+  2)
 
 (defun idlwave-surround (&optional before after escape-chars length ec-hook)
   "Surround the LENGTH characters before point with blanks.
@@ -2179,18 +2179,14 @@ The function does nothing if any of the following conditions is true:
 If a function is passed in EC-HOOK, and an ESCAPE-CHARS match occurs,
 the named function will be called with a single argument of the
 preceeding character.  Then idlwave-surround will run as usual if
-EC-HOOK returns non-nil.  EC-HOOK should not move the point, and can
-change the let-bound `length' variable to change the length of the
-token to be padded."
+EC-HOOK returns non-nil, and a new length will be taken from the
+return value."
   (when (and idlwave-surround-by-blank (not (idlwave-quoted)))
     (let* ((length (or length 1)) ; establish a default for LENGTH
-	   (prev-char (char-after (- (point) (1+ length))))
-	   (ec-halt nil))
-      (if (memq prev-char escape-chars)
-	  (if (fboundp ec-hook) 
-	      (setq ec-halt (null (funcall ec-hook prev-char)))
-	    (setq ec-halt t)))
-      (unless ec-halt
+	   (prev-char (char-after (- (point) (1+ length)))))
+      (unless (and (memq prev-char escape-chars) (fboundp ec-hook) 
+		   (not (setq length 
+			      (save-excursion (funcall ec-hook prev-char)))))
 	(backward-char length)
 	(save-restriction
 	  (let ((here (point)))
