@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/31 21:29:41 $
+;; Date: $Date: 2002/01/11 23:39:25 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -2561,15 +2561,16 @@ If there is no label point is not moved and nil is returned."
   ;; - it is not in a comment
   ;; - not in a string constant
   ;; - not in parenthesis (like a[0:3])
+  ;; - not followed by another ":" in explicit class, ala a->b::c
   ;; As many in this mode, this function is heuristic and not an exact
   ;; parser. 
-  (let ((start (point))
-        (end (idlwave-find-key ":" 1 'nomark
-			       (save-excursion
-				 (idlwave-end-of-statement) (point)))))
+  (let* ((start (point))
+	 (eos (save-excursion (idlwave-end-of-statement) (point)))
+	 (end (idlwave-find-key ":" 1 'nomark eos)))
     (if (and end
              (= (nth 0 (parse-partial-sexp start end)) 0)
-	     (not (string-match "\\?" (buffer-substring start end))))
+	     (not (string-match "\\?" (buffer-substring start end)))
+	     (not (string-match "^::" (buffer-substring end eos))))
         (progn
           (forward-char)
           (point))
@@ -5023,8 +5024,10 @@ When we force a method or a method keyword, CLASS can specify the class."
 
      ((eq what 'procedure)
       ;; Complete a procedure name
-      (let* ((class-selector (idlwave-determine-class (nth 3 where-list) 'pro))
-	     (super-classes (idlwave-all-class-inherits class-selector))
+      (let* ((cw-list (nth 3 where-list))
+	     (class-selector (idlwave-determine-class cw-list 'pro))
+	     (super-classes (unless (idlwave-explicit-class-listed cw-list)
+			      (idlwave-all-class-inherits class-selector)))
 	     (isa (concat "procedure" (if class-selector "-method" "")))
 	     (type-selector 'pro))
 	(setq idlwave-completion-help-info 
@@ -5042,8 +5045,10 @@ When we force a method or a method keyword, CLASS can specify the class."
 
      ((eq what 'function)
       ;; Complete a function name
-      (let* ((class-selector (idlwave-determine-class (nth 3 where-list) 'fun))
-	     (super-classes (idlwave-all-class-inherits class-selector))
+      (let* ((cw-list (nth 3 where-list))
+	     (class-selector (idlwave-determine-class cw-list 'fun))
+	     (super-classes (unless (idlwave-explicit-class-listed cw-list)
+			      (idlwave-all-class-inherits class-selector)))
 	     (isa (concat "function" (if class-selector "-method" "")))
 	     (type-selector 'fun))
 	(setq idlwave-completion-help-info 
@@ -5391,6 +5396,13 @@ When TYPE is not specified, both procedures and functions will be considered."
       (setq list (cdr list)))
     (nreverse rtn)))
 
+(defun idlwave-explicit-class-listed (info)
+  "Return whether or not the class is listed explicitly, ala a->b::c.
+INFO is as returned by idlwave-what-function or -procedure."
+  (let ((apos (nth 3 info)))
+    (save-excursion (goto-char apos)
+		    (looking-at "->[a-zA-Z][a-zA-Z0-9$_]*::"))))
+
 (defun idlwave-determine-class (info type)
   ;; Determine the class of a routine call.  INFO is the structure returned
   ;; `idlwave-what-function' or `idlwave-what-procedure'.
@@ -5474,14 +5486,15 @@ When TYPE is not specified, both procedures and functions will be considered."
 	   )))
 
 (defun idlwave-where ()
-  "Find out where we are.
+  "Find out where we are. 
 The return value is a list with the following stuff:
-(PRO-LIST FUNC-LIST COMPLETE-WHAT CW-LIST LAST-CHAR)
+\(PRO-LIST FUNC-LIST COMPLETE-WHAT CW-LIST LAST-CHAR)
 
 PRO-LIST       (PRO POINT CLASS ARROW)
 FUNC-LIST      (FUNC POINT CLASS ARROW)
 COMPLETE-WHAT  a symbol indicating what kind of completion makes sense here
-CW-LIST        Like PRO-LIST, for what can be completed here.
+CW-LIST        (PRO-OR-FUNC POINT CLASS ARROW)  Like PRO-LIST, for what can 
+               be completed here.
 LAST-CHAR      last relevant character before point (non-white non-comment,
                not part of current identifier or leading slash).
 
@@ -5490,9 +5503,9 @@ PRO:    Procedure name
 FUNC:   Function name
 POINT:  Where is this
 CLASS:  What class has the routine (nil=no, t=is method, but class unknown)
-ARROW:  Where is the arrow?"
+ARROW:  Location of the arrow"
   (idlwave-routines)
-  (let* (;(bos (save-excursion (idlwave-beginning-of-statement) (point)))
+  (let* (;(bos (save-excursion (idlwave-beginning-of-statement) (point))) 
          (bos (save-excursion (idlwave-start-of-substatement 'pre) (point)))
  	 (func-entry (idlwave-what-function bos))
          (func (car func-entry))
@@ -5548,8 +5561,8 @@ ARROW:  Where is the arrow?"
 	(if (re-search-backward "->[ \t]*\\(\\([$a-zA-Z0-9_]+\\)::\\)?[$a-zA-Z0-9_]*\\=" bos t)
 	    (setq cw-arrow (match-beginning 0)
 		  cw-class (if (match-end 2)
-                               (idlwave-sintern-class (match-string 2))
-                              t))))))
+			       (idlwave-sintern-class (match-string 2))
+			     t))))))
     (list (list pro pro-point pro-class pro-arrow)
           (list func func-point func-class func-arrow)
           cw
