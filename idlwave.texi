@@ -30,7 +30,8 @@ Emacs, and interacting with an IDL shell run as a subprocess.
 This is edition @value{EDITION} of the IDLWAVE User Manual for IDLWAVE
 @value{VERSION}
 
-Copyright @copyright{} 1999, 2000, 2001 Free Software Foundation, Inc.
+Copyright @copyright{} 1999, 2000, 2001, 2002 Free Software Foundation,
+Inc.
 
 Permission is granted to make and distribute verbatim
 copies of this manual provided the copyright notice and
@@ -63,7 +64,7 @@ translation approved by the Free Software Foundation.
 
 @author by Carsten Dominik & J.D. Smith
 @page
-Copyright @copyright{} 1999, 2000, 2001 Free Software Foundation, Inc.
+Copyright @copyright{} 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
 
 @sp 2
 This is edition @value{EDITION} of the @cite{IDLWAVE User Manual} for
