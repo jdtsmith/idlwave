@@ -4,7 +4,7 @@
 #
 # Program to create IDLWAVE library catalogs.
 #
-# (c) 2002-2003 J.D. Smith <jdsmith@as.arizona.edu>
+# (c) 2002-2004 J.D. Smith <jdsmith@as.arizona.edu>
 #
 # Scans all IDL ".pro" files at the current level and recursively in
 # all directories beneath it, compiling a catalog of information for
@@ -32,7 +32,7 @@
 # (without spaces).  E.g. "NasaLib".  A file named .idlwave_catalog
 # will be created in each directory with ".pro" routine files.
 #
-# $Id: idlwave_catalog,v 1.4 2004/06/28 04:25:09 jdsmith Exp $
+# $Id: idlwave_catalog,v 1.5 2004/10/13 20:34:07 jdsmith Exp $
 
 use Getopt::Std;
 $opt_l=$opt_s=$opt_f=$opt_v=$opt_d=$opt_h=0;
