@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-
+#
 # Program to extract the information from the IDL manuals and IDL to
 # support IDLWAVE.
 # (c) 1999, 2000 Carsten Dominik <dominik@astro.uva.nl>
@@ -14,7 +14,7 @@
 #
 # Call this program from the command line like this:
 #
-#      get_rinfo --path path/to/pdffiles/ --idl /path/to/idl/executable
+#      get_rinfo -path path/to/pdffiles/ --idl /path/to/idl/executable
 #
 # This will convert the PDF files to ASCII, extract routine information,
 # talk to IDL and write the following files which are needed by IDLWAVE:
@@ -125,7 +125,7 @@
 # 5. UPDATE: Multi-Threading routines
 #    --------------------------------
 #    Routines that should have links to the MULTI-THREADING keywords,
-#    as described in teh documentation for routine CPU, because of
+#    as described in the documentation for routine CPU, because of
 #    their keywords are described there.  As of IDL v5.5, these
 #    keywords were not covered in the main documentation, and instead
 #    were added using a fixup file.  Future version of IDL should
@@ -168,14 +168,15 @@ require 5.004;
 # These are the files which contain "Syntax" descriptions.
 @rifiles = ("refguide.pdf","sdf.pdf","datamine.pdf","edg.pdf","obsolete.pdf",
 	    "whatsnew55.pdf");
+#@rifiles= ("refguide.pdf");
 
-# Set the list of files which will be used for fast online help.
-# More or less the same files as above, but you can leave out
-# long files which have only one or two Syntax entries, like
-# edg.pdf or insight.pdf.  Leaving them out makes the help file smaller.
+# Set the list of files which will be used to create fast online help.
+# More or less the same files as above, but you can leave out long
+# files which have only one or two Syntax entries, like edg.pdf or
+# insight.pdf.  Leaving them out makes the help file smaller.
 @olhfiles = ("refguide.pdf","sdf.pdf","datamine.pdf","obsolete.pdf",
 	     "whatsnew55.pdf");
-
+#@olhfiles=("refguide.pdf");
 # Parse command line options and make file names
 use Getopt::Long;
 GetOptions("-debug"     => \$debug,
@@ -216,7 +217,7 @@ $idl = $idl || "idl";
 # Establish default output file names
 $rinfofile  = "idlw-rinfo.el";
 $helpfile   = "idlw-help.txt";
-$topicsfile = "idlw-help.el";
+$topicsfile = "idlw-help-topics.el";
 
 # Establish default for the wrap width
 $wrapwidth = 65;
@@ -575,7 +576,7 @@ foreach $file (@files) {
 	# FIXME: When the threaded-routines are finally documented,
 	# the following will be unnecessary.
 	push @{$e{$class}{$type}{$name}{kwds}},
-	  qw(TPOOL_MAX_ELTS TPOOL_MIN_ELTS TPOOL_NTHREADS);
+	  qw(TPOOL_MAX_ELTS TPOOL_MIN_ELTS TPOOL_NOTHREAD);
       }
     }
   } continue { # Always write the help text, even if skipped.
@@ -874,7 +875,8 @@ sub check_special_keywords {
   my ($class,$name) = @_;
   my $fullname = uc(make_full_name($class,$name));
   foreach $special (keys %routines_with_special_keywords) {
-    if ( scalar(grep(/^$name$/,@{$routines_with_special_keywords{$special}}))
+    if ( scalar(grep(/^$fullname$/,
+		     @{$routines_with_special_keywords{$special}}))
 	 && !$has_special_keywords{$special}) {
       $has_special_keywords{$special} = 1;
       complain($parts{call},$file,
@@ -1461,6 +1463,17 @@ BEGIN {
 	 1;
        } else {0}
      },
+
+     sname("THREAD POOL KEYWORDS") =>
+     sub {
+       if ($syntax =~ /Graphics +Keywords *:/i) {
+	 $act = 1;
+	 $has_special_keywords{Graphics} = 1;
+	 1;
+       } else {0}
+     },
+
+     
      # ------------------------------------------------------------------
      # Typos ------------------------------------------------------------
      # ------------------------------------------------------------------
@@ -1566,7 +1579,6 @@ BEGIN {
        } else {0}
      }       
     );
-
   # UPDATE: Graphics Keywords Routines
   # ----------------------------------
   # Routines that should have links to the GRAPHICS KEYWORDS section.
@@ -1576,10 +1588,10 @@ BEGIN {
   # have this magic cookie will get theirs links set.
   %routines_with_special_keywords =
     (Graphics=>
-     qw(AXIS CONTOUR CURSOR DRAW_ROI ERASE MAP_SET OPLOT PLOT PLOTS
-	PLOT_3DBOX POLYFILL SHADE_SURF SURFACE TV TVCRS TVRD TVSCL XYOUTS),
-
-     # UPDATE: Threading Keywords Routines
+     [qw(AXIS CONTOUR DRAW_ROI ERASE MAP_SET MAP_GRID MAP_CONTINENTS
+         OPLOT PLOT PLOTS PLOT_3DBOX POLYFILL SHADE_SURF SURFACE TV TVCRS
+         TVRD TVSCL XYOUTS)],
+  # UPDATE: Threading Keywords Routines
   # ----------------------------------
   # Routines that should have links to the THREADING KEYWORDS section.
   # As of v5.5, it's unclear how these keywords will be indicated in
@@ -1587,15 +1599,13 @@ BEGIN {
   # New in IDL 5.5" document.  Presumably, a %specials section which
   # checks and adds an extra_keyword_topics, and sets
   # $has_threading_keywords is called for.
-  @routines_with_threading_keywords =
-
      MultiThreading=>
-     qw(ABS ACOS ALOG ALOG10 ASIN ATAN BINDGEN BYTE BYTEORDER BYTSCL CEIL
+     [qw(ABS ACOS ALOG ALOG10 ASIN ATAN BINDGEN BYTE BYTEORDER BYTSCL CEIL
 	CINDGEN COMPLEX CONJ CONVOL COS DCINDGEN DCOMPLEX DINDGEN DOUBLE
 	ERRORF EXP EXPINT FFT FINDGEN FINITE FIX FLOAT FLOOR GAMMA GAUSSINIT
 	IMAGINARY INDGEN INTERPOLATE ISHFT L64INDGEN LINDGEN LNGAMMA LONG64
 	MAX MIN POLY_2D REPLICATE ROUND SIN SINH SQRT TAN TANH TOTAL TVSCL
-	UINDGEN UINT UL64INDGEN ULINDGEN ULONG64 UNLONG VOIGT WHERE));
+	UINDGEN UINT UL64INDGEN ULINDGEN ULONG64 UNLONG VOIGT WHERE)]);
 
   # UPDATE: Special help topics
   # ---------------------------
@@ -1965,9 +1975,7 @@ sub write_help {
 }
 
 sub open_help_file {
-  # Open the files for fast online help
-  die "Cannot find required \"helpcode\" file from the IDLWAVE distribution\n"
-    unless -e "helpcode";
+  # Open the file for fast online help
   open HELP,   ">$helpfile"  or die "Cannot write to $helpfile\n";
   write_help_header();
 }
@@ -2023,7 +2031,6 @@ sub write_topics_file {
   open HELP,   "$helpfile"   or die "Cannot read $helpfile\n";
   open TOPICS, ">$topicsfile"  or die "Cannot write to $topicsfile\n";
   write_topics_header();
-  write_topics_code();
   print TOPICS "(setq idlwave-help-topics\n '(\n";
   my $sysvar_region = 0;
   my $cnt = -1;
@@ -2115,64 +2122,22 @@ EOF
 EOF
   printf TOPICS "(setq idlwave-help-frame-width %d)\n",
     $nowrap ? 102 : $wrapwidth+2;
-  write_topics_footer();
   close TOPICS;
   printf STDERR "Wrote file $topicsfile   (%4d kBytes)\n", 
   (-s $topicsfile)/1000.;
 }
-    
+
 sub write_topics_header {
-  my ($part_of) = $lisp_not_part_of_gnu_emacs;
   $date = localtime;
   chomp $date;
   ($progname = $0) =~ s|.*/||;
   chomp $progname;
   $n_files_scanned = @files;
   print TOPICS <<EOF;
-;;; $topicsfile --- Help code and topics for IDLWAVE
-;; Copyright (c) 2000 Carsten Dominik
-;; Copyright (c) 2001, 2002 J.D.Smith
-;;
-;; Author: Carsten Dominik <dominik\@astro.uva.nl>
-;; Maintainer: J.D. Smith <jdsmith\@as.arizona.edu>
-;; Version: VERSIONTAG
-$part_of
-;;; Commentary:
-
-;; The constants which contain the topics information for IDLWAVE's
-;; online help feature.  This information is extracted automatically from
-;; the IDL documentation.
-;;
 ;; Created by $progname on $date
 ;; IDL version: $idlversion
-;;
-;; New versions of IDLWAVE, documentation, and more information
-;; available from:
-;;                 http://idlwave.org
-;; 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;; Code:
-
 EOF
-} 
-
-sub write_topics_code { 
-  # Write the Emacs Lisp code section 
-  open HELPCODE,"helpcode" or die "Cannot open file helpcode";   
-  while ($_=<HELPCODE>) { 
-    next if /^;;;;;;00/;  
-    print TOPICS;  
-  } 
 }
-
-sub write_topics_footer {
-  print TOPICS <<EOF
-
-;;; $topicsfile ends here
-EOF
-} #'
-
 
 sub talk_to_idl {
   # Run IDL and get some important information
@@ -2508,3 +2473,6 @@ Carsten Dominik <dominik@astro.uva.nl>
 J.D. Smith <jdsmith@astro.cornell.edu>
 
 =cut
+
+
+
