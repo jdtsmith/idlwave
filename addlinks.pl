@@ -21,12 +21,10 @@ close DIR;
 die "No HTML files found.\n" unless @files;
 
 undef $/;
-my $others=
-  '<div class="CellBody">'.
+my $contents=
   '<a href="funclisting.html">Categories</a> | '.
-  '<a href="nav_procedures.html">Procedures</a> | '.
-  '<a href="nav_functions.html">Functions</a> | '.
-  '<a href="nav_objects.html">Classes</a> | '.
+  '<a href="idl_alph_class.html#ALPHABETICAL">Alphabetical</a> | '.
+  '<a href="idl_alph_class.html#OBJECTCLASS">Classes</a> | '.
   '<a href="idl_con.html">All Contents</a> | ';
 
 
@@ -34,14 +32,19 @@ foreach $file (@files) {
   open FILE, "<$file" or do {warn "Can't open $file... skipping"; next};
   $_=<FILE>;
   close FILE;
-  if (s@<!--\s*\<br\>\s*          # Opening comment
-       (\<a[ ]+href="[^"]+"\>)       # The link to the previous entry
-	\<img[ ]+src="images/prev.gif".*?\</a\>
-       (\<a[ ]+href="[^"]+"\>)    # The link to the next entry
-	.*?\s+--\>                # Everything through comment close, discard
-	@<hr>$others${1}[ &lt; ]</a> | ${2}[ &gt; ]</a></div>@sx) {
-    $links="${1}[ &lt; ]</a> | ${2}[ &gt; ]</a>";
-    s|^\<BODY\>|$&\n$others$links</div><hr>|m;
+  if (m|<meta\ name="PREV_PAGE"\ content="([^"]+)"\ />\s*
+	<meta\ name="NEXT_PAGE"\ content="([^"]+)"\ />|xs) {
+    my ($prev,$next)=($1,$2);
+
+    $links='<div class="CellBody">'.
+      $contents .
+      "<a href=\"$prev\">[ &lt; ]</a> | " .
+      "<a href=\"$next\">[ &gt; ]</a>" .
+      "</div>";
+
+    s|^\s*<body>|$&\n$links<hr>|m;
+    s|^\s*</body>|<hr>$links\n$&|m;
+
     open FILE, ">$file" or do {warn "Can't write to $file... skipping"; next};
     print FILE;
     close FILE;
