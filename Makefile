@@ -75,8 +75,8 @@ TEXIFILES  = idlwave.texi
 INFOFILES  = idlwave idlwave-1 idlwave-2 idlwave-3
 RINFOFILES = idlw-help.el idlw-help.txt idlw-rinfo.el
 HELPFILES  = idlw-help.el idlw-help.txt
-DLDIR     = /home2/www/html/idlwave/download
-HTMLDIR    = /home2/www/html/idlwave/
+DLDIR     = /home/www/html/idlwave/download
+HTMLDIR    = /home/www/html/idlwave/
 
 # An alternative installation point
 #MY_INFODIR = /home/strw/dominik/lib/emacs/info
