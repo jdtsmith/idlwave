@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/05/14 21:50:04 $
+;; Date: $Date: 2003/07/18 18:57:45 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -1253,11 +1253,11 @@ only by whitespace.")
   "Regular expression to find the beginning of a block. The case does
 not matter. The search skips matches in comments.")
 
-(defconst idlwave-begin-unit-reg "\\<\\(pro\\|function\\)\\>\\|\\`"
+(defconst idlwave-begin-unit-reg "^\\s-*\\(pro\\|function\\)\\>\\|\\`"
   "Regular expression to find the beginning of a unit. The case does
 not matter.")
 
-(defconst idlwave-end-unit-reg "\\<\\(pro\\|function\\)\\>\\|\\'"
+(defconst idlwave-end-unit-reg "^\\s-*\\(pro\\|function\\)\\>\\|\\'"
   "Regular expression to find the line that indicates the end of unit.
 This line is the end of buffer or the start of another unit. The case does
 not matter. The search skips matches in comments.")
@@ -1305,6 +1305,10 @@ blocks starting with a BEGIN statement.  The matches must have associations
 (defconst idlwave-label (concat idlwave-identifier ":")
   "Regular expression matching IDL labels.")
 
+(defconst idlwave-method-call (concat idlwave-identifier  "\\s *->"
+				      "\\(\\s *" idlwave-identifier "::\\)?"
+))
+
 (defconst idlwave-statement-match
   (list
    ;; "endif else" is the only possible "end" that can be
@@ -1321,8 +1325,16 @@ blocks starting with a BEGIN statement.  The matches must have associations
    '(goto . ("goto\\>" nil))
    '(case . ("case\\>" nil))
    '(switch . ("switch\\>" nil))
-   (cons 'call (list (concat idlwave-identifier "\\(\\s *$\\|\\s *,\\)") nil))
-   '(assign . ("[^=>\n]*=" nil)))
+   (cons 'call (list (concat "\\(" idlwave-variable "\\) *= *" 
+			     "\\(" idlwave-method-call "\\s *\\)?"
+			     idlwave-identifier
+			     "\\s *(") nil))
+   (cons 'call (list (concat 
+		      "\\(" idlwave-method-call "\\s *\\)?"
+		      idlwave-identifier 
+		      "\\( *$\\|\\s *,\\)") nil))
+   (cons 'assign (list (concat 
+			"\\(" idlwave-variable "\\) *=") nil)))
   
   "Associated list of statement matching regular expressions.
 Each regular expression matches the start of an IDL statement.  The
@@ -2127,12 +2139,12 @@ Also checks if the correct end statement has been used."
 		       (idlwave-beginning-of-statement) 
 		       (point))))
 	  (cond
+	   ((re-search-backward ":[ \t]*\\=" limit t)
+	    ;; seems to be a case thing
+	    '("begin" . "end"))
 	   ((re-search-backward idlwave-block-match-regexp limit t)
 	    (assoc (downcase (match-string 1))
 		   idlwave-block-matches))
-	   ;;((re-search-backward ":[ \t]*\\=" limit t)
-	   ;; ;; seems to be a case thing
-	   ;; '("begin" . "end"))
 	   (t
 	    ;; Just a nromal block
 	    '("begin" . "end")))))
@@ -2637,18 +2649,24 @@ See `idlwave-surround'. "
   ;; Even though idlwave-surround checks `idlwave-surround-by-blank' this
   ;; check saves the time of finding the statement type.
   (if idlwave-surround-by-blank
-      (let ((st (save-excursion
-                  (idlwave-start-of-substatement t)
-                  (idlwave-statement-type))))
-
-        (cond ((or (not (memq (car (car st)) '(pdef call)))
-		   (eq t idlwave-pad-keyword))
-	       ;; An assignment statement or keyword and we need padding
-	       (idlwave-surround before after))
-	      ((null idlwave-pad-keyword)
-	       ;; Spaces should be removed at a keyword
-	       (idlwave-surround 0 0))
-	      (t)))))
+      (if (eq t idlwave-pad-keyword)  
+	  ;; Everything gets padded equally
+	  (idlwave-surround before after)
+	;; Treating keywords/for variables specially...
+	(let ((st (save-excursion   ; To catch for variables
+		    (idlwave-start-of-substatement t)
+		    (idlwave-statement-type)))
+	      (what (save-excursion ; To catch keywords
+		      (skip-chars-backward "= \t")
+		      (nth 2 (idlwave-where)))))
+	  (cond ((or (memq what '(function-keyword procedure-keyword))
+		     (eq st 'for)) 
+		 (cond 
+		  ((null idlwave-pad-keyword)
+		   (idlwave-surround 0 0)) ; removed space
+		  (t))) ; leave alone
+		(t (idlwave-surround before after)))))))
+	      
 
 (defun idlwave-indent-and-action (&optional arg)
   "Call `idlwave-indent-line' and do expand actions.
@@ -2834,17 +2852,17 @@ location of the open paren"
       ;; Line up with next word unless this is a closing paren.
       (cons open
 	    (cond
+	     ;; This is a closed paren - line up under open paren.
+	     (close-exp
+	      (current-column))
+
 	     ;; Empty (or just comment) - just revert to basic indent
 	     ((progn
 		;; Skip paren
 		(forward-char 1)
 		(looking-at "[ \t$]*\\(;.*\\)?$"))
 	      nil)
-
-	     ;; This is a closed paren - line up under open paren.
-	     (close-exp
-	      (current-column))
-
+	     
 	     ;; Line up with first word after any blank space
 	     ((progn
 		(skip-chars-forward " \t")
@@ -2884,19 +2902,26 @@ statement if this statement is a continuation of the previous line."
 		  (idlwave-look-at "^[ \t]*\\(pro\\|function\\)") ;skip over
 		  (looking-at "[ \t]*\\([a-zA-Z0-9.$_]+[ \t]*->[ \t]*\\)?[a-zA-Z][:a-zA-Z0-9$_]*[ \t]*\\(,\\)[ \t]*"))
 		(goto-char (match-end 0))
-
 		;; Comment only, or blank line with "$"?  Basic indent.
 		(if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))
 		    nil
 		  (current-column)))
 
-	       ;; Continued assignment (with =), 
-	       ((looking-at "[ \t]*[][().a-zA-Z0-9$_]+[ \t]*\\(=\\)[ \t]*")
+	       ;; Continued assignment (with =):
+	       ((looking-at "[^=\n\r]*\\(=\\)[ \t]*")
 		(goto-char (match-end 0))
-		;; Comment only?  Revert to using basic indent
-		(if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))
-		    nil
-		  (current-column))))))
+		(if (looking-at (concat "[^\n\r]*" idlwave-block-match-regexp))
+		    ;; block match? No longer in assignment....
+		    ;;  a quoted block match doesn't count
+		    (if (save-excursion
+			  (goto-char (match-end 0))
+			  (idlwave-in-quote)) 
+			(current-column))
+		  (if (idlwave-in-quote) nil
+		    ;; Comment only?  Revert to using basic indent
+		    (if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))
+			nil
+		      (current-column))))))))
 	   (fancy-nonparen-indent-allowed ;is it permitted?
  	    (and fancy-nonparen-indent
 		 (< (- fancy-nonparen-indent basic-indent)
@@ -6983,15 +7008,22 @@ Gets set in `idlw-rinfo.el'.")
      ((eq mode 'test) ; we can at least link the main
       (and (stringp word) entry main))
      ((eq mode 'set)
-      
-      (when entry 
-	(if (string-match "#" main)
-	    (setq main-base (substring main 0 (match-beginning 0))))
-	(setq link 
-	      (if (setq target (cdr (assoc word tags)))
-		  (concat main-base "#" (number-to-string target))
+      (if entry 
+	  (setq link 
+		(if (setq target (cdr (assoc word tags)))
+		  (idlwave-substitute-link-target main target)
 		main)))) ;; setting dynamic!!!
      (t (error "This should not happen")))))
+
+(defun idlwave-substitute-link-target (link target)
+  "Substitute the target anchor for the given link."
+  (let (main-base)
+    (setq main-base (if (string-match "#" link)
+			(substring link 0 (match-beginning 0))
+		      link))
+    (if target
+	(concat main-base "#" (number-to-string target))
+      link)))
 
 ;; Fake help in the source buffer for class structure tags.
 ;; kwd and name are global-variables here.
@@ -7100,10 +7132,13 @@ associated TAG, if any."
 			       'face 'font-lock-string-face)))))))
 
 (defun idlwave-uniquify (list)
-  (let (nlist)
-    (loop for x in list do
-      (add-to-list 'nlist x))
-    nlist))
+  (let ((ht (make-hash-table :size (length list) :test 'equal)))
+    (delq nil 
+	  (mapcar (lambda (x)
+		    (unless (gethash x ht) 
+		      (puthash x t ht)
+		      x))
+		  list))))
 
 (defun idlwave-after-successful-completion (type slash &optional verify)
   "Add `=' or `(' after successful completion of keyword and function.
@@ -7264,16 +7299,17 @@ use.  With ARG force class query for object methods."
 	 (default (concat (idlwave-make-full-name (nth 2 module) (car module))
 			  (if (eq (nth 1 module) 'pro) "<p>" "<f>")))
 	 (list 
-	  (delq nil
-		(mapcar (lambda (x) 
-			  (if (eq 'system (car-safe (nth 3 x)))
-			      ;; Take out system routines with no source.
-			      nil
-			    (cons
-			     (concat (idlwave-make-full-name (nth 2 x) (car x))
-				     (if (eq (nth 1 x) 'pro) "<p>" "<f>"))
-			     (cdr x))))
-			(idlwave-routines))))
+	  (idlwave-uniquify
+	   (delq nil
+		 (mapcar (lambda (x) 
+			   (if (eq 'system (car-safe (nth 3 x)))
+			       ;; Take out system routines with no source.
+			       nil
+			     (list
+			      (concat (idlwave-make-full-name 
+				       (nth 2 x) (car x))
+				      (if (eq (nth 1 x) 'pro) "<p>" "<f>")))))
+			 (idlwave-routines)))))
 	 (name (idlwave-completing-read
 		(format "Module (Default %s): " 
 			(if default default "none"))
