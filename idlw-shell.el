@@ -5,7 +5,7 @@
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/09/12 16:35:18 $
+;; Date: $Date: 2002/10/11 23:27:05 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -1311,10 +1311,10 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 	    
 	    
 ;;; Test/Debug code
-;	     (save-excursion (set-buffer
-;			      (get-buffer-create "*idlwave-shell-output*"))
-;			     (goto-char (point-max))
-;			     (insert "\nSTRING===>\n" string "\n<====\n"))
+;	      (save-excursion (set-buffer
+;			       (get-buffer-create "*idlwave-shell-output*"))
+;			      (goto-char (point-max))
+;			      (insert "\nSTRING===>\n" string "\n<====\n"))
 	    
 	    ;; Check for prompt in current accumulating output
 	    (if (setq idlwave-shell-ready
@@ -1491,7 +1491,9 @@ should match the line number.")
 (defvar idlwave-shell-file-line-message
   (concat 
    "\\("                                 ; program name group (1)
-   "\\<[a-zA-Z][a-zA-Z0-9_$:]*"          ; start with a letter, followed by [..]
+   "\\$MAIN\\$\\|"                   	 ; main level routine
+   "\\<[a-zA-Z][a-zA-Z0-9_$:]*"      	 ; start with a letter, or $ for 
+					 ; $MAIN$, followed by [..]
    "\\([ \t]*\n[ \t]*[a-zA-Z0-9_$:]+\\)*"; continuation lines program name (2)
    "\\)"                                 ; end program name group (1)
    "[ \t\n]+"                            ; white space
@@ -1512,7 +1514,7 @@ The 5th group is the file name.
 All parts may contain linebreaks surrounded by spaces.  This is important
 in IDL5 which inserts random linebreaks in long module and file names.")
 
-(defun idlwave-shell-parse-line (string)
+(defun idlwave-shell-parse-line (string &optional skip-main)
   "Parse IDL message for the subroutine, file name and line number.
 We need to work hard here to remove the stupid line breaks inserted by
 IDL5.  These line breaks can be right in the middle of procedure
@@ -1532,11 +1534,14 @@ the first part of that garbage will be added to the file name.
 However, the function checks the existence of the files with and
 without this last part - thus the function only breaks if file name
 plus garbage match an existing regular file.  This is hopefully very
-unlikely."
+unlikely.
+
+If optional arg SKIP-MAIN is non-nil, don't parse $MAIN$ routine stop
+statements."
 
   (let (number procedure file)
-    (when (and (not (string-match ":\\s-*\\$MAIN" string))
-		(string-match idlwave-shell-file-line-message string))
+    (when (and (not (if skip-main (string-match ":\\s-*\\$MAIN" string)))
+	       (string-match idlwave-shell-file-line-message string))
       (setq procedure (match-string 1 string)
 	    number (match-string 3 string)
 	    file (match-string 5 string))
@@ -1639,7 +1644,9 @@ directory."
 (defun idlwave-shell-retall (&optional arg)
   "Return from the entire calling stack."
   (interactive "P")
-  (idlwave-shell-send-command "retall" nil (idlwave-shell-hide-p 'misc)))
+  (idlwave-shell-send-command "retall" nil (idlwave-shell-hide-p 'misc))
+  (if idlwave-shell-stop-line-overlay
+      (delete-overlay idlwave-shell-stop-line-overlay)))
 
 (defun idlwave-shell-closeall (&optional arg)
   "Close all open files."
@@ -1708,12 +1715,16 @@ HEAP_GC, /VERBOSE"
 	      text (substring text (match-end 0)))
       ;; Set dummy values and kill the text
       (setq sep "@" sep-re "@ *" text "")
-      (message "Routine Info warning: No match for BEGIN line in \n>>>>\n%s\n<<<<\n" 
-	       idlwave-shell-command-output))
+      (if idlwave-idlwave_routine_info-compiled
+	  (message 
+	   "Routine Info warning: No match for BEGIN line in \n>>>\n%s\n<<<\n" 
+	   idlwave-shell-command-output)))
     (if (string-match "^>>>END OF IDLWAVE ROUTINE INFO.*" text)
 	(setq text (substring text 0 (match-beginning 0)))
-      (message "Routine Info warning: No match for END line in \n>>>>\n%s\n<<<<\n" 
-	       idlwave-shell-command-output))
+      (if idlwave-idlwave_routine_info-compiled
+	  (message 
+	   "Routine Info warning: No match for END line in \n>>>\n%s\n<<<\n" 
+	   idlwave-shell-command-output)))
     (if (string-match "\\S-" text)
 	;; Obviously, the pro worked.  Make a note that we have it now.
 	(setq idlwave-idlwave_routine_info-compiled t))
@@ -1831,7 +1842,7 @@ Change the default directory for the process buffer to concur."
 
 (defun idlwave-shell-parse-object-class ()
   "Parse the output of the obj_class command."
-  (let ((match "print,obj_class([^\n\r]+[\n\r ]+"))
+  (let ((match "print,obj_class([^\n\r]+[\n\r ]"))
     (if (and
 	 (not (string-match (concat match match "\\s-*^[\n\r]+"
 				    "% Syntax error")
@@ -2400,6 +2411,9 @@ the expression will be put in place of ___, e.g.:
 
    print,size(___,/DIMENSIONS)
 
+HELP can also be a cons cell ( NAME . STRING ) in which case NAME will
+be used to label the help print-out.
+
 Otherwise, print is called on the expression.
 
 An expression is an identifier plus 1 pair of matched parentheses
@@ -2486,13 +2500,16 @@ idlw-shell-examine-alist from which to select the help command text."
       (if (string-match "\n[ \t\r]*\\'" expr)
 	  (setq expr (replace-match "" t t expr)))
       ;; Pop-up the examine selection list, if appropriate
-      (if (and ev idlwave-shell-examine-alist)
+      (if (or
+	   (and ev idlwave-shell-examine-alist)
+	   (consp help))
 	  (let* ((help-cons 
-		  (assoc 
-		   (idlwave-popup-select 
-		    ev (mapcar 'car idlwave-shell-examine-alist)
-		    "Examine with")
-		   idlwave-shell-examine-alist)))
+		  (if (consp help) help
+		    (assoc 
+		     (idlwave-popup-select 
+		      ev (mapcar 'car idlwave-shell-examine-alist)
+		      "Examine with")
+		     idlwave-shell-examine-alist))))
 	    (setq help (cdr help-cons))
 	    (if idlwave-shell-separate-examine-output
 		(setq idlwave-shell-examine-label 
@@ -2882,7 +2899,7 @@ from previous breakpoint list."
 	  ;; Searching the breakpoints
 	  ;; In IDL 5.5, the breakpoint reporting format changed.
 	  (bp-re54 "^[ \t]*\\([0-9]+\\)[ \t]+\\(\\S-+\\)?[ \t]+\\([0-9]+\\)[ \t]+\\(\\S-+\\)")
-	  (bp-re55 "^\\s-*\\([0-9]+\\)\\s-+\\([0-9]+\\)\\s-+\\(Uncompiled\\|Func=\\|Pro=\\)\\([a-zA-Z][a-zA-Z0-9$_:]*\\)\\(,[^\n]*\n\\)?\\s-+\\(\\S-+\\)")
+	  (bp-re55 "^\\s-*\\([0-9]+\\)\\s-+\\([0-9]+\\)\\s-+\\(Uncompiled\\|\\(Func=\\|Pro=\\)\\(\\$?[a-zA-Z][a-zA-Z0-9$_:]*\\$?\\)\\)\\(,[^\n]*\n\\)?\\s-+\\(\\S-+\\)")
 	  file line index module 
 	  bp-re indmap)
       (setq idlwave-shell-bp-alist (list nil))
@@ -2890,11 +2907,11 @@ from previous breakpoint list."
       (when (or 
 	     (if (re-search-forward "^\\s-*Index.*\n\\s-*-" nil t)
 		 (setq bp-re bp-re54    ; versions <= 5.4 
-		       indmap '(1 2 3 4)))
+		       indmap '(1 2 3 4))) ;index module line file
 	     (if (re-search-forward 
 		  "^\\s-*Index\\s-*Line\\s-*Attributes\\s-*File" nil t)
 		 (setq bp-re bp-re55    ; versions >= 5.5
-		       indmap '(1 4 2 6))))
+		       indmap '(1 5 2 7))))
 	;; There seems to be a breakpoint listing here.
 	;; Parse breakpoint lines.
 	;; Breakpoints have the form 
@@ -3212,7 +3229,7 @@ handled by this command."
 	       (memq 'compile-buffer idlwave-auto-routine-info-updates))
 	   idlwave-query-shell-for-routine-info
 	   idlwave-routines)
-      (idlwave-shell-update-routine-info t nil 'wait)))
+      (idlwave-shell-update-routine-info t nil wait)))
 
 (defvar idlwave-shell-sources-query "help,/source,/full"
   "IDL command to obtain source files for compiled procedures.")
@@ -3458,15 +3475,16 @@ Otherwise, just expand the file name."
     (setq k1  (nth 0 s)
 	  c2  (nth 1 s)
 	  cmd (nth 2 s))
-    (when idlwave-shell-activate-prefix-keybindings
-      (and k1 (define-key idlwave-shell-mode-prefix-map k1 cmd)))
     (when (and mod window-system)
       (if (char-or-string-p c2)
 	  (setq k2 (vector (append mod-noshift
 				   (list (if shift (upcase c2) c2)))))
 	(setq k2 (vector (append mod (list c2)))))
       (define-key idlwave-mode-map       k2 cmd)
-      (define-key idlwave-shell-mode-map k2 cmd))))
+      (define-key idlwave-shell-mode-map k2 cmd))
+    (when idlwave-shell-activate-prefix-keybindings
+      (and k1 (define-key idlwave-shell-mode-prefix-map k1 cmd)))))
+    
 
 ;; Enter the prefix map at the two places.
 (fset 'idlwave-debug-map       idlwave-shell-mode-prefix-map)
@@ -3475,57 +3493,7 @@ Otherwise, just expand the file name."
 ;; The Menus --------------------------------------------------------------
 
 (defvar idlwave-shell-menu-def
-  '("Debug"
-    ["Save and .RUN" idlwave-shell-save-and-run
-     (or (eq major-mode 'idlwave-mode)
-	 idlwave-shell-last-save-and-action-file)]
-    ["Save and .COMPILE" idlwave-shell-save-and-compile
-     (or (eq major-mode 'idlwave-mode)
-	 idlwave-shell-last-save-and-action-file)]
-    ["Save and @Batch" idlwave-shell-save-and-batch
-     (or (eq major-mode 'idlwave-mode)
-	 idlwave-shell-last-save-and-action-file)]
-    ["Goto Next Error" idlwave-shell-goto-next-error t]
-    "--"
-    ["Execute Default Cmd" idlwave-shell-execute-default-command-line t]
-    ["Edit Default Cmd" idlwave-shell-edit-default-command-line t]
-    "--"
-    ["Set Breakpoint" idlwave-shell-break-here
-     (eq major-mode 'idlwave-mode)]
-    ["Break in Module" idlwave-shell-break-in t]
-    ["Clear Breakpoint" idlwave-shell-clear-current-bp t]
-    ["Clear All Breakpoints" idlwave-shell-clear-all-bp t]
-    ["List  All Breakpoints" idlwave-shell-list-all-bp t]
-    "--"
-    ["Step (into)" idlwave-shell-step t]
-    ["Step (over)" idlwave-shell-stepover t]
-    ["Skip One Statement" idlwave-shell-skip t]
-    ["Continue" idlwave-shell-cont t]
-    ("Continue to"
-     ["End of Block" idlwave-shell-up t]
-     ["End of Subprog" idlwave-shell-return t]
-     ["End of Subprog+1" idlwave-shell-out t]
-     ["Here (Cursor Line)" idlwave-shell-to-here
-      (eq major-mode 'idlwave-mode)])
-    "--"
-    ["Print expression" idlwave-shell-print t]
-    ["Help on expression" idlwave-shell-help-expression t]
-    ["Evaluate Region" idlwave-shell-evaluate-region 
-     (eq major-mode 'idlwave-mode)]
-    ["Run Region" idlwave-shell-run-region (eq major-mode 'idlwave-mode)]
-    "--"
-    ["Redisplay" idlwave-shell-redisplay t]
-    ["Stack Up" idlwave-shell-stack-up t]
-    ["Stack Down" idlwave-shell-stack-down t]
-    "--"
-    ["Update Working Dir" idlwave-shell-resync-dirs t]
-    ["Reset IDL" idlwave-shell-reset t]
-    "--"
-    ["Toggle Toolbar" idlwave-shell-toggle-toolbar t]
-    ["Exit IDL" idlwave-shell-quit t]))
-
-(setq idlwave-shell-menu-def
-  '("Debug"
+  `("Debug"
     ("Compile & Run"
      ["Save and .RUN" idlwave-shell-save-and-run
       (or (eq major-mode 'idlwave-mode)
@@ -3536,9 +3504,13 @@ Otherwise, just expand the file name."
      ["Save and @Batch" idlwave-shell-save-and-batch
       (or (eq major-mode 'idlwave-mode)
 	  idlwave-shell-last-save-and-action-file)]
+     "--"
      ["Goto Next Error" idlwave-shell-goto-next-error t]
      "--"
-     ["Run Region" idlwave-shell-run-region (eq major-mode 'idlwave-mode)]
+     ["Compile and Run Region" idlwave-shell-run-region 
+      (eq major-mode 'idlwave-mode)]
+     ["Evaluate Region" idlwave-shell-evaluate-region 
+      (eq major-mode 'idlwave-mode)]
      "--"
      ["Execute Default Cmd" idlwave-shell-execute-default-command-line t]
      ["Edit Default Cmd" idlwave-shell-edit-default-command-line t])
@@ -3559,15 +3531,22 @@ Otherwise, just expand the file name."
      ["... to End of Subprog+1" idlwave-shell-out t]
      ["... to Here (Cursor Line)" idlwave-shell-to-here
       (eq major-mode 'idlwave-mode)])
-    ("Print Expression"
+    ("Examine Expressions"
      ["Print expression" idlwave-shell-print t]
      ["Help on expression" idlwave-shell-help-expression t]
-     ["Evaluate Region" idlwave-shell-evaluate-region 
-      (eq major-mode 'idlwave-mode)]
-     "--"
-     ["Redisplay" idlwave-shell-redisplay t]
+     ("Examine nearby expression with"
+      ,@(mapcar (lambda(x)
+		  `[ ,(car x) (idlwave-shell-print nil ',x) t ])
+		idlwave-shell-examine-alist))
+     ("Examine region with"
+      ,@(mapcar (lambda(x)
+		  `[ ,(car x) (idlwave-shell-print '(16) ',x) t ])
+		idlwave-shell-examine-alist)))
+    ("Call Stack"
      ["Stack Up" idlwave-shell-stack-up t]
-     ["Stack Down" idlwave-shell-stack-down t])
+     ["Stack Down" idlwave-shell-stack-down t]
+     "--"
+     ["Redisplay and Sync" idlwave-shell-redisplay t])
     ("Input Mode"
      ["Send one char" idlwave-shell-send-char t]
      ["Temporary Character Mode" idlwave-shell-char-mode-loop t]
