@@ -32,7 +32,7 @@
 # (without spaces).  E.g. "NasaLib".  A file named .idlwave_catalog
 # will be created in each directory with ".pro" routine files.
 #
-# $Id: idlwave_catalog,v 1.3 2003/12/04 18:45:19 jdsmith Exp $
+# $Id: idlwave_catalog,v 1.4 2004/06/28 04:25:09 jdsmith Exp $
 
 use Getopt::Std;
 $opt_l=$opt_s=$opt_f=$opt_v=$opt_d=$opt_h=0;
@@ -99,7 +99,7 @@ foreach $dir (keys %dirs) {
     print "Skipping $dir\n" if $opt_v;
     next;
   }
-
+  next if !defined($dirs{$dir}{pro}) || !$dirs{$dir}{pro};
   print "Cataloging $dir\n" if $opt_v;
 
   if (exists $dirs{$dir}{cat} && $dirs{$dir}{cat} ne $libname) {
