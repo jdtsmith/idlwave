@@ -9,12 +9,12 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 5.3
-@set EDITION 5.3
-@set IDLVERSION 6.0
-@set NSYSROUTINES 1713
-@set NSYSKEYWORDS 7258
-@set DATE June, 2004
+@set VERSION 5.4
+@set EDITION 5.4
+@set IDLVERSION 6.1
+@set NSYSROUTINES 1850
+@set NSYSKEYWORDS 7685
+@set DATE October, 2004
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set AUTHOR-EMAIL jdsmith@@as.arizona.edu
 @set MAINTAINER J.D. Smith
@@ -2746,10 +2746,10 @@ key, like @kbd{C-c C-d C-b}.
 @end defopt
 
 @defopt idlwave-shell-debug-modifiers (@code{nil})
-List of modifier keys to use for additional binding of debugging
-commands in the shell and source buffers.  Can be one or more of
-@code{control}, @code{meta}, @code{super}, @code{hyper}, @code{alt}, and
-@code{shift}.
+List of modifier keys to use for additional, alternative binding of
+debugging commands in the shell and source buffers.  Can be one or
+more of @code{control}, @code{meta}, @code{super}, @code{hyper},
+@code{alt}, and @code{shift}.
 @end defopt
 
 @node Breakpoints and Stepping, Compiling Programs, Debug Key Bindings, Debugging IDL Programs
@@ -2773,13 +2773,20 @@ breakpoint only if true.  To clear the breakpoint in the current line,
 use @kbd{C-c C-d C-d} (@code{idlwave-clear-current-bp}).  When
 executed from the shell window, the breakpoint where IDL is currently
 stopped will be deleted.  To clear all breakpoints, use @kbd{C-c C-d
-C-a} (@code{idlwave-clear-all-bp}).  Breakpoint lines are highlighted
-or indicated with an icon in the source code.  Note that IDL places
-breakpoints as close as possible on or after the line you specify.
-IDLWAVE queries the shell for the actual breakpoint location which was
-set, so the exact line you specify may not be marked.  You can re-sync
-the breakpoint list and display at any time (e.g., if you add or
-remove some on the command line) using @kbd{C-c C-d C-l}
+C-a} (@code{idlwave-clear-all-bp}).  Breakpoints can also be disabled
+and re-enabled: @kbd{C-c C-d C-\}
+(@code{idlwave-shell-toggle-enable-current-bp}).  
+
+
+Breakpoint lines are highlighted or indicated with an icon in the
+source code (different icons for conditional, after, and other break
+types).  Disabled breakpoints are @emph{grayed out} by default.  Note
+that IDL places breakpoints as close as possible on or after the line
+you specify.  IDLWAVE queries the shell for the actual breakpoint
+location which was set, so the exact line you specify may not be
+marked.  You can re-sync the breakpoint list and display at any time
+(e.g., if you add or remove some on the command line) using @kbd{C-c
+C-d C-l}.
 
 Once the program has stopped somewhere, you can step through it.  The
 most important stepping commands are @kbd{C-c C-d C-s} to execute one
@@ -2801,9 +2808,11 @@ breakpoint and stepping commands:
 @item @kbd{C-c C-d C-a}
 @tab Clear all breakpoints (@code{idlwave-shell-clear-all-bp})
 @item @kbd{C-c C-d [}
-@tab Go to the previous breakpoint.
+@tab Go to the previous breakpoint (@code{idlwave-shell-goto-previous-bp})
 @item @kbd{C-c C-d ]}
-@tab Go to the next breakpoint.
+@tab Go to the next breakpoint (@code{idlwave-shell-goto-next-bp})
+@item @kbd{C-c C-d C-\}
+@tab Disable/Enable current breakpoint (@code{idlwave-shell-toggle-enable-current-bp})
 @item @kbd{C-c C-d C-j}
 @tab Set a breakpoint at the beginning of the enclosing routine.
 @item @kbd{C-c C-d C-s}
@@ -2938,7 +2947,10 @@ commonly used debugging commands are enabled:
 @item @kbd{[}
 @tab Go to the previous breakpoint in the file (@code{idlwave-shell-goto-previous-bp})
 @item @kbd{]}
-@tab Go to the next breakpoint in the file (@code{idlwave-shell-goto-next-bp})
+@tab Go to the next breakpoint in the file
+(@code{idlwave-shell-goto-next-bp})
+@item @kbd{\}
+@tab Disable/Enable current breakpoint (@code{idlwave-shell-toggle-enable-current-bp})
 @item @kbd{j}
 @tab Set breakpoint at beginning of enclosing routine (@code{idlwave-shell-break-this-module})
 @item @kbd{k}
