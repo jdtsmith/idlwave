@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/05/13 18:52:52 $
+;; Date: $Date: 2003/05/14 21:50:04 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -2069,7 +2069,7 @@ An END token must be preceded by whitespace."
 Also checks if the correct end statement has been used."
   ;; All end statements are reserved words
   ;; Re-indent end line
-  (insert-char ?\ 1) ;; So indent, etc. work well
+  (insert-char ?\  1) ;; So indent, etc. work well
   (backward-char 1)
   (let* ((pos (point-marker))
 	 (last-abbrev-marker (copy-marker last-abbrev-location))
