@@ -5,7 +5,7 @@
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/05/13 21:53:45 $
+;; Date: $Date: 2002/06/14 19:03:30 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -38,6 +38,9 @@
 ;; for features, key bindings, and info.
 ;; Also, Info format documentation is available with `M-x idlwave-info'
 ;;
+;; New versions of IDLWAVE, documentation, and more information
+;; available from:
+;;                 http://idlwave.org
 ;;
 ;; INSTALLATION
 ;; ============
@@ -1387,7 +1390,7 @@ blocks starting with a BEGIN statement.  The matches must have associations
 
 (defconst idlwave-statement-match
   (list
-   ;; "endif else" is the the only possible "end" that can be
+   ;; "endif else" is the only possible "end" that can be
    ;; followed by a statement on the same line.
    '(endelse . ("end\\(\\|if\\)\\s +else" "end\\(\\|if\\)\\s +else"))
    ;; all other "end"s can not be followed by a statement.
@@ -2893,33 +2896,37 @@ statement if this statement is a continuation of the previous line."
            (end-reg (progn (beginning-of-line) (point)))
            (close-exp (progn (skip-chars-forward " \t") (looking-at "\\s)")))
            (beg-reg (progn (idlwave-previous-statement) (point)))
+	   (cur-indent (idlwave-current-indent))
+	   (else-cont (and (goto-char end-reg) (looking-at "[ \t]*else")))
 	   (basic-indent 	   ;; The basic, non-fancy indent
-	    (+ (idlwave-current-indent)
-	       ;; Move else statement back over
-	       (if (and (goto-char end-reg)
-			(looking-at "[ \t]*else"))
-		   0
-		 idlwave-continuation-indent)))
+	    (+ cur-indent idlwave-continuation-indent))
 	   (fancy-nonparen-indent  ;; A smarter indent for routine/assignments
 	    ;; Try without parens first:
 	    (progn
 	      (goto-char beg-reg)
+	      (while (idlwave-look-at "&"))  ; skip over continued statements
 	      (cond
 	       ;; A continued Procedure call or definition
-	       ((looking-at "\\(\\<pro\\|function\\)?[ \t]*\\([a-zA-Z0-9$_]+\\(->\\|::\\)\\)?[a-zA-Z][a-zA-Z0-9$_]*[ \t]*\\(,\\)[ \t]*")
+	       ((progn
+		  (idlwave-look-at "\\(pro\\|function\\)")
+		  (looking-at "[ \t]*\\([a-zA-Z0-9$_]+[ \t]*->[ \t]*\\)?[a-zA-Z][:a-zA-Z0-9$_]*[ \t]*\\(,\\)[ \t]*"))
 		(goto-char (match-end 0))
 		;; Comment only, or blank line with "$"?  Align with ,
 		(if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))
-		    (goto-char (match-end 4)))
+		    (goto-char (match-end 2)))
 		(current-column))
+
 	       ;; Continued assignment (with =), 
-	       ;; or label/struct member (with :)
-	       ((looking-at "[ \t]*[a-zA-Z0-9$_]+[ \t]*\\([=:]\\)[ \t]*")
+	       ((looking-at "[ \t]*[a-zA-Z0-9$_]+[ \t]*\\(=\\)[ \t]*")
 		(goto-char (match-end 0))
 		;; Comment only?  Align with =
 		(if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))
-		    (goto-char (match-end 1)))
-		(current-column)))))
+		    (progn 
+		      (goto-char (match-end 1))
+		      (if idlwave-surround-by-blank 
+			  (1+ (current-column))
+			(current-column)))
+		  (current-column))))))
 	   (fancy-nonparen-indent-allowed
  	    (and fancy-nonparen-indent
 		 (< (- fancy-nonparen-indent basic-indent)
@@ -2936,9 +2943,12 @@ statement if this statement is a continuation of the previous line."
 			idlwave-max-extra-continuation-indent))))
 	    fancy-enclosing-parent-indent)
       (cond 
-       ;; an allowed paren indent
+       ;; else continuations are always standard
+       (else-cont 
+	cur-indent)
+
+       ;; an allowed parenthesis-indent
        (fancy-paren-indent-allowed 
-;	(message "allowed paren indent")
 	fancy-paren-indent)
 
        ;; a disallowed paren indent nested inside one or more other
@@ -2961,7 +2971,6 @@ statement if this statement is a continuation of the previous line."
 			 (if (< (- enclose-indent basic-indent)
 				idlwave-max-extra-continuation-indent)
 			     (throw 'loop enclose-indent)))))))
-;	(message "non-allowed paren, relative to nested paren indent")
 	(min fancy-paren-indent
 	     (+ fancy-enclosing-paren-indent idlwave-continuation-indent)))
 	       	
@@ -2969,17 +2978,14 @@ statement if this statement is a continuation of the previous line."
        ((and fancy-paren-indent 	
 	     (not fancy-paren-indent-allowed)
 	     fancy-nonparen-indent-allowed )
-;	(message "non-allowed paren-ident, relative to non-paren")
 	(+ fancy-nonparen-indent idlwave-continuation-indent))
 
        ;; an allowed nonparen-only indent
        (fancy-nonparen-indent-allowed
-;	(message "non-paren-indent")
 	fancy-nonparen-indent)
 
        ;; everything else
        (t 
-;	(message "basic indent") 
 	basic-indent)))))
 
 (defun idlwave-find-key (key-re &optional dir nomark limit)
@@ -3235,7 +3241,7 @@ ignored."
           ;; No hang. Instead find minimum indentation of paragraph
           ;; after first line.
           ;; For the following while statement, since START is at the
-          ;; beginning of line and END is at the the end of line
+          ;; beginning of line and END is at the end of line
           ;; point is greater than START at least once (which would
           ;; be the case for a single line paragraph).
           (while (> (point) start)
@@ -3544,7 +3550,7 @@ constants - a double quote followed by an octal digit."
 	    ;; string act as an
 	    ;; escape for the delimiter in the string.
 	    ;; Two consecutive delimiters alone (i.e., not after the
-	    ;; start of a string) is the the null string.
+	    ;; start of a string) is the null string.
 	    (progn
 	      ;; Move to position after quote
 	      (goto-char (1+ (match-beginning 0)))
