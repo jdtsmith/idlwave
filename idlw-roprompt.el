@@ -4,7 +4,7 @@
 ;; Author: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: 1.0
-;; Date: $Date: 2002/10/11 23:20:44 $
+;; Date: $Date: 2003/05/13 18:42:27 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -65,7 +65,7 @@
 ;; ==============
 ;; 
 ;; This functionality will probably fail for some future version of
-;; comint.
+;; comint, given how explicitly
 ;;
 ;;--------------------------------------------------------------------------
 ;;
@@ -89,24 +89,39 @@
   ;; the process-mark before removing the read-only stuff.
   (defadvice idlwave-shell-comint-filter (around swap-read-only activate)
     "Add a read-only equivalency to the last prompt overlay."
-    (when (and idlwave-shell-save-comint-last-prompt-overlay 
-	       (not (equal
-		     (marker-position (process-mark 
-				       (get-buffer-process 
-					(get-buffer (idlwave-shell-buffer)))))
-		     (overlay-end 
-		      idlwave-shell-save-comint-last-prompt-overlay))))
-      (overlay-put idlwave-shell-save-comint-last-prompt-overlay 
-		   'modification-hooks nil)
-      (overlay-put idlwave-shell-save-comint-last-prompt-overlay 
-		   'insert-in-front-hooks nil))
+;    (when (and idlwave-shell-save-comint-last-prompt-overlay 
+;	       (not (equal
+;		     (marker-position (process-mark 
+;				       (get-buffer-process 
+;					(get-buffer (idlwave-shell-buffer)))))
+;		     (overlay-end 
+;		      idlwave-shell-save-comint-last-prompt-overlay))))
+;      (setq save-overlay idlwave-shell-save-comint-last-prompt-overlay)
+
+    
+
+    ;; Remove the read-only status in case comint needs to do
+    ;; something with the prompt area.
+    (save-current-buffer
+      (set-buffer (idlwave-shell-buffer))
+      (when (and idlwave-shell-save-comint-last-prompt-overlay
+		 (not (eq idlwave-shell-save-comint-last-prompt-overlay 
+			  comint-last-prompt-overlay)))
+	(overlay-put idlwave-shell-save-comint-last-prompt-overlay 
+		     'insert-in-front-hooks nil)
+	(overlay-put idlwave-shell-save-comint-last-prompt-overlay
+		     'modification-hooks nil))
+      (when comint-last-prompt-overlay
+	(overlay-put comint-last-prompt-overlay 'insert-in-front-hooks nil)
+	(overlay-put comint-last-prompt-overlay 'modification-hooks nil)))
+
     ad-do-it
+    
     (save-current-buffer
       (set-buffer (idlwave-shell-buffer))
       (when comint-last-prompt-overlay
 	(setq idlwave-shell-save-comint-last-prompt-overlay 
 	      comint-last-prompt-overlay)
-;	(overlay-put comint-last-prompt-overlay 'intangible t)
 	(overlay-put comint-last-prompt-overlay 'modification-hooks 
 		     '(idlwave-shell-comint-signal-read-only))
 	(overlay-put comint-last-prompt-overlay 'insert-in-front-hooks 

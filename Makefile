@@ -20,8 +20,8 @@ infodir = $(prefix)/info
 # Where local lisp files go.
 lispdir = $(prefix)/share/emacs/site-lisp
 
-# Where would you like to install the help files?
-# Don't forget to configure the Emacs variable `idlwave-help-directory'
+# Where would you like to install the HTML help files?
+# Don't forget to configure the Emacs variable `idlwave-html-help-location'
 # It must also point to the directory where help files are installed.
 helpdir = $(prefix)/etc
 
@@ -68,35 +68,30 @@ CP = cp -p
 ##----------------------------------------------------------------------
 
 # The following variables need to be defined by the maintainer
-LISPFILES  = idlwave.el idlw-shell.el idlw-rinfo.el idlw-toolbar.el \
-	     idlw-complete-structtag.el idlw-roprompt.el
-LISPFILES1 = $(LISPFILES) idlw-help.el
+LISPFILES  = idlwave.el idlw-help.el idlw-shell.el idlw-rinfo.el \
+	     idlw-toolbar.el idlw-complete-structtag.el idlw-roprompt.el 
 ELCFILES   = $(LISPFILES:.el=.elc)
 TEXIFILES  = idlwave.texi
 INFOFILES  = idlwave idlwave-1 idlwave-2 idlwave-3
-RINFOFILES = idlw-help.el idlw-help.txt idlw-rinfo.el
-HELPFILES  = idlw-help.el idlw-help.txt
+RINFOFILES = idlw-rinfo.el
+HTMLHELPDIR  = idl_html_help
 DLDIR     = /var/www/html/idlwave/download
 HTMLDIR    = /var/www/html/idlwave/
 XEMACSDIR  = packages/xemacs-packages/idlwave
-
-# An alternative installation point
-#MY_INFODIR = /home/strw/dominik/lib/emacs/info
-#MY_LISPDIR = /home/strw/dominik/lib/emacs/lisp
 
 .SUFFIXES: .el .elc .texi
 SHELL = /bin/sh
 
 DISTFILES= README INSTALL CHANGES ChangeLog COPYING Makefile\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES) lpath.el\
-	idltags get_rinfo tutorial.pro
+	get_html_rinfo idlwave_catalog tutorial.pro
 
 WEBDISTFILES= idlwave.ps idlwave.pdf idlwave.html CHANGES
-HELPDISTFILES= README.hlp idlw-help-topics.el help55fixup.txt $(HELPFILES)
-
+HELPDISTFILES= $(HTMLHELPDIR)
+HELPDISTFILE=idlwave-idlv$(IDL)-help.tar.bz2
 XEMACSDISTFILES= README INSTALL CHANGES ChangeLog COPYING\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES)\
-	idltags get_rinfo help55fixup.txt tutorial.pro
+	get_html_rinfo idlwave_catalog tutorial.pro
 
 EMACSDISTFILES= $(LISPFILES) $(TEXIFILES) ChangeLog
 
@@ -105,19 +100,133 @@ DOWNGRADEFILES= README.downgrade idlw-rinfo.el idlw-help.el idlw-help.txt
 .PHONY: all
 all:	lisp
 
-.PHONY: install
-install: install-lisp
-
-.PHONY: install-all
-install-all: install-lisp install-info install-help
-
 .PHONY: lisp
 lisp:	$(LISPFILES)
 	$(ELC) $(LISPFILES)
 
-.PHONY: compile
-compile: $(LISPFILES)
-	$(ELC) $(LISPFILES)
+.PHONY: install
+install: install-lisp
+
+.PHONY: install-all
+install-all: install-lisp install-info
+
+.PHONY: install-lisp
+install-lisp: 
+	if [ ! -d $(lispdir) ]; then $(MKDIR) $(lispdir); else true; fi ;
+	$(CP) $(LISPFILES) $(lispdir)
+	$(CP) $(ELCFILES)  $(lispdir)
+
+.PHONY: install-info
+install-info:
+	if [ ! -d $(infodir) ]; then $(MKDIR) $(infodir); else true; fi ;
+	$(CP) $(INFOFILES) $(infodir)
+
+
+# HELP 
+HELPFILEMAYBE := $(shell ls -1 idlwave-*help.tar.* | head -1)
+ifdef HELPFILEMAYBE
+HELPFILECODE  := $(shell echo $(HELPFILEMAYBE) | grep -q "\.gz$$" && echo "z" || echo "j")
+endif
+
+.PHONY: helpdist
+helpdist: helpdistfile
+ifdef IDL
+	if [ ! -f $(DLDIR)/$(HELPDISTFILE) ]; then $(CP) $(HELPDISTFILE) $(DLDIR); (cd $(DLDIR); ln -sf $(HELPDISTFILE) idlwave-help.tar.bz2) ; fi
+	if [ ! -f $(DLDIR)/$(HELPDISTFILE:.bz2=.gz) ]; then $(CP) $(HELPDISTFILE:.bz2=.gz) $(DLDIR); (cd $(DLDIR); ln -sf $(HELPDISTFILE) idlwave-help.tar.gz) ; fi
+endif
+
+.PHONY: helpdistfile
+helpdistfile: $(HELPDISTFILE) $(HELPDISTFILE:.bz2=.gz)
+
+$(HELPDISTFILE): $(HELPDISTFILES)
+	tar cjf $(HELPDISTFILE) $(HELPDISTFILES)
+
+$(HELPDISTFILE:.bz2=.gz): $(HELPDISTFILES)
+	tar czf $(HELPDISTFILE:.bz2=.gz) $(HELPDISTFILES)
+
+.PHONY: install-help
+install-help: 
+	@[ -d  idl_html_help -o -f "$(HELPFILEMAYBE)" ] || { echo -e "****  Help package missing.  ****\n      Download here from idlwave.org and try again, if desired."; exit 1; }
+	if [ ! -d $(helpdir) ]; then $(MKDIR) $(helpdir); else true; fi ;
+	if [ -f $(HELPFILEMAYBE) ]; then tar x$(HELPFILECODE)f $(HELPFILEMAYBE) -C $(helpdir) ; else  $(CP) $(HTMLHELPDIR) $(helpdir) ; fi ;
+
+# EMACS code 
+
+.PHONY: distfile
+distfile: $(DISTFILES)
+	@if [ "X$(TAG)" = "X" ]; then echo "*** No tag ***"; exit 1; fi
+	rm -rf idlwave-$(TAG)
+	mkdir idlwave-$(TAG)
+	cp -p $(DISTFILES) idlwave-$(TAG)/
+	chmod ug+rw idlwave-$(TAG)/*
+	perl -pi -e 's/\bVERSIONTAG\b/$(TAG)/' idlwave-$(TAG)/* 
+	tar czvf idlwave-$(TAG).tar.gz idlwave-$(TAG)
+	rm -rf idlwave-$(TAG)	
+
+
+.PHONY: dist
+dist: $(WEBDISTFILES)
+	make distfile TAG=$(TAG)
+	cp -p idlwave-$(TAG).tar.gz $(DLDIR)
+	(cd $(DLDIR); ln -sf idlwave-$(TAG).tar.gz idlwave.tar.gz)
+	(cd $(DLDIR); ln -sf idlwave-$(TAG).tar.gz idlwave-alpha.tar.gz)
+	cp -f $(WEBDISTFILES) $(HTMLDIR)
+	perl -pi -e 's/\bVERSIONTAG\b/$(TAG)/' $(HTMLDIR)/CHANGES
+
+.PHONY: alphadist
+alphadist:
+	make distfile TAG=$(TAG)
+	cp idlwave-$(TAG).tar.gz $(DLDIR)
+	(cd $(DLDIR); ln -sf idlwave-$(TAG).tar.gz idlwave-alpha.tar.gz)
+
+.el.elc:
+	$(ELC) $<
+
+
+# XEMACS Code
+
+.PHONY: xemacsdistfile
+xemacsdistfile: $(XEMACSDISTFILES)
+	@if [ "X$(TAG)" = "X" ]; then echo "*** No tag ***"; exit 1; fi
+	cp -pf $(XEMACSDISTFILES) $(XEMACSDIR)/
+	perl -pi -e 's/^(AUTHOR_VERSION\s*=\s*)([0-9]\.[0-9.a-z]+)/$${1}$(TAG)/' $(XEMACSDIR)/Makefile
+	perl -pi -e 's/\bVERSIONTAG\b/$(TAG)/' $(XEMACSDIR)/*
+	(cd $(XEMACSDIR); make bindist)
+
+.PHONY: xemacsdist
+xemacsdist: 
+	make xemacsdistfile TAG=$(TAG)
+	cp -p xemacs-packages/idlwave-$(TAG)-pkg.tar.gz $(DLDIR)
+	(cd $(DLDIR); ln -sf idlwave-$(TAG)-pkg.tar.gz idlwave-xemacs.tar.gz)
+
+.PHONY: xemacsalphadist
+xemacsalphadist:
+	make xemacsdistfile TAG=$(TAG)
+	cp -p xemacs-packages/idlwave-$(TAG)-pkg.tar.gz $(DLDIR)
+	(cd $(DLDIR); ln -sf idlwave-$(TAG)-pkg.tar.gz idlwave-xemacs-alpha.tar.gz)
+
+# Specific File Targets
+
+$(INFOFILES): $(TEXIFILES)
+	$(MAKEINFO) idlwave.texi
+
+idlwave.dvi: idlwave.texi
+	$(TEXI2DVI) idlwave.texi
+
+idlwave.ps: idlwave.dvi
+	$(DVIPS) -o idlwave.ps idlwave.dvi
+
+idlwave.html: idlwave.texi
+	$(TEXI2HTML) idlwave.texi
+
+idlwave.pdf: idlwave.texi
+	$(TEXI2PDF) idlwave.texi
+
+NUTSHELL: idlwave.texi
+	makeinfo --no-headers idlwave.texi|perl NUTSHELL.pl>NUTSHELL
+
+
+# Helper Targets
 
 .PHONY: info
 info:	$(INFOFILES)
@@ -142,40 +251,7 @@ html:	idlwave.html
 .PHONY: dvi
 pdf:    idlwave.pdf
 
-.PHONY: install-lisp
-install-lisp: 
-	if [ ! -d $(lispdir) ]; then $(MKDIR) $(lispdir); else true; fi ;
-	$(CP) $(LISPFILES) $(lispdir)
-	$(CP) $(ELCFILES)  $(lispdir)
-
-.PHONY: install-info
-install-info:
-	if [ ! -d $(infodir) ]; then $(MKDIR) $(infodir); else true; fi ;
-	$(CP) $(INFOFILES) $(infodir)
-
-.PHONY: install-help
-install-help: 
-	@[ -f  idlw-help.el -a -f idlw-help.txt ] || { echo "Help package missing. download from idlwave.org and install here."; exit 1; }
-	$(ELC) idlw-help.el
-	if [ ! -d $(helpdir) ]; then $(MKDIR) $(helpdir); else true; fi ;
-	$(CP) $(HELPFILES) idlw-help.elc $(helpdir)
-
-$(INFOFILES): $(TEXIFILES)
-	$(MAKEINFO) idlwave.texi
-
-idlwave.dvi: idlwave.texi
-	$(TEXI2DVI) idlwave.texi
-
-idlwave.ps: idlwave.dvi
-	$(DVIPS) -o idlwave.ps idlwave.dvi
-
-idlwave.html: idlwave.texi
-	$(TEXI2HTML) idlwave.texi
-
-idlwave.pdf: idlwave.texi
-	$(TEXI2PDF) idlwave.texi
-
-rinfo:  rinfo55
+rinfo:  rinfo56_html
 
 rinfo53:
 	./get_rinfo53 -txt -path pdf53 -idl idl_5.3
@@ -186,86 +262,19 @@ rinfo54:
 rinfo55: 
 	./get_rinfo -fixup help55fixup.txt -txt -path pdf55 -idl idl_5.5
 
+rinfo56: 
+	./get_rinfo -txt -path pdf56 -idl idl_5.6
+
+rinfo56_html:
+	./get_html_rinfo -path idl_html_help/ -idl idl_5.6
+
 dgkit:
 	@if [ "X$(IDL)" = "X" ]; then echo "*** No IDL tag ***"; exit 1; fi
 	make rinfo$(IDL)
-	gtar zcvf idlwave-downgrade-for-idl$(IDL).tar.gz $(DOWNGRADEFILES)
+	tar czvf idlwave-downgrade-for-idl$(IDL).tar.gz $(DOWNGRADEFILES)
 
-NUTSHELL: idlwave.texi
-	makeinfo --no-headers idlwave.texi|perl NUTSHELL.pl>NUTSHELL
 
-wcompile:
-	xemacs -batch -q -l lpath-warn.el -f batch-byte-compile $(LISPFILES1)
-
-xcompile:
-	xemacs -batch -q -l lpath-warn.el -f batch-byte-compile $(LISPFILES1)
-
-ecompile:
-	emacs -batch -q -l lpath-warn.el -f batch-byte-compile $(LISPFILES1)
-
-ccompile:
-	xemacs -batch -q -l lpath-compatible.el -f batch-byte-compile $(LISPFILES1)
-
-#myinstall: $(LISPFILES) $(ELCFILES) $(INFOFILES)
-#	if [ ! -d $(MY_LISPDIR) ]; then mkdir $(MY_LISPDIR); else true; fi ;
-#	$(CP) $(LISPFILES) $(MY_LISPDIR)
-#	$(CP) $(ELCFILES)  $(MY_LISPDIR)
-#	if [ ! -d $(MY_INFODIR) ]; then mkdir $(MY_INFODIR); else true; fi ;
-#	$(CP) $(INFOFILES) $(MY_INFODIR)
-
-.PHONY: distfile
-distfile: $(DISTFILES)
-	@if [ "X$(TAG)" = "X" ]; then echo "*** No tag ***"; exit 1; fi
-#	make rinfo
-	rm -rf idlwave-$(TAG)
-	mkdir idlwave-$(TAG)
-	cp -p $(DISTFILES) idlwave-$(TAG)/
-	chmod ug+rw idlwave-$(TAG)/*
-	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' idlwave-$(TAG)/* 
-	tar czvf idlwave-$(TAG).tar.gz idlwave-$(TAG)
-	rm -rf idlwave-$(TAG)	
-	rm -rf idlwave-help-$(TAG)
-	mkdir idlwave-help-$(TAG)
-	cp -p $(HELPDISTFILES) idlwave-help-$(TAG)/
-	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' idlwave-help-$(TAG)/*.el
-	perl -pi -e '{local $$/=$$/; open(TOPICS,"idlw-help-topics.el"); chomp($$created=<TOPICS>.<TOPICS>); undef $$/; $$topics=<TOPICS>;} s/^;;; INSERT-CREATED-BY-HERE/$$created/; s/^;;; INSERT-HELP-TOPICS-HERE/$$topics/;' idlwave-help-$(TAG)/*.el
-	tar czvf idlwave-$(TAG)-help.tar.gz -C idlwave-help-$(TAG) $(HELPDISTFILES)
-	rm -rf idlwave-help-$(TAG)
-
-.PHONY: dist
-dist: $(WEBDISTFILES)
-	make distfile TAG=$(TAG)
-	cp -p idlwave-$(TAG).tar.gz $(DLDIR)
-	cp -p idlwave-$(TAG)-help.tar.gz $(DLDIR)
-	(cd $(DLDIR); ln -sf idlwave-$(TAG).tar.gz idlwave.tar.gz)
-	(cd $(DLDIR); ln -sf idlwave-$(TAG)-help.tar.gz idlwave-help.tar.gz)
-	(cd $(DLDIR); ln -sf idlwave-$(TAG).tar.gz idlwave-alpha.tar.gz)
-	cp -f $(WEBDISTFILES) $(HTMLDIR)
-	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' $(HTMLDIR)/CHANGES
-
-.PHONY: xemacsdistfile
-xemacsdistfile: $(XEMACSDISTFILES)
-	@if [ "X$(TAG)" = "X" ]; then echo "*** No tag ***"; exit 1; fi
-	cp -pf $(XEMACSDISTFILES) $(XEMACSDIR)/
-	perl -pi -e 's/^((?:AUTHOR_)?VERSION\s*=\s*)([0-9]\.[0-9.a-z]+)/$${1}$(TAG)/' $(XEMACSDIR)/Makefile
-	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' $(XEMACSDIR)/*
-	perl -pi -e 's/:version [0-9]\.[0-9]+[a-z]*/:version $(TAG)/' $(XEMACSDIR)/_pkg.el
-	(cd $(XEMACSDIR); make bindist)
-
-.PHONY: xemacsdist
-xemacsdist: 
-	make xemacsdistfile TAG=$(TAG)
-	cp -p xemacs-packages/idlwave-$(TAG)-pkg.tar.gz $(DLDIR)
-	(cd $(DLDIR); ln -sf idlwave-$(TAG)-pkg.tar.gz idlwave-xemacs.tar.gz)
-
-alphadist: $(WEBDISTFILES)
-	make distfile TAG=$(TAG)
-	cp idlwave-$(TAG).tar.gz $(DLDIR)
-	cp idlwave-$(TAG)-help.tar.gz $(DLDIR)
-	cp CHANGES $(HTMLDIR)
-	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' $(HTMLDIR)/CHANGES
-	(cd $(DLDIR); ln -sf idlwave-$(TAG).tar.gz idlwave-alpha.tar.gz)
-	(cd $(DLDIR); ln -sf idlwave-$(TAG)-help.tar.gz idlwave-help-alpha.tar.gz)
+# Cleanup
 
 clean:
 	rm -f $(ELCFILES)
@@ -279,14 +288,3 @@ veryclean:
 	rm -f *.aux *.cp *.cps *.dvi *.fn *.fns *.ky *.kys *.pg *.pgs
 	rm -f *.toc *.tp *.tps *.vr *.vrs *.log *.html *.ps
 
-
-linkelc:
-	rm -f ../lisp/idlw*.elc
-	(cd ../lisp;ln -s ../idlwave/idlw*.elc .)
-
-unlinkelc:
-	rm -f ../lisp/idlw*.elc
-	rm -f *.elc
-
-.el.elc:
-	$(ELC) $<

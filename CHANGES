@@ -1,8 +1,50 @@
-This is the CHANGES file of the IDLWAVE distribution, version 4.16 
+This is the CHANGES file of the IDLWAVE distribution, version VERSIONTAG 
 
 The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
+
+Revision 5.0
+=============
+   - Introduced Electric-Debug mode, for lightning fast stepping,
+     shortcut-driven variable examination, breakpoint operations, and
+     more, all using single keystrokes.  Look for "*Debugging*" in the
+     mode line and a different colored stop line or arrow.
+   - HTML-based, fully-linked, context-aware online help with
+     configurable browser settings.
+   - New, more flexible routine catalog system.  Any number of
+     per-directory "library catalogs" (in files named
+     ".idlwave_catalog") will be automatically dicovered on the IDL
+     path and loaded.  System-wide libraries can be scanned once for
+     all to use.  Pre-scanned catalog files will be distributed with
+     popular libraries, and can be built by the user (perhaps
+     automatically using, e.g., cron) with the included
+     `idlwave_catalog' perl script.  The older "user catalog"
+     (libinfo) functionality still exists alongside the new system.
+   - Help on system variable tags.
+   - Better breakpoint glyph display in the margins, with different
+     images for different breakpoint types (single, conditional,
+     after, etc.).
+   - Continuations with nothing (aside from "$" and possibly a
+     comment) after the opening comma or parenthesis of routine calls
+     and definitions, or the opening punctuation of a paren-pair
+     (arrays, structures, etc.), now assume you continued the line to
+     get more space, and "give you room" by reverting to the basic
+     indent.
+   - All completion commands can be given two prefix arguments
+     (e.g. C-u C-u M-TAB) to query for a regular expression by which
+     to limit completion.
+   - Better handling of history recall for multi-line commands in the
+     Shell.
+   - Fixed breakpoint scanning for cases of both AFTER and CONDITION
+     being set.
+   - New commands for moving between breakpoint locations in a buffer.
+   - New command for setting a breakpoint at the beginning of the
+     enclosing routine.
+   - Fixed a rarely seen error with shadowed routine sorting order for
+     routines with files.
+   - File name completion for external shell commands (those beginning
+     with `$').
 
 Revision 4.16
 =============

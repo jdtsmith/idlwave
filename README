@@ -1,31 +1,9 @@
-This is the README file of the IDLWAVE distribution, version VERSIONTAG 
-
-IDLWAVE is the successor to the older idl.el and idl-shell.el mode files.
-
-  ****************************************************************************
-  ****************************************************************************
-  **                                                                        ** 
-  **   Note that the entire package has been renamed, as of April,	    **
-  **   1999.  The prefix of all functions and variables is now `idlwave-'   **
-  **   instead of `idl-'.  This was necessary in order to make this mode    **
-  **   work with X/Emacs 20.  So it is now				    **
-  **                                                                        ** 
-  **         idlwave-mode       instead of    idl-mode                      ** 
-  **         idlwave-shell      instead of    idl-shell                     ** 
-  **         idlwave-mode-hook  instead of    idl-mode-hook                 ** 
-  **                         ... etc ...                                    ** 
-  **                                                                        ** 
-  **   If you have any local settings for idl-mode, these settings will     ** 
-  **   have to be adapted.  See the INSTALL file for details.               ** 
-  **                                                                        ** 
-  ****************************************************************************
-  ****************************************************************************
+This is the README file for the IDLWAVE distribution, version VERSIONTAG 
 
 Your kit should contain the following files:
 
 README              This file
-README.hlp	    A note on the online help subsystem
-INSTALL             A brief installation guide
+INSTALL             A brief installation guide, including help installation
 CHANGES             The package history
 ChangeLog           Detailed list of changes to the code
 COPYING             The GNU General Public License
@@ -33,9 +11,12 @@ Makefile            The Makefile to compile and install IDLWAVE
 lpath.el            A file needed to compile the lisp files
 
 idlwave.el          The Lisp code for idlwave-mode
-idlw-rinfo.el       The Lisp constant for routine-info
 idlw-shell.el       The Lisp code for idlwave-shell-mode
-idlw-toolbar.el     The Lisp code for the toolbar.
+idlw-rinfo.el       The Lisp constant for routine-info and help links
+idlw-help.el        The Lisp code for the help system
+idlw-toolbar.el     The Lisp code for the toolbar
+idlw-complete-structtag.el The Lisp code for option structure tag completion
+idlw-roprompt.el    The Lisp code for the optional read-only prompt
 
 idlwave.texi        The TeX-Info documentation source
 idlwave    \
@@ -43,8 +24,9 @@ idlwave-1   >       The Info files (the documentation in Info format)
 idlwave-2  /
 idlwave-3 /
 
-idltags             A Perl program to produce IDL TAGS files
-get_rinfo           A Perl program to scan the IDL documentation and
+idlwave_catalog     A Perl program to produce library catalog 
+                    ".idlwave_catalog" files.
+get_html_rinfo      A Perl program to scan the IDL documentation and
                     produce several files needed by IDLWAVE.
 
 tutorial.pro        Intentionally buggy source code for the tutorial.  
@@ -53,5 +35,3 @@ tutorial.pro        Intentionally buggy source code for the tutorial.
 The most recent version of IDLWAVE is available at:
 
     http://idlwave.org
-
-
