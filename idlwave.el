@@ -5,7 +5,7 @@
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/09/06 15:16:23 $
+;; Date: $Date: 2002/09/12 16:31:50 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -57,7 +57,7 @@
 ;; SOURCE
 ;; ======
 ;;
-;; The newest version of this file is available from the maintainers
+;; The newest version of this file is available from the maintainer's
 ;; Webpage.
 ;;
 ;;   http://idlwave.org
@@ -84,6 +84,7 @@
 ;;    Simon Marshall <Simon.Marshall@esrin.esa.it>
 ;;    Laurent Mugnier <mugnier@onera.fr>
 ;;    Lubos Pochman <lubos@rsinc.com>
+;;    Bob Portmann <portmann@al.noaa.gov>
 ;;    Patrick M. Ryan <pat@jaameri.gsfc.nasa.gov>
 ;;    Marty Ryba <ryba@ll.mit.edu>
 ;;    Phil Williams <williams@irc.chmcc.org>
@@ -106,7 +107,7 @@
 ;;
 ;;   IDLWAVE support for the IDL-derived PV-WAVE CL language of Visual
 ;;   Numerics, Inc. is growing less and less complete as the two
-;;   languages grow increasingly apart.  The mode problem shouldn't
+;;   languages grow increasingly apart.  The mode probably shouldn't
 ;;   even have "WAVE" in it's title, but it's catchy, and required to
 ;;   avoid conflict with the CORBA idl.el mode.  Caveat WAVEor.
 ;;
@@ -204,7 +205,7 @@ The following lines receive the same indentation as the first."
   "*Maximum additional indentation for special continuation indent.
 Several special indentations are tried to help line up continuation
 lines in routine calls or definitions, other statements with
-parentheses, or assigment statements.  This variable specifies a
+parentheses, or assignment statements.  This variable specifies a
 maximum amount by which this special indentation can exceed the
 standard continuation indentation, otherwise defaulting to a fixed
 offset.  Set to 0 to effectively disable all special continuation
@@ -610,7 +611,7 @@ This option is only effective when the online help system is installed."
 
 (defcustom idlwave-support-inheritance t
   "Non-nil means, treat inheritance with completion, online help etc.
-When nil,  IDLWAVE only knows about the native methods and tags of a class,
+When nil, IDLWAVE only knows about the native methods and tags of a class,
 not about inherited ones."
   :group 'idlwave-routine-info
   :type 'boolean)
@@ -1576,7 +1577,7 @@ Capitalize system variables - action only
 ;(define-key idlwave-mode-map "\C-c\C- " 'idlwave-hard-tab)
 (define-key idlwave-mode-map "'"        'idlwave-show-matching-quote)
 (define-key idlwave-mode-map "\""       'idlwave-show-matching-quote)
-(define-key idlwave-mode-map "\C-g"     'idlwave-cancel-choose)
+(define-key idlwave-mode-map "\C-g"     'idlwave-keyboard-quit)
 (define-key idlwave-mode-map "\C-c;"    'idlwave-toggle-comment-region)
 (define-key idlwave-mode-map "\C-\M-a"  'idlwave-beginning-of-subprogram)
 (define-key idlwave-mode-map "\C-\M-e"  'idlwave-end-of-subprogram)
@@ -2139,15 +2140,17 @@ Also checks if the correct end statement has been used."
   ;; Re-indent end line
   (insert-char ?\ 1) ;; So indent, etc. work well
   (backward-char 1)
-  (if idlwave-reindent-end  (idlwave-indent-line))
-  (let* ((pos (point))
+  (let* ((pos (point-marker))
+	 (last-abbrev-marker (copy-marker last-abbrev-location))
 	 (eol-pos (save-excursion (end-of-line) (point)))
-	 begin-pos end-pos end end1)
+	 begin-pos end-pos end end1 )
+    (if idlwave-reindent-end  (idlwave-indent-line))
+    
     (when (and (idlwave-check-abbrev 0 t)
 	       idlwave-show-block)
       (save-excursion
 	;; Move inside current block
-	(goto-char last-abbrev-location)
+	(goto-char last-abbrev-marker)
 	(idlwave-block-jump-out -1 'nomark)
 	(setq begin-pos (point))
 	(idlwave-block-jump-out 1 'nomark)
@@ -2678,7 +2681,8 @@ list not just the type symbol. Returns nil if not an identifiable
 statement."
   (save-excursion
     ;; Skip whitespace within a statement which is spaces, tabs, continuations
-    (while (looking-at "[ \t]*\\<\\$")
+    ;; and possibly comments
+    (while (looking-at "[ \t]*\\$")
       (forward-line 1))
     (skip-chars-forward " \t")
     (let ((st idlwave-statement-match)
@@ -2779,13 +2783,16 @@ If the optional argument EXPAND is non-nil then the actions in
           ;; indent the line
           (idlwave-indent-left-margin (idlwave-calculate-indent)))
         ;; Adjust parallel comment
-        (end-of-line)
-        (if (idlwave-in-comment)
-            (indent-for-comment))))
+	(end-of-line)
+	(if (idlwave-in-comment)
+	    ;; Emacs 21 is too smart with fill-column on comment indent
+	    (let ((fill-column (if (fboundp 'comment-indent-new-line)
+				   (1- (frame-width))
+				 fill-column)))
+	      (indent-for-comment)))))
     (goto-char mloc)
     ;; Get rid of marker
-    (set-marker mloc nil)
-    ))
+    (set-marker mloc nil)))
 
 (defun idlwave-do-action (action)
   "Perform an action repeatedly on a line.
@@ -2917,7 +2924,12 @@ statement if this statement is a continuation of the previous line."
            (case-fold-search t)
            (end-reg (progn (beginning-of-line) (point)))
            (close-exp (progn (skip-chars-forward " \t") (looking-at "\\s)")))
-           (beg-reg (progn (idlwave-previous-statement) (point)))
+;           (beg-reg (progn (idlwave-previous-statement) (point)))
+           (beg-reg (progn ;; Use substatement indent unless it's this line
+		      (idlwave-start-of-substatement 'pre) 
+		      (if (eq (line-beginning-position) end-reg)
+			  (idlwave-previous-statement))
+		      (point)))
 	   (cur-indent (idlwave-current-indent))
 	   (else-cont (and (goto-char end-reg) (looking-at "[ \t]*else")))
 	   (basic-indent 	   ;; The basic, non-fancy indent
@@ -2930,7 +2942,7 @@ statement if this statement is a continuation of the previous line."
 	      (cond
 	       ;; A continued Procedure call or definition
 	       ((progn
-		  (idlwave-look-at "\\(pro\\|function\\)")
+		  (idlwave-look-at "^[ \t]*\\(pro\\|function\\)") ;skip over
 		  (looking-at "[ \t]*\\([a-zA-Z0-9$_]+[ \t]*->[ \t]*\\)?[a-zA-Z][:a-zA-Z0-9$_]*[ \t]*\\(,\\)[ \t]*"))
 		(goto-char (match-end 0))
 		;; Comment only, or blank line with "$"?  Align with ,
@@ -5862,7 +5874,6 @@ ARROW:  Location of the arrow"
 	(goto-char pos)
       nil)))
   
-
 (defun idlwave-last-valid-char ()
   "Return the last character before point which is not white or a comment
 and also not part of the current identifier.  Since we do this in
@@ -5899,8 +5910,9 @@ This function is not general, can only be used for completion stuff."
 (defun idlwave-complete-in-buffer (type stype list selector prompt isa
 					&optional prepare-display-function)
   "Perform TYPE completion of word before point against LIST.
-SELECTOR is the PREDICATE argument for the completion function.
-Show PROMPT in echo area.  TYPE is one of 'function, 'procedure or 'keyword."
+SELECTOR is the PREDICATE argument for the completion function.  Show
+PROMPT in echo area.  TYPE is one of 'function, 'procedure,
+'class-tag, or 'keyword."
   (let* ((completion-ignore-case t)
 	 beg (end (point)) slash part spart completion all-completions
 	 dpart dcompletion)
@@ -6000,24 +6012,24 @@ Show PROMPT in echo area.  TYPE is one of 'function, 'procedure or 'keyword."
     (idlwave-complete-in-buffer 'class 'class (idlwave-class-alist) nil 
 				"Select a class" "class")))
 
-(defun idlwave-attach-classes (list is-kwd show-classes)
+(defun idlwave-attach-classes (list type show-classes)
   ;; Attach the proper class list to a LIST of completion items.
-  ;; IS-KWD, when non-nil, shows its keywords - otherwise its methods
+  ;; TYPE, when 'kwd, shows classes for method keywords, when
+  ;; 'class-tag, for class tags, and otherwise for methods.
   ;; SHOW-CLASSES is the value of `idlwave-completion-show-classes'.
-  (catch 'exit
-    (if (or (null show-classes)           ; don't want to see classes
-	    (null class-selector)         ; not a method call
-	    (and (stringp class-selector) ; the class is already known
-		 (not super-classes)))    ; no possibilities for inheritance
-	;; In these cases, we do not have to do anything
-	(throw 'exit list))
-    
+  (if (or (null show-classes)           ; don't want to see classes
+	  (null class-selector)         ; not a method call
+	  (and 
+	   (stringp class-selector) ; the class is already known
+	   (not super-classes)))    ; no possibilities for inheritance
+      ;; In these cases, we do not have to do anything
+      list
     (let* ((do-prop (and (>= show-classes 0)
 			 (>= emacs-major-version 21)))
 	   (do-buf (not (= show-classes 0)))
-	   ; (do-dots (featurep 'xemacs))
+	   ;; (do-dots (featurep 'xemacs))
 	   (do-dots t)
-	   (inherit (if super-classes
+	   (inherit (if (and (not (eq type 'class-tag)) super-classes)
 			(cons class-selector super-classes)))
 	   (max (abs show-classes))
 	   (lmax (if do-dots (apply 'max (mapcar 'length list))))
@@ -6025,16 +6037,22 @@ Show PROMPT in echo area.  TYPE is one of 'function, 'procedure or 'keyword."
       (mapcar 
        (lambda (x)
 	 ;; get the classes
-	 (setq classes
-	       (if is-kwd 
-		   (idlwave-all-method-keyword-classes
-		    method-selector x type-selector)
-		 (idlwave-all-method-classes x type-selector)))
-	 (if inherit
-	     (setq classes 
-		   (delq nil
-			 (mapcar (lambda (x) (if (memq x inherit) x nil))
-				 classes))))
+	 (if (eq type 'class-tag)
+	     ;; Just one class for tags
+	     (setq classes
+		   (list 
+		    (idlwave-class-or-superclass-with-tag class-selector x)))
+	   ;; Multiple classes for method of method-keyword
+	   (setq classes
+		 (if (eq type 'kwd)
+		     (idlwave-all-method-keyword-classes
+		      method-selector x type-selector)
+		   (idlwave-all-method-classes x type-selector)))
+	   (if inherit
+	       (setq classes 
+		     (delq nil
+			   (mapcar (lambda (x) (if (memq x inherit) x nil))
+				   classes)))))
 	 (setq nclasses (length classes))
 	 ;; Make the separator between item and class-info
 	 (if do-dots
@@ -6061,10 +6079,14 @@ Show PROMPT in echo area.  TYPE is one of 'function, 'procedure or 'keyword."
 
 (defun idlwave-attach-method-classes (list)
   ;; Call idlwave-attach-classes with method parameters
-  (idlwave-attach-classes list nil idlwave-completion-show-classes))
+  (idlwave-attach-classes list 'method idlwave-completion-show-classes))
 (defun idlwave-attach-keyword-classes (list)
   ;; Call idlwave-attach-classes with keyword parameters
-  (idlwave-attach-classes list t idlwave-completion-show-classes))
+  (idlwave-attach-classes list 'kwd idlwave-completion-show-classes))
+(defun idlwave-attach-class-tag-classes (list)
+  ;; Call idlwave-attach-classes with class structure tags
+  (idlwave-attach-classes list 'class-tag idlwave-completion-show-classes))
+					
 
 ;;----------------------------------------------------------------------
 ;;----------------------------------------------------------------------
@@ -6223,11 +6245,12 @@ sort the list before displaying"
 	(remove-text-properties beg (point) '(face nil))))
   (eval idlwave-complete-after-success-form-force))
 
-(defun idlwave-cancel-choose ()
+(defun idlwave-keyboard-quit ()
   (interactive)
-  (if (eq (car-safe last-command) 'idlwave-display-completion-list)
-      (idlwave-restore-wconf-after-completion))
-  (keyboard-quit))
+  (unwind-protect
+      (if (eq (car-safe last-command) 'idlwave-display-completion-list)
+	  (idlwave-restore-wconf-after-completion))
+    (keyboard-quit)))
 
 (defun idlwave-restore-wconf-after-completion ()
   "Restore the old (before completion) window configuration."
@@ -6341,9 +6364,18 @@ Point is expected just before the opening `{' of the struct definition."
 	;; Check if we are still on the top level of the structure.
 	(if (and (condition-case nil (progn (up-list -1) t) (error nil))
 		 (= (point) beg))
-	    (push (match-string 4) tags))
+	    (push (match-string 5) tags))
 	(goto-char (match-end 0)))
       (nreverse tags))))
+
+(defun idlwave-find-struct-tag (tag)
+  "Find a given TAG in the structure defined at point."
+  (let* ((borders (idlwave-struct-borders))
+	 (beg (car borders))
+	 (end (cdr borders))
+	 (case-fold-search t))
+    (re-search-forward (concat "\\(^[ \t]*\\|[,{][ \t]*\\)" tag "[ \t]*:") 
+		       end t)))
 
 (defun idlwave-struct-inherits ()
   "Return a list of all `inherits' names in the struct at point.
@@ -6390,7 +6422,7 @@ If NAME is non-nil, search for a named structure NAME.  If BOUND is an
 integer, limit the search.  If BOUND is the symbol `all', we search
 first back and then forward through the entire file.  If BOUND is the
 symbol `back' we search only backward."
-  (let* ((ws "[ \t]*\\(\\$.*\n[ \t]*\\)?")
+  (let* ((ws "[ \t]*\\(\\$.*\n[ \t]*\\)*")
 	 (case-fold-search t)
 	 (lim (if (integerp bound) bound nil))
 	 (re (concat
@@ -6438,6 +6470,13 @@ symbol `back' we search only backward."
 	(setcdr inherits (mapcar (lambda (x) (idlwave-sintern-class x 'set))
 				 (cdr inherits))))))
 
+(defun idlwave-find-class-definition (class)
+  (let ((case-fold-search t))
+    (if (re-search-forward
+	 (concat "^[ \t]*pro[ \t]+" (downcase class) "__define" "\\>") nil t)
+	;; FIXME: should we limit to end of pro here?
+	(idlwave-find-structure-definition nil class))))
+
 (defun idlwave-find-class-info (class)
   "Find the __define procedure for a class structure and return info entry."
   (let* ((pro (concat (downcase class) "__define"))
@@ -6460,14 +6499,10 @@ symbol `back' we search only backward."
 	  (insert-file-contents file))
 	(save-excursion
 	  (goto-char 1)
-	  (setq case-fold-search t)
-	  (when (and (re-search-forward
-		      (concat "^[ \t]*pro[ \t]+" pro "\\>") nil t)
-		     ;; FIXME: should we limit to end of pro here?
-		     (idlwave-find-structure-definition nil class))
-	    (list class
-		  (cons 'tags (idlwave-struct-tags))
-		  (cons 'inherits (idlwave-struct-inherits)))))))))
+	  (if (idlwave-find-class-definition class)
+	      (list class
+		    (cons 'tags (idlwave-struct-tags))
+		    (cons 'inherits (idlwave-struct-inherits)))))))))
 
 (defun idlwave-class-tags (class)
   "Return the native tags in CLASS."
@@ -6478,8 +6513,13 @@ symbol `back' we search only backward."
 
 (defun idlwave-all-class-tags (class)
   "Return a list of native and inherited tags in CLASS."
-  (apply 'append (mapcar 'idlwave-class-tags
-			 (cons class (idlwave-all-class-inherits class)))))
+  (condition-case err
+      (apply 'append (mapcar 'idlwave-class-tags
+			     (cons class (idlwave-all-class-inherits class))))
+    (error           
+     (idlwave-class-tag-reset)
+     (error "%s" (error-message-string err)))))
+
 
 (defun idlwave-all-class-inherits (class)
   "Return a list of all superclasses of CLASS (recursively expanded).
@@ -6493,12 +6533,21 @@ The list is cached in `idlwave-class-info' for faster access."
 	  entry)
       (if (setq entry (assq 'all-inherits info))
 	  (cdr entry)
-	(let ((inherits (idlwave-class-inherits class))
+	;; Save the depth of inheritance scan to check for circular references
+	(let ((inherits (mapcar (lambda (x) (cons x 0))
+				(idlwave-class-inherits class)))
 	      rtn all-inherits cl)
 	  (while inherits
 	    (setq cl (pop inherits)
-		  rtn (cons cl rtn)
-		  inherits (append inherits (idlwave-class-inherits cl))))
+		  rtn (cons (car cl) rtn)
+		  inherits (append (mapcar (lambda (x)
+					     (cons x (1+ (cdr cl))))
+					   (idlwave-class-inherits (car cl)))
+				   inherits))
+	    (if (> (cdr cl) 999)
+	      (error
+	       "Class scan: inheritance depth exceeded. Circular inheritance?")
+	      ))
 	  (setq all-inherits (nreverse rtn))
 	  (nconc info (list (cons 'all-inherits all-inherits)))
 	  all-inherits))))))
@@ -6512,10 +6561,10 @@ The list is cached in `idlwave-class-info' for faster access."
 (defvar idlwave-current-tags-class nil)
 (defvar idlwave-current-class-tags nil)
 (defvar idlwave-current-native-class-tags nil)
-(defvar idlwave-sint-classtags nil)
-(idlwave-new-sintern-type 'classtag)
+(defvar idlwave-sint-class-tags nil)
+(idlwave-new-sintern-type 'class-tag)
 (add-to-list 'idlwave-complete-special 'idlwave-complete-class-structure-tag)
-(add-hook 'idlwave-update-rinfo-hook 'idlwave-classtag-reset)
+(add-hook 'idlwave-update-rinfo-hook 'idlwave-class-tag-reset)
 
 (defun idlwave-complete-class-structure-tag ()
   "Complete a structure tag on a `self' argument in an object method."
@@ -6527,33 +6576,39 @@ The list is cached in `idlwave-class-info' for faster access."
 	  (skip-chars-backward "[a-zA-Z0-9._$]")
 	  (and (< (point) (- pos 4))
 	       (looking-at "self\\.")))
-	(let* ((class (nth 2 (idlwave-current-routine))))
+	(let* ((class-selector (nth 2 (idlwave-current-routine)))
+	       (super-classes (idlwave-all-class-inherits class-selector)))
 	  ;; Check if we are in a class routine
-	  (unless class
+	  (unless class-selector
 	    (error "Not in a method procedure or function"))
 	  ;; Check if we need to update the "current" class
-	  (if (not (equal class idlwave-current-tags-class))
-	      (idlwave-prepare-class-tag-completion class))
-	  (setq idlwave-completion-help-info nil)
+	  (if (not (equal class-selector idlwave-current-tags-class))
+	      (idlwave-prepare-class-tag-completion class-selector))
+	  (setq idlwave-completion-help-info 
+		(list 'idlwave-complete-class-structure-tag-help
+		      (idlwave-sintern-routine 
+		       (concat class-selector "__define"))
+		      nil))
 	  (let  ((idlwave-cpl-bold idlwave-current-native-class-tags))
 	    (idlwave-complete-in-buffer
-	     'classtag 'classtag 
+	     'class-tag 'class-tag 
 	     idlwave-current-class-tags nil
-	     (format "Select a tag of class %s" class)
-	     "class tag"))
+	     (format "Select a tag of class %s" class-selector)
+	     "class tag"
+	     'idlwave-attach-class-tag-classes))
 	  t) ; return t to skip other completions
       nil)))
 
-(defun idlwave-classtag-reset ()
+(defun idlwave-class-tag-reset ()
   (setq idlwave-current-tags-class nil))
 
 (defun idlwave-prepare-class-tag-completion (class)
   "Find and parse the necessary class definitions for class structure tags."
-  (setq idlwave-sint-classtags nil)
+  (setq idlwave-sint-class-tags nil)
   (setq idlwave-current-tags-class class)
   (setq idlwave-current-class-tags
 	(mapcar (lambda (x)
-		  (list (idlwave-sintern-classtag x 'set)))
+		  (list (idlwave-sintern-class-tag x 'set)))
 		(idlwave-all-class-tags class)))
   (setq idlwave-current-native-class-tags
 	(mapcar 'downcase (idlwave-class-tags class))))
@@ -6615,6 +6670,8 @@ Gets set in `idlw-rinfo.el'.")
 	     t)) ; return t to skip other completions
 	  (t nil))))
 
+;; Here we fake help using the routine "system variables" with keyword
+;; set to the sysvar.  Name and kwd are global variables here.
 (defvar name) 
 (defvar kwd)
 (defun idlwave-complete-sysvar-help (mode word)
@@ -6632,7 +6689,43 @@ Gets set in `idlw-rinfo.el'.")
 			  (nth 1 idlwave-completion-help-info)
 			word))))
    (t (error "This should not happen"))))
-			  
+
+;; Fake help in the source buffer for class structure tags.
+;; kwd and name are global-variables here.
+(defvar idlwave-help-do-class-struct-tag nil)
+(defun idlwave-complete-class-structure-tag-help (mode word)
+  (cond
+   ((eq mode 'test) ; nothing gets fontified for class tags
+    nil)
+   ((eq mode 'set)
+    (let (class-with)
+      (when (setq class-with 
+		(idlwave-class-or-superclass-with-tag 
+		 idlwave-current-tags-class
+		 word))
+	(if (assq (idlwave-sintern-class class-with) 
+		  idlwave-system-class-info)
+	    (error "No help available for system class tags."))
+	(setq name (concat class-with "__define"))))
+    (setq kwd word
+	  idlwave-help-do-class-struct-tag t))
+   (t (error "This should not happen"))))
+
+(defun idlwave-class-or-superclass-with-tag (class tag)
+  "Find and return the CLASS or one of its superclass with the
+associated TAG, if any."
+  (let ((sclasses (cons class (cdr (assq 'all-inherits 
+					 (idlwave-class-info class)))))
+	cl)
+   (catch 'exit
+     (while sclasses
+       (setq cl (pop sclasses))
+       (let ((tags (idlwave-class-tags cl)))
+	 (while tags
+	   (if (eq t (compare-strings tag 0 nil (car tags) 0 nil t))
+	     (throw 'exit cl))	       
+	   (setq tags (cdr tags))))))))
+
 
 (defun idlwave-sysvars-reset ()
   (if (and (fboundp 'idlwave-shell-is-running)
@@ -6743,10 +6836,13 @@ Restore the pre-completion window configuration if possible."
 (defvar idlwave-last-context-help-pos nil)
 (defun idlwave-context-help (&optional arg)
   "Display IDL Online Help on context.
-If point is on a keyword, help for that keyword will be shown.
-If point is on a routine name or in the argument list of a routine,
-help for that routine will be displayed.
-Works for system routines and keywords only."
+If point is on a keyword, help for that keyword will be shown.  If
+point is on a routine name or in the argument list of a routine, help
+for that routine will be displayed.  Works for system routines and
+keywords, it pulls up text help.  For other routies and keywords,
+visits the source file, finding help in the header (if
+`idlwave-help-source-try-header' is non-nil) or the routine definition
+itself."
   (interactive "P")
   (idlwave-require-online-help)
   (idlwave-do-context-help arg))
@@ -7731,7 +7827,7 @@ routines are implemented as library routines."
 (defun idlwave-routine-entry-compare (a b)
   "Compare two routine info entries for sortiung.  This is the general case.
 It first compates class, names, and type.  If it turns out that A and B
-are twins (same name, class, and type),  calls another routine which
+are twins (same name, class, and type), calls another routine which
 compares twins on the basis of their file names and path locations."
   (let ((name (car a)) (type (nth 1 a)) (class (nth 2 a)))
     (cond
