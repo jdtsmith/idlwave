@@ -3,7 +3,7 @@
 # Program to extract the information from the IDL manuals and IDL to
 # support IDLWAVE.
 # (c) 1999, 2000 Carsten Dominik <dominik@astro.uva.nl>
-# (c) 2001 J.D. Smith <jdsmith@alum.mit.edu>
+# (c) 2001, 2002 J.D. Smith <jdsmith@as.arizona.edu>
 #
 # Needs the PDF documentation files distributed with IDL 5.4 or later.
 #
@@ -181,7 +181,6 @@ use Getopt::Long;
 GetOptions("-debug"     => \$debug,
 	   "-path=s"    => \$path,
 	   "-idl=s"     => \$idl,
-	   "-emacs"     => \$emacs,
 	   "-nohelp"    => \$nohelp,
 	   "-nowrap"    => \$nowrap,
 	   "-txt"       => \$usetxt,
@@ -190,6 +189,9 @@ GetOptions("-debug"     => \$debug,
 	   "-xclass=s"  => \$ignore_class_re,
 	   "-fixup=s"   => \$fixup)
   or usage();
+
+# Always part of emacs now
+$emacs=1;
 
 if (@ARGV) {
   # File names are on the command line
@@ -641,6 +643,31 @@ foreach $class (keys %e) {
   }
 }
 
+
+# Print debug information about how often each special matcher matched.
+# Will only be visible in debugging mode.
+diag("SPECIAL MATCHERS: [m]atched, [s]uccess, [f]ailed---------------------\n");
+foreach $key (sort ignoring_case keys %specials) {
+  diag(sprintf("Special matcher %-35s m:s:f %3d %3d %3d\n",
+	       $key,$special_matcnt{$key},$special_actcnt{$key},
+	       $special_matcnt{$key}-$special_actcnt{$key}));
+}
+diag(sprintf("\nProblematic entries: %d rejected, %d complains.\n",$n_rejections,$n_complains));
+
+if ($fixup) {
+  diag("\nFIXUP RESULTS:\n".("="x60)."\n");
+  foreach $name (sort keys %fix) {
+    unless ($fix{$name}{matched}) {
+      diag("  No FIXUP match found for $name\n")
+    } else {
+#      diag("  FIXED $name\n");
+      $fixcnt++
+    }
+  }
+  diag(sprintf("  Fixed %d/%d\n",$fixcnt,scalar(keys %fix)));
+}
+
+
 # Write the lisp file
 # Also write some statistics to STDERR
 write_rinfo_header();
@@ -691,29 +718,6 @@ close RINFO;
 
 printf STDERR "Wrote file $rinfofile  (%4d kBytes)\n", (-s $rinfofile)/1000.;
 
-# Print information about how often each special matcher matched.
-# Will only be visible in debugging mode.
-diag("SPECIAL MATCHERS: [m]atched, [s]uccess, [f]ailed---------------------\n");
-foreach $key (sort ignoring_case keys %specials) {
-  diag(sprintf("Special matcher %-35s m:s:f %3d %3d %3d\n",
-	       $key,$special_matcnt{$key},$special_actcnt{$key},
-	       $special_matcnt{$key}-$special_actcnt{$key}));
-}
-diag(sprintf("\nProblematic entries: %d rejected, %d complains.\n",$n_rejections,$n_complains));
-
-if ($fixup) {
-  diag("\nFIXUP RESULTS:\n".("="x60)."\n");
-  foreach $name (sort keys %fix) {
-    unless ($fix{$name}{matched}) {
-      diag("  No FIXUP match found for $name\n")
-    } else {
-#      diag("  FIXED $name\n");
-      $fixcnt++
-    }
-  }
-  diag(sprintf("  Fixed %d/%d\n",$fixcnt,scalar(keys %fix)));
-}
-
 
 # ==========================================================================
 # ==========================================================================
@@ -723,7 +727,7 @@ if ($fixup) {
 sub usage {
   # Print usage information
   print STDERR <<EOF;
-usage: get_rinfo [-txt] [-debug] [-nowrap] [-emacs] [-path DIR]
+usage: get_rinfo [-txt] [-debug] [-nowrap] [-path DIR]
                  [-fixup FIXUP_FILE] [-xname REGEXP] [-xclass REGEXP]
                  [-idl /path/to/idl]
 
@@ -1261,6 +1265,26 @@ BEGIN {
      # INIT and CLEANUP -------------------------------------------------
      # ------------------------------------------------------------------
 
+     sname("IDLcomIDispatch::Init") =>
+     sub {
+       if ($syntax =~ /obj_new\('IDLcomIDispatch[^']*'\)/si) {
+	 $syntax="Result = Obj -> [IDLcomIDispatch::]Init()";
+	 push @complains,"IDLcomIDispatch::Init syntax incorrectly formatted.";
+	 1;
+       } else {0}
+     },
+
+     sname("IDLcomIDispatch::SetProperty") =>
+     sub {
+       if ($syntax =~ /IDLcomIDispatch -> (Get|Set)Property,(.*)$/si) {
+
+	 $syntax="Obj->[IDLcomIDispatch::]$1Property, $2";
+	 $syntax=~s/<(\w+)>/$1/g;
+	 push @complains,"Syntax incorrectly formatted.";
+	 1;
+       } else {0}
+     },
+     
      sname("INIT & OBJ_NEW") =>
      sub {
        if ($syntax =~ /.*Init.*\bor\b.*OBJ_NEW\b/s) {
@@ -1365,7 +1389,15 @@ BEGIN {
 	 1;
        } else {0}
      },
-
+     sname("PLOT") =>
+     sub { # Missing keyword
+       if ($syntax =~ /\s*Syntax\s*PLOT\b/si) {
+	 push @{$e{""}{pro}{PLOT}{kwds}}, "ISOTROPIC";
+	 push @complains,"Syntax missing keyword ISOTROPIC";
+	 1;
+       } else {0}
+     },
+     
      # ------------------------------------------------------------------
      # Attach keywords from another procedure ---------------------------
      # ------------------------------------------------------------------
@@ -1471,6 +1503,24 @@ BEGIN {
        } else {0}
      },
 
+    sname("WOLRDTITLE") =>
+    sub {
+      if ($syntax =~ s/('IDLgrVRML'.*)WOLRDTITLE/$1WORLDTITLE/si) {
+	$act=1;
+	push @complains, "WOLRDTITLE";
+	1;
+      } else {0}
+    },
+
+    sname("SUPRESS") =>
+    sub {
+      if ($syntax =~ s/SUPRESS/SUPPRESS/) {
+	$act=1;
+	push @complains, "SUPRESS";
+	1;
+      } else {0}
+    },
+
      # ------------------------------------------------------------------
      # Keyword omissions ------------------------------------------------
      # ------------------------------------------------------------------
@@ -1502,7 +1552,7 @@ BEGIN {
      sub {
        if ($syntax =~ /syntax\s*.*EOS.*,\s*LENGTH\s*\(OUT\)\s*=/si) {
 	 $syntax =~ s/LENGTH\s*\(OUT\)\s*=/LENGTH=/;
-	 push @complains,"LENGHT (OUT): what does this mean?";
+	 push @complains,"LENGTH (OUT): what does this mean?";
 	 $act = 1;
        } else {0}
      },
@@ -1793,20 +1843,20 @@ sub add_insight_entries {
 #======================================================================
 
 sub write_rinfo_header {
-  my ($part_of) = $emacs ? 
+  my ($part_of) = $emacs ?
     $lisp_part_of_gnu_emacs : $lisp_not_part_of_gnu_emacs;
   $date = localtime;
   chomp $date;
   ($progname = $0) =~ s|.*/||;
   chomp $progname;
   $n_files_scanned = @files;
-  print RINFO <<EOF
+  print RINFO <<EOF;
 ;;; idlw-rinfo.el --- Routine Information for IDLWAVE
 ;; Copyright (c) 1999 Carsten Dominik
-;; Copyright (c) 1999, 2000, 2001 Free Software Foundation
+;; Copyright (c) 1999, 2000, 2001, 2002 Free Software Foundation
 
 ;; Author: Carsten Dominik <dominik\@astro.uva.nl>
-;; Maintainer: J.D. Smith <jdsmith\@astro.cornell.edu>
+;; Maintainer: J.D. Smith <jdsmith\@as.arizona.edu>
 ;; Version: VERSIONTAG
 ;; Keywords: languages
 $part_of
@@ -1822,11 +1872,15 @@ $part_of
 ;; Number of files scanned:  $n_files_scanned
 $files_string;; Number of routines found: $n_routines_total
 ;; Number of keywords found: $n_keywords_total
-
+;;
+EOF
+  
+  print RINFO ";; Fixed up documentation with file: $fixup\n;;\t $fixcnt total fix matches.\n" if($fixup and $fixcnt);
+  print RINFO <<EOF;
+;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Code:
-
 EOF
 }
 
