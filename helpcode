@@ -1,7 +1,7 @@
 ;;;;;;00 -*- mode: emacs-lisp -*-
 ;;;;;;00--------------------------------------------------------------------
 ;;;;;;00   This code implements most of the online help feature of IDLWAVE.
-;;;;;;00   Do not use the file directly.  The progam "get_rinfo" does
+;;;;;;00   Do not use the file directly.  The progam "get_rinfo"
 ;;;;;;00   incorporates this file into idlw-help.el.
 ;;;;;;00--------------------------------------------------------------------
 
@@ -36,7 +36,6 @@
 (defvar idlwave-help-stack-forward nil
   "Help topic stack for forward motion. 
 Only gets populated when moving back.")
-
 
 ;; Define the key bindings for the Help application
 
@@ -298,7 +297,8 @@ Need additional info stored in `idlwave-completion-help-info'."
 				    classes (cons class sclasses))))
 		 (if (not idlwave-extra-help-function)
 		     (setq classes (idlwave-grep-help-topics classes)))
-		 (setq class (idlwave-help-popup-select ev classes))))
+		 (setq class (idlwave-popup-select ev classes 
+						   "Select Class" 'sort))))
 	   (if (stringp class)
 	       (setq class (idlwave-find-inherited-class
 			    (idlwave-sintern-routine-or-method name class)
@@ -316,7 +316,8 @@ Need additional info stored in `idlwave-completion-help-info'."
 				    classes (cons class sclasses))))
 		 (if (not idlwave-extra-help-function)
 		     (setq classes (idlwave-grep-help-topics classes)))
-		 (setq class (idlwave-help-popup-select ev classes))))
+		 (setq class (idlwave-popup-select ev classes
+						   "Select Class" 'sort))))
 	   (if (stringp class)
 	       (setq class (idlwave-find-inherited-class
 			    (idlwave-sintern-routine-or-method name class)
@@ -1213,93 +1214,6 @@ searches will work properly with `case-fold-search'"
 	      (setq s (replace-match " " t t s)))
 	  (if (idlwave-is-help-topic s)
 	      (add-text-properties b e props))))))))
-
-(defvar idlwave-max-popup-menu-items)
-(defun idlwave-help-popup-select (ev list)
-  "Selected an item in LIST with a popup menu."
-  (let ((maxpopup idlwave-max-popup-menu-items)
-	rtn menu resp)
-    (cond ((null list))
-	  ((= 1 (length list))
-	   (setq rtn (car list)))
-	  ((featurep 'xemacs)
-	   (setq list (sort list (lambda (a b) 
-				   (string< (upcase a) (upcase b)))))
-	   (setq menu
-		 (append (list "Select Class")
-			 (mapcar (lambda (x) (vector x (list 'idlwave-help-pset
-							     x)))
-				 list)))
-	   (setq menu (idlwave-help-split-menu-xemacs menu maxpopup))
-	   (setq resp (get-popup-menu-response menu))
-	   (funcall (event-function resp) (event-object resp)))
-	  (t
-	   (setq list (sort list (lambda (a b) 
-				   (string< (upcase a) (upcase b)))))
-	   (setq menu (cons "Select Class"
-			    (list
-			     (append (list "")
-				     (mapcar (lambda(x) (cons x x)) list)))))
-	   (setq menu (idlwave-help-split-menu-emacs menu maxpopup))
-	   (setq rtn (x-popup-menu ev menu))))
-    rtn))
-
-(defun idlwave-help-split-menu-xemacs (menu N)
-  "Split the MENU into submenus of maximum length N."
-  (if (<= (length menu) (1+ N))
-      ;; No splitting needed
-      menu
-    (let* ((title (car menu))
-	   (entries (cdr menu))
-	   (menu (list title))
-	   (cnt 0)
-	   (nextmenu nil))
-      (while entries
-	(while (and entries (< cnt N))
-	  (setq cnt (1+ cnt)
-		nextmenu (cons (car entries) nextmenu)
-		entries (cdr entries)))
-	(setq nextmenu (nreverse nextmenu))
-	(setq nextmenu (cons (format "%s...%s"
-				     (aref (car nextmenu) 0)
-				     (aref (nth (1- cnt) nextmenu) 0))
-			     nextmenu))
-	(setq menu (cons nextmenu menu)
-	      nextmenu nil
-	      cnt 0))
-      (nreverse menu))))
-
-(defun idlwave-help-split-menu-emacs (menu N)
-  "Split the MENU into submenus of maximum length N."
-  (if (<= (length (nth 1 menu)) (1+ N))
-      ;; No splitting needed
-      menu
-    (let* ((title (car menu))
-	   (entries (cdr (nth 1 menu)))
-	   (menu nil)
-	   (cnt 0)
-	   (nextmenu nil))
-      (while entries
-	(while (and entries (< cnt N))
-	  (setq cnt (1+ cnt)
-		nextmenu (cons (car entries) nextmenu)
-		entries (cdr entries)))
-	(setq nextmenu (nreverse nextmenu))
-	(prin1 nextmenu)
-	(setq nextmenu (cons (format "%s...%s"
-				     (car (car nextmenu))
-				     (car (nth (1- cnt) nextmenu)))
-			     nextmenu))
-	(setq menu (cons nextmenu menu)
-	      nextmenu nil
-	      cnt 0))
-      (setq menu (nreverse menu))
-      (setq menu (cons title menu))
-      menu)))
-
-(defvar rtn)
-(defun idlwave-help-pset (item)
-  (set 'rtn item))
 
 (defun idlwave-grep (regexp list)
   (let (rtn)
