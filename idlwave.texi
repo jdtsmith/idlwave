@@ -9,12 +9,12 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 4.11
-@set EDITION 4.11
+@set VERSION 4.12
+@set EDITION 4.12
 @set IDLVERSION 5.5
 @set NSYSROUTINES 1322
 @set NSYSKEYWORDS 5952
-@set DATE December 2001
+@set DATE January 2002
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set AUTHOR-EMAIL dominik@@astro.uva.nl
 @set MAINTAINER J.D. Smith
@@ -118,6 +118,12 @@ shell.
 
 @detailmenu
  --- The Detailed Node Listing ---
+
+Getting Started (Tutorial)
+
+* Lesson I -- Development Cycle::  
+* Lesson II -- Customization::  
+* Lesson III -- Library Catalog::  
 
 The IDLWAVE Major Mode
 
@@ -371,6 +377,13 @@ at point.
 @cindex Tutorial
 @cindex Getting Started
 
+@menu
+* Lesson I -- Development Cycle::  
+* Lesson II -- Customization::  
+* Lesson III -- Library Catalog::  
+@end menu
+
+@node  Lesson I -- Development Cycle, Lesson II -- Customization, Getting Started, Getting Started
 @section Lesson I: Development Cycle
 
 The purpose of this tutorial is to guide you through a very basic
@@ -536,6 +549,7 @@ command.  Everything should now work fine.  How about those leap years?
 Change the code to plot 100 years and see that every 28 years, the
 sequence of weekdays repeats.
 
+@node  Lesson II -- Customization, Lesson III -- Library Catalog, Lesson I -- Development Cycle, Getting Started
 @section Lesson II: Customization
 
 Emacs is probably the most customizable piece of software available, and
@@ -583,9 +597,9 @@ throughout this manual.
 If you cannot seem to master this Lisp customization in @file{.emacs},
 there is another, more user-friendly way to customize all the IDLWAVE
 variables.  You can access it through the IDLWAVE menu in one of the
-@file{.pro} buffers, option @code{Customize->Browse IDLWAVE Group}. Here
-you'll be presented with all the various variables grouped into
-categories.  You can navigate the hierarchy (e.g. Idlwave Code
+@file{.pro} buffers, menu item @code{Customize->Browse IDLWAVE
+Group}. Here you'll be presented with all the various variables grouped
+into categories.  You can navigate the hierarchy (e.g. Idlwave Code
 Formatting->Idlwave Main Block Indent), read about the variables, change
 them, and `Save for Future Sessions'.  Few of these variables need
 customization, but you can exercise considerable control over IDLWAVE's
@@ -616,7 +630,8 @@ breakpoints.  You can enable this with:
 @end lisp
 
 @noindent to get compilation on @kbd{H-c}.  Often, a modifier key like
-@key{HYPER} can be bound to an otherwise unused key.
+@key{HYPER} can be bound to an otherwise unused key -- consult your
+system documentation.
 
 You can also assign specific commands to keys.  This you must do in the
 @emph{mode-hook}, a special function which is run when a new buffer gets
@@ -641,6 +656,7 @@ keys f5-f8 to common debugging commands.
     (local-set-key [f8] 'idlwave-shell-clear-all-bp)))
 @end lisp
 
+@node  Lesson III -- Library Catalog,  , Lesson II -- Customization, Getting Started
 @section Lesson III: Library Catalog
 
 We have already used the routine info display in the first part of this
@@ -1979,11 +1995,12 @@ expansion.
 @kindex C-c C-h
 @kindex C-c C-m
 The command @kbd{C-c C-h} inserts a standard routine header into the
-buffer, with the usual fields for documentation.  One of the keywords is 
+buffer, with the usual fields for documentation (a different header can
+be specified with @code{idlwave-file-header}).  One of the keywords is
 @samp{MODIFICATION HISTORY} under which the changes to a routine can be
 recorded.  The command @kbd{C-c C-m} jumps to the @samp{MODIFICATION
-HISTORY} of the current routine or file and inserts the user
-name with a timestamp.
+HISTORY} of the current routine or file and inserts the user name with a
+timestamp.
 
 @defopt idlwave-file-header
 The doc-header template or a path to a file containing it.
@@ -2022,15 +2039,21 @@ Regexp matching the start of a document library header.
 
 IDLWAVE supports both @file{Imenu} and @file{Func-menu}, two packages
 which make it easy to jump to the definitions of functions and
-procedures in the current file.  To bind @file{Imenu} to a mouse-press,
-use in your @file{.emacs}:
+procedures in the current file with a pop-up selection.  To bind
+@file{Imenu} to a mouse-press, use in your @file{.emacs}:
 
 @lisp
 (define-key global-map [S-down-mouse-3] 'imenu)
 @end lisp
 
-Several commands allow to move quickly through the structure of an IDL
-program.  These are:
+@cindex @file{Speedbar}, Emacs package
+
+In addition, @file{Speedbar} support allows convenient navigation of a
+source tree of IDL routine files, quickly stepping to routine
+definitions.  See @code{Tools->Display Speedbar}.
+
+Several commands allow you to move quickly through the structure of an
+IDL program:
 
 @multitable @columnfractions .15 .85
 @item @kbd{C-M-a}
@@ -2131,8 +2154,9 @@ In order to create a separate frame for the IDLWAVE shell buffer, call
 window, configure the variable
 @code{idlwave-shell-use-dedicated-frame}. 
 
-To launch a quick IDLWAVE shell directly from a shell prompt, define an
-alias with the following content
+To launch a quick IDLWAVE shell directly from a shell prompt without an
+IDLWAVE buffer (e.g., as a replacement for running inside an xterm),
+define an alias with the following content:
 
 @example
 emacs -geometry 80x32 -eval "(idlwave-shell 'quick)"
@@ -2209,7 +2233,8 @@ history just like in an X terminal@footnote{This is different from
 normal Emacs/Comint behavior, but more like an xterm.  If you prefer the
 default comint functionality, check the variable
 @code{idlwave-shell-arrows-do-history}.}.  The history is preserved
-between emacs sessions.  Here is a list of commonly used commands:
+between emacs and IDL sessions.  Here is a list of commonly used
+commands:
 
 @multitable @columnfractions .12 .88
 @item @key{UP}
@@ -2348,11 +2373,12 @@ used by other commands.  For example, if you write in @file{.emacs}:
 
 a breakpoint can be set by pressing @kbd{b} while holding down
 @kbd{shift} and @kbd{control} keys, i.e. @kbd{C-S-b}.  Compiling a
-source file will be on @kbd{C-S-c}, deleting a breakpoint @kbd{C-S-d}
+source file will be on @kbd{C-S-c}, deleting a breakpoint @kbd{C-S-d},
 etc.  In the remainder of this chapter we will assume that the @kbd{C-c
 C-d} bindings are active, but each of these bindings will have an
 equivalent single-keypress shortcut with the modifiers given in the
-@code{idlwave-shell-debug-modifiers} variable.
+@code{idlwave-shell-debug-modifiers} variable (see @pxref{Lesson II --
+Customization}).
 
 @defopt idlwave-shell-prefix-key (@kbd{C-c C-d})
 The prefix key for the debugging map
