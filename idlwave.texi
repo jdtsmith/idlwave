@@ -435,7 +435,7 @@ Open a new source file by typing:
 
 A buffer for this file will pop up, and it should be in IDLWAVE mode,
 indicated in the mode line just below the editing window.  Also, the
-menu bar should contain entries @samp{IDLWAVE} and @samp{Debug}.
+menu bar should contain @samp{IDLWAVE}.
 
 Now cut-and-paste the following code, also available as
 @file{tutorial.pro} in the IDLWAVE distribution.
