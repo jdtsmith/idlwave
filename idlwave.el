@@ -5,7 +5,7 @@
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/06/14 19:03:30 $
+;; Date: $Date: 2002/08/06 18:41:20 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -5585,8 +5585,12 @@ INFO is as returned by idlwave-what-function or -procedure."
       (when (and class (not (eq t class)))
 	;; We have a real class here
 	(when (and store arrow)
-	  (put-text-property apos (+ apos 2) 'idlwave-class class)
-	  (put-text-property apos (+ apos 2) 'face idlwave-class-arrow-face))
+	  (condition-case ()
+	      (progn
+		(put-text-property apos (+ apos 2) 'idlwave-class class)
+		(put-text-property apos (+ apos 2) 'face 
+				   idlwave-class-arrow-face))
+	    (error nil)))
 	(setf (nth 2 info) class))
       ;; Return the class
       class)
