@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/17 15:17:18 $
+;; Date: $Date: 2001/12/31 21:29:41 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -7880,6 +7880,10 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
   (save-excursion
     (set-buffer "*Help*")
     (setq truncate-lines t)))
+
+;; Add .pro files to speedbar for support, if available
+(if (require 'speedbar nil t)
+    (speedbar-add-supported-extension ".pro"))
 
 ;; Try to load online help, but catch any errors.
 (condition-case nil
