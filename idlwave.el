@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/07/31 15:51:13 $
+;; Date: $Date: 2003/11/11 22:43:29 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -155,6 +155,8 @@
   (defalias 'line-beginning-position 'point-at-bol))
 (unless (fboundp 'line-end-position)
   (defalias 'line-end-position 'point-at-eol))
+(unless (fboundp 'char-valid-p)
+  (defalias 'char-valid-p 'characterp))
 
 (eval-and-compile
   ;; Kludge to allow `defcustom' for Emacs 19.
@@ -753,11 +755,11 @@ Also see help for `idlwave-surround'."
   :type 'boolean)
 
 (defcustom idlwave-pad-keyword t
-  "*Non-nil means pad '=' for keywords like assignments.
-Whenever `idlwave-surround' is non-nil then this affects how '=' is padded
-for keywords.  If t, it is padded the same as for assignments.
-If nil then spaces are removed.  With any other value, spaces are left
-unchanged."
+  "*Non-nil means pad '=' in keywords (routine calls or defs) like assignment.
+Whenever `idlwave-surround' is non-nil then this affects how '=' is
+padded for keywords and for variables.  If t, pad the same as for
+assignments.  If nil then spaces are removed.  With any other value,
+spaces are left unchanged."
   :group 'idlwave-abbrev-and-indent-action
   :type '(choice
 	  (const :tag "Pad like assignments" t)
@@ -1111,7 +1113,7 @@ As a user, you should not set this to t.")
   ;;	  (concat 
   ;;	   "\\<\\("
   ;;	   (regexp-opt 
-  ;;	    '("and" "or" "xor" "not"
+  ;;	    '("||" "&&" "and" "or" "xor" "not"
   ;;	      "eq" "ge" "gt" "le" "lt" "ne" 
   ;;	      "for" "do" "endfor"
   ;;	      "if" "then" "endif" "else" "endelse" 
@@ -1125,7 +1127,7 @@ As a user, you should not set this to t.")
   ;;	      "compile_opt" "forward_function"
   ;;	      "on_error" "on_ioerror"))  ; on_error is not officially reserved
   ;;	   "\\)\\>")))
-  "\\<\\(and\\|b\\(egin\\|reak\\)\\|c\\(ase\\|o\\(mpile_opt\\|ntinue\\)\\)\\|do\\|e\\(lse\\|nd\\(case\\|else\\|for\\|if\\|rep\\|switch\\|while\\)?\\|q\\)\\|for\\(ward_function\\)?\\|g\\(oto\\|[et]\\)\\|i\\(f\\|nherits\\)\\|l[et]\\|mod\\|n\\(e\\|ot\\)\\|o\\(n_\\(error\\|ioerror\\)\\|[fr]\\)\\|re\\(peat\\|turn\\)\\|switch\\|then\\|until\\|while\\|xor\\)\\>")
+  "\\<\\(&&\\|and\\|b\\(?:egin\\|reak\\)\\|c\\(?:ase\\|o\\(?:mpile_opt\\|ntinue\\)\\)\\|do\\|e\\(?:lse\\|nd\\(?:case\\|else\\|for\\|if\\|rep\\|switch\\|while\\)?\\|q\\)\\|for\\(?:ward_function\\)?\\|g\\(?:oto\\|[et]\\)\\|i\\(?:f\\|nherits\\)\\|l[et]\\|mod\\|n\\(?:e\\|ot\\)\\|o\\(?:n_\\(?:\\(?:io\\)?error\\)\\|[fr]\\)\\|re\\(?:peat\\|turn\\)\\|switch\\|then\\|until\\|while\\|xor\\|||\\)\\>")
 
 (let* (;; Procedure declarations.  Fontify keyword plus procedure name.
        ;; Function  declarations.  Fontify keyword plus function  name.
@@ -1237,7 +1239,7 @@ As a user, you should not set this to t.")
      idlwave-font-lock-keywords-2
      idlwave-font-lock-keywords-3)
     nil t 
-    ((?$ . "w") (?_ . "w") (?. . "w")) 
+    ((?$ . "w") (?_ . "w") (?. . "w") (?| . "w") (?& . "w")) 
     beginning-of-line))
 
 (put 'idlwave-mode 'font-lock-defaults 
@@ -1577,13 +1579,15 @@ Capitalize system variables - action only
 ;; Set action and key bindings.
 ;; See description of the function `idlwave-action-and-binding'.
 ;; Automatically add spaces for the following characters
-(idlwave-action-and-binding "&"  '(idlwave-surround -1 -1))
+;(idlwave-action-and-binding "&"  '(idlwave-surround -1 -1 '(?&) 1
+;						    (lambda (char) 0)))
 (idlwave-action-and-binding "<"  '(idlwave-surround -1 -1))
 ;; Binding works for both > and ->, by changing the length of the token.
 (idlwave-action-and-binding ">"  '(idlwave-surround -1 -1 '(?-) 1 
 						    'idlwave-gtr-pad-hook))
 (idlwave-action-and-binding "->" '(idlwave-surround -1 -1 nil 2) t)
 (idlwave-action-and-binding ","  '(idlwave-surround 0 -1))
+
 ;; Automatically add spaces to equal sign if not keyword
 (idlwave-action-and-binding "="  '(idlwave-expand-equal -1 -1))
 
@@ -1783,24 +1787,28 @@ The main features of this mode are
    source file of a module.  These commands know about system
    routines, all routines in idlwave-mode buffers and (when the
    idlwave-shell is active) about all modules currently compiled under
-   this shell.  Use \\[idlwave-update-routine-info] to update this
+   this shell.  It also makes use of pre-compiled or custom-scanned
+   user and library catalogs many popular libraries ship with by
+   default.  Use \\[idlwave-update-routine-info] to update this
    information, which is also used for completion (see item 4).
 
 3. Online IDL Help
    ---------------
    \\[idlwave-context-help] displays the IDL documentation relevant
-   for the system variable, keyword, or routine at point.  A single key
-   stroke gets you directly to the right place in the docs.  Two additional
-   files (an ASCII version of the IDL documentation and a topics file) must
-   be installed for this - check the IDLWAVE webpage for these files.
+   for the system variable, keyword, or routine at point.  A single
+   key stroke gets you directly to the right place in the docs.  The
+   HTML help files package must be installed for this to work -- check
+   the IDLWAVE webpage for the correct package for your version.  See
+   the manual to configure where and how the HTML help is displayed.
 
 4. Completion
    ----------
    \\[idlwave-complete] completes the names of procedures, functions
-   class names and keyword parameters.  It is context sensitive and
-   figures out what is expected at point (procedure/function/keyword).
-   Lower case strings are completed in lower case, other strings in
-   mixed or upper case.
+   class names, keyword parameters, system variables and tags, class
+   tags, structure tags, filenames and much more.  It is context
+   sensitive and figures out what is expected at point.  Lower case
+   strings are completed in lower case, other strings in mixed or
+   upper case.
 
 5. Code Templates and Abbreviations
    --------------------------------
@@ -1818,12 +1826,13 @@ The main features of this mode are
    \\elif      IF-ELSE statement template
    \\b         BEGIN
    
-   For a full list, use \\[idlwave-list-abbrevs].  Some templates also have
-   direct keybindings - see the list of keybindings below.
+   For a full list, use \\[idlwave-list-abbrevs].  Some templates also
+   have direct keybindings - see the list of keybindings below.
 
-   \\[idlwave-doc-header] inserts a documentation header at the beginning of the
-   current program unit (pro, function or main).  Change log entries
-   can be added to the current program unit with \\[idlwave-doc-modification].
+   \\[idlwave-doc-header] inserts a documentation header at the
+   beginning of the current program unit (pro, function or main).
+   Change log entries can be added to the current program unit with
+   \\[idlwave-doc-modification].
 
 6. Automatic Case Conversion
    -------------------------
@@ -1896,7 +1905,7 @@ The main features of this mode are
   (set (make-local-variable 'paragraph-start) "[ \t\f]\\|[ \t]*;+[ \t]")
   (set (make-local-variable 'paragraph-ignore-fill-prefix) nil)
   (set (make-local-variable 'parse-sexp-ignore-comments) t)
-  
+
   ;; Set tag table list to use IDLTAGS as file name.
   (if (boundp 'tag-table-alist)
       (add-to-list 'tag-table-alist '("\\.pro$" . "IDLTAGS")))
@@ -2636,36 +2645,64 @@ statement."
           (append st (match-end 0))))))
 
 (defun idlwave-expand-equal (&optional before after)
-  "Pad '=' with spaces.
-Two cases: Assignment statement, and keyword assignment.
-The case is determined using `idlwave-start-of-substatement' and
-`idlwave-statement-type'.
-The equal sign will be surrounded by BEFORE and AFTER blanks.
-If `idlwave-pad-keyword' is t then keyword assignment is treated just
+  "Pad '=' with spaces.  Two cases: Assignment statement, and keyword
+assignment.  Which case is determined using
+`idlwave-start-of-substatement' and `idlwave-statement-type'.  The
+equal sign will be surrounded by BEFORE and AFTER blanks.  If
+`idlwave-pad-keyword' is t then keyword assignment is treated just
 like assignment statements.  When nil, spaces are removed for keyword
 assignment.  Any other value keeps the current space around the `='.
-Limits in for loops are treated as keyword assignment.
-See `idlwave-surround'. "
-  ;; Even though idlwave-surround checks `idlwave-surround-by-blank' this
-  ;; check saves the time of finding the statement type.
+Limits in for loops are treated as keyword assignment.  
+
+Starting with IDL 6.0, a number of op= assignments are available.
+Since ambiguities of the form:
+
+r and= b
+rand= b
+
+can occur, alphanumeric operator assignment will never be pre-padded,
+only post-padded.  You must use a space before these to disambiguate
+\(not just for padding, but for proper parsing by IDL too!).  Other
+operators, such as ##=, ^=, etc., will be pre-padded.
+
+See `idlwave-surround'."
   (if idlwave-surround-by-blank
-      (if (eq t idlwave-pad-keyword)  
-	  ;; Everything gets padded equally
-	  (idlwave-surround before after)
-	;; Treating keywords/for variables specially...
-	(let ((st (save-excursion   ; To catch for variables
-		    (idlwave-start-of-substatement t)
-		    (idlwave-statement-type)))
-	      (what (save-excursion ; To catch keywords
-		      (skip-chars-backward "= \t")
-		      (nth 2 (idlwave-where)))))
-	  (cond ((or (memq what '(function-keyword procedure-keyword))
-		     (eq st 'for)) 
-		 (cond 
-		  ((null idlwave-pad-keyword)
-		   (idlwave-surround 0 0)) ; removed space
-		  (t))) ; leave alone
-		(t (idlwave-surround before after)))))))
+      (let 
+	  ((non-an-ops "\\(##\\|\\*\\|\\+\\|-\\|/\\|<\\|>\\|\\^\\)\\=")
+	   (an-ops 
+	    "\\s-\\(AND\\|EQ\\|GE\\|GT\\|LE\\|LT\\|MOD\\|NE\\|OR\\|XOR\\)\\=")
+	   (len 1))
+	
+	(save-excursion 
+	  (let ((case-fold-search t))
+	    (backward-char)
+	    (if (or 
+		 (re-search-backward non-an-ops nil t)
+		 ;; Why doesn't ##? work for both?
+		 (re-search-backward "\\(#\\)\\=" nil t)) 
+		(setq len (1+ (length (match-string 1))))
+	      (when (re-search-backward an-ops nil t)
+		(setq begin nil) ; won't modify begin
+		(setq len (1+ (length (match-string 1))))))))
+	
+	(if (eq t idlwave-pad-keyword)  
+	    ;; Everything gets padded equally
+	    (idlwave-surround before after nil len)
+	  ;; Treating keywords/for variables specially...
+	  (let ((st (save-excursion   ; To catch "for" variables
+		      (idlwave-start-of-substatement t)
+		      (idlwave-statement-type)))
+		(what (save-excursion ; To catch keywords
+			(skip-chars-backward "= \t")
+			(nth 2 (idlwave-where)))))
+	    (cond ((or (memq what '(function-keyword procedure-keyword))
+		       (memq (caar st) '(for pdef))) 
+		   (cond 
+		    ((null idlwave-pad-keyword)
+		     (idlwave-surround 0 0)
+		     ) ; remove space
+		    (t))) ; leave any spaces alone
+		  (t (idlwave-surround before after nil len))))))))
 	      
 
 (defun idlwave-indent-and-action (&optional arg)
@@ -2910,9 +2947,9 @@ statement if this statement is a continuation of the previous line."
 	       ;; Continued assignment (with =):
 	       ((looking-at "[^=\n\r]*\\(=\\)[ \t]*")
 		(goto-char (match-end 0))
-		(if (looking-at (concat "[^\n\r]*" idlwave-block-match-regexp))
+		(if (looking-at "[^\n\r]*\\<\\(else\\|then\\|do\\)\\>")
 		    ;; block match? No longer in assignment....
-		    ;;  a quoted block match doesn't count
+		    ;;  a quoted block match isn't a real block match
 		    (if (save-excursion
 			  (goto-char (match-end 0))
 			  (idlwave-in-quote)) 
@@ -5300,15 +5337,15 @@ When we force a method or a method keyword, CLASS can specify the class."
       (setq this-command last-command)
       (idlwave-scroll-completions))
 
-     ;; Check for any special completion functions
-     ((and idlwave-complete-special
-	   (idlwave-call-special idlwave-complete-special)))
-     
      ;; Complete a filename in quotes
      ((and (idlwave-in-quote)
 	   (not (eq what 'class)))
       (idlwave-complete-filename))
 
+     ;; Check for any special completion functions
+     ((and idlwave-complete-special
+	   (idlwave-call-special idlwave-complete-special)))
+     
      ((null what)
       (error "Nothing to complete here"))
 
@@ -5603,19 +5640,23 @@ other completions will be tried.")
 	  (setq classes nil)))
     rtn))
 
-(defun idlwave-best-rinfo-assq (name type class list &optional with-file)
+(defun idlwave-best-rinfo-assq (name type class list &optional with-file 
+				     keep-system)
   "Like `idlwave-rinfo-assq', but get all twins and sort, then return first.
-If WITH-FILE is passed, find the best rinfo entry with a file included."
+If WITH-FILE is passed, find the best rinfo entry with a file
+included.  If KEEP-SYSTEM is set, don't prune system for compiled
+syslib files."
   (let ((twins (idlwave-routine-twins
 		(idlwave-rinfo-assq-any-class name type class list)
 		list))
 	syslibp)
     (when (> (length twins) 1)
       (setq twins (sort twins 'idlwave-routine-entry-compare-twins))
-      (if (and (eq 'system (car (nth 3 (car twins))))
+      (if (and (null keep-system)
+	       (eq 'system (car (nth 3 (car twins))))
 	       (setq syslibp (idlwave-any-syslib (cdr twins)))
 	       (not (equal 1 syslibp)))
-	  ;; Its a syslib, so we need to remove the system entry
+	  ;; Its a compiled syslib, so we need to remove the system entry
 	  (setq twins (cdr twins)))
       (if with-file
 	  (setq twins (delq nil
@@ -5624,11 +5665,12 @@ If WITH-FILE is passed, find the best rinfo entry with a file included."
 				    twins)))))
     (car twins)))
 
-(defun idlwave-best-rinfo-assoc (name type class list)
+(defun idlwave-best-rinfo-assoc (name type class list &optional with-file 
+				     keep-system)
   "Like `idlwave-best-rinfo-assq', but sintern strings first."
   (idlwave-best-rinfo-assq
    (idlwave-sintern-routine-or-method name class)
-   type (idlwave-sintern-class class) list))
+   type (idlwave-sintern-class class) list with-file keep-system))
 
 (defun idlwave-any-syslib (entries)
   "Does the entry list ENTRIES contain a syslib entry?
@@ -6828,7 +6870,7 @@ The list is cached in `idlwave-class-info' for faster access."
 
 (defun idlwave-entry-keywords (entry &optional record-link)
   "Return the flat entry keywords alist from routine-info entry.  
-If RECORD-LINK is non-nil, the keyword text is copies and a text
+If RECORD-LINK is non-nil, the keyword text is copied and a text
 property indicating the link is added."
   (let (kwds)
     (mapcar
@@ -6845,7 +6887,8 @@ property indicating the link is added."
 			  (concat 
 			   file 
 			   (if link 
-			       (concat "#" (number-to-string link))))
+			       (concat idlwave-html-link-sep
+				       (number-to-string link))))
 			  key))
 		     (push (list key) kwds)))
 		 (cdr key-list))))
@@ -6860,9 +6903,12 @@ property indicating the link is added."
        (let ((file (car key-list))
 	     (kwd (assoc keyword (cdr key-list))))
 	 (when kwd
-	   (setq kwd (copy-list kwd))
-	   (if (and file (cdr kwd))
-	       (setcdr kwd (concat file "#" (number-to-string (cdr kwd)))))
+	   (setq kwd (cons (car kwd) 
+			   (if (and file (cdr kwd))
+			       (concat file 
+				       idlwave-html-link-sep
+				       (number-to-string (cdr kwd)))
+			     (cdr kwd))))
 	   (throw 'exit kwd))))
      (nthcdr 5 entry))))
 
@@ -7022,7 +7068,7 @@ Gets set in `idlw-rinfo.el'.")
 			(substring link 0 (match-beginning 0))
 		      link))
     (if target
-	(concat main-base "#" (number-to-string target))
+	(concat main-base idlwave-html-link-sep (number-to-string target))
       link)))
 
 ;; Fake help in the source buffer for class structure tags.
@@ -7686,8 +7732,8 @@ If we do not know about MODULE, just return KEYWORD literally."
 	(insert "Usage:    ")
 	(setq beg (point))
 	(insert (if class
-		    (format calling-seq class name)
-		  (format calling-seq name))
+		    (format calling-seq class name class name class name)
+		  (format calling-seq name name name name))
 		"\n")
 	(add-text-properties beg (point) props)
 	
@@ -7741,7 +7787,7 @@ If we do not know about MODULE, just return KEYWORD literally."
 		     "\n          Source information truncated to %d entries."
 		     idlwave-rinfo-max-source-lines))
 	    (setq all nil)))
-
+	(beginning-of-buffer)
 	(setq buffer-read-only t))
       (display-buffer "*Help*")
       (if (and (setq win (get-buffer-window "*Help*"))
@@ -8632,6 +8678,9 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 ;; Set an idle timer to load the routine info.
 ;; Will only work on systems which support this.
 (or idlwave-routines (idlwave-start-load-rinfo-timer))
+
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.[Pp][Rr][Oo]\\'" . idlwave-mode))
 
 ;; Run the hook
 (run-hooks 'idlwave-load-hook)
