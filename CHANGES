@@ -6,16 +6,17 @@ idl-shell.el, available at idlwave.org.
 
 Revision 4.11
 =============
-
    - New configureable class-driven keyword inheritance in Completion
      for common methods (like Init, and (Get|Set)Property) which chain
      keyword inheritance up the class stack.
-   - Bug fix for space padding: "->" will now be padded immediately,
-     if `idlwave-surround-by-blank' is non-nil.
-   - Bug fix in generic END completion, when coupled with 
-     reserved work upcasing.
-   - Numerous documentation improvements, including describing the
-     structure tag completion plug-in.
+   - Bug fix for space padding: the method invocation operator,"->",
+     will now be padded immediately upon entry, if
+     `idlwave-surround-by-blank' is non-nil.
+   - Bug fix in generic END expansion: faulty capitalization was
+     occuring when END expansion was coupled with reserved word
+     upcasing.
+   - Numerous documentation improvements, including a description of
+     the structure tag completion plug-in.
 
 Revision 4.10
 =============
