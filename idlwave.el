@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/01/14 22:44:01 $
+;; Date: $Date: 2002/01/14 23:58:15 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -5400,8 +5400,9 @@ When TYPE is not specified, both procedures and functions will be considered."
   "Return whether or not the class is listed explicitly, ala a->b::c.
 INFO is as returned by idlwave-what-function or -procedure."
   (let ((apos (nth 3 info)))
-    (save-excursion (goto-char apos)
-		    (looking-at "->[a-zA-Z][a-zA-Z0-9$_]*::"))))
+    (if apos
+	(save-excursion (goto-char apos)
+			(looking-at "->[a-zA-Z][a-zA-Z0-9$_]*::")))))
 
 (defun idlwave-determine-class (info type)
   ;; Determine the class of a routine call.  INFO is the structure returned
