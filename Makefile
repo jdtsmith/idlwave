@@ -33,7 +33,7 @@ EMACS=emacs
 ##----------------------------------------------------------------------
 
 # Using emacs in batch mode.
-BATCH=$(EMACS) -batch -q -l lpath.el
+BATCH=$(EMACS) -batch -no-init-file -l lpath.el
 
 # Specify the byte-compiler for compiling .el files
 ELC= $(BATCH) -f batch-byte-compile
@@ -75,8 +75,8 @@ TEXIFILES  = idlwave.texi
 INFOFILES  = idlwave idlwave-1 idlwave-2 idlwave-3
 RINFOFILES = idlw-help.el idlw-help.txt idlw-rinfo.el
 HELPFILES  = idlw-help.el idlw-help.txt
-DLDIR     = /home/www/html/idlwave/download
-HTMLDIR    = /home/www/html/idlwave/
+DLDIR     = /var/www/html/idlwave/download
+HTMLDIR    = /var/www/html/idlwave/
 
 # An alternative installation point
 #MY_INFODIR = /home/strw/dominik/lib/emacs/info
@@ -162,15 +162,15 @@ idlwave.pdf: idlwave.texi
 rinfo:  rinfo55
 
 rinfo53:
-	./get_rinfo53 -txt -emacs -path pdf53 -idl idl_5.3
+	./get_rinfo53 -txt -path pdf53 -idl idl_5.3
 
 rinfo54:
-	./get_rinfo54 -txt -emacs -path pdf54 -idl idl_5.4
+	./get_rinfo54 -txt -path pdf54 -idl idl_5.4
 
 rinfo55: $(RINFOFILES)
 
 $(RINFOFILES): get_rinfo
-	./get_rinfo -fixup help55fixup.txt -txt -emacs -path pdf55 -idl idl_5.5
+	./get_rinfo -fixup help55fixup.txt -txt -path pdf55 -idl idl_5.5
 
 dgkit:
 	@if [ "X$(IDL)" = "X" ]; then echo "*** No IDL tag ***"; exit 1; fi
