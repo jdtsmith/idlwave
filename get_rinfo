@@ -1877,6 +1877,10 @@ EOF
   
   print RINFO ";; Fixed up documentation with file: $fixup\n;;\t $fixcnt total fix matches.\n" if($fixup and $fixcnt);
   print RINFO <<EOF;
+;
+;; New versions of IDLWAVE, documentation, and more information
+;; available from:
+;;                 http://idlwave.org
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2127,11 +2131,11 @@ sub write_topics_header {
   print TOPICS <<EOF;
 ;;; $topicsfile --- Help code and topics for IDLWAVE
 ;; Copyright (c) 2000 Carsten Dominik
-;; Copyright (c) 2001 J.D.Smith
+;; Copyright (c) 2001, 2002 J.D.Smith
 ;;
 ;; Author: Carsten Dominik <dominik\@astro.uva.nl>
-;; Maintainer: J.D. Smith <jdsmith\@alum.mit.edu>
-;; Version: 4.10
+;; Maintainer: J.D. Smith <jdsmith\@as.arizona.edu>
+;; Version: VERSIONTAG
 $part_of
 ;;; Commentary:
 
@@ -2142,6 +2146,10 @@ $part_of
 ;; Created by $progname on $date
 ;; IDL version: $idlversion
 ;;
+;; New versions of IDLWAVE, documentation, and more information
+;; available from:
+;;                 http://idlwave.org
+;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Code:
