@@ -1,0 +1,191 @@
+This is the INSTALL file of the IDLWAVE distribution, version VERSIONTAG 
+
+IDLWAVE has been developed and tested on Emacs 20.4 and XEmacs 21.1.
+
+If you are using XEmacs 21, you probably want to install the XEmacs
+plugin package for idlwave which is available via the usual package
+management process.  You can then skip items (1)--(3) of this guide
+and continue directly with item (4).
+
+If you are using Emacs 21, IDLWAVE is installed.  You can then skip
+items (1)--(3) of this guide and continue directly with item (4).
+
+
+0. THE FAST ROAD
+================
+
+On a typical UNIX system, installation goes as easy as:
+
+Get these following files:
+
+http://idlwave.org/download/idlwave.tar.gz
+http://idlwave.org/download/idlwave-help.tar.gz
+
+Put them in /tmp (or anywhere), then do (as root):
+
+  % tar xzvf idlwave.tar.gz
+  % cd idlwave-version
+  % tar xzvf ../idlwave-help.tar.gz
+  % make
+  % make install-all
+
+where "version" is something like 4.10.  This by default puts idlwave in
+/usr/local/share/emacs/site-lisp/, which is a fine place.  It also puts
+the help files in /usr/local/etc, which is also fine.
+
+Then add to .emacs or to a site equivalent of it:
+
+  (autoload 'idlwave-mode "idlwave" "IDLWAVE Mode" t)
+  (autoload 'idlwave-shell "idlw-shell" "IDLWAVE Shell" t)
+  (setq auto-mode-alist  
+   (cons '("\\.pro\\'" . idlwave-mode) auto-mode-alist))
+  (setq idlwave-help-directory "/usr/local/etc")
+
+The rest of this file is just an extensive destription of these steps, 
+with eplanation of the options you have and how to change the defaults.
+
+
+1. SELECTING A DIRECTORY TO INSTALL THE FILES
+=============================================
+
+In order to install Emacs Lisp files, you need access to a directory
+which will be searched by Emacs for these files.  
+
+- If you are installing IDLWAVE for all users on the system, then you
+  should use the "..../emacs/site-lisp" directory.
+
+- If you want to install the package just for yourself, make a
+  directory to contain your private lisp files, for example
+  "~/lib/emacs/lisp".  Then tell Emacs to look also into this directory
+  by putting the following line into your .emacs file.
+
+    (setq load-path (cons "~/lib/emacs/lisp" load-path))
+
+
+2a. INSTALLATION BY HAND
+========================
+
+In order to install IDLWAVE by hand, put the files `idlwave.el',
+`idlw-rinfo.el', `idlw-shell.el', and `idlw-toolbar.el' into
+the chosen load-path directory and byte-compile them (from within
+Emacs, execute `M-x byte-compile-file' followed by the name of the
+Lisp files).  You can ignore the warnings produced by the byte
+compiler.
+
+Copy the info file `idlwave' into the directory where Emacs info files 
+are kept and add an entry to the `dir' file.
+
+2b. INSTALLATION USING MAKE
+===========================
+
+In order to install IDLWAVE with the make utility, edit the header of
+the file `Makefile'.  You need to specify the Lisp installation
+directory and the directory where the Info files are installed.  Also,
+check the name of the Emacs executable (usually either `emacs' or
+`xemacs').
+
+Then, type 
+
+   make
+   make install
+   make install-info
+
+to compile and install the code and the info file.
+
+
+3. SETTING UP EMACS TO USE IDLWAVE
+==================================
+
+Copy the following lines into your .emacs file:
+
+(autoload 'idlwave-mode "idlwave" "IDLWAVE Mode" t)
+(autoload 'idlwave-shell "idlw-shell" "IDLWAVE Shell" t)
+(setq auto-mode-alist (cons '("\\.pro\\'" . idlwave-mode) auto-mode-alist))
+
+
+4. INITIALIZING FONT-LOCK
+=========================
+
+If you are using global-font-lock-mode, fontification of IDLWAVE
+buffers will be automatic.  If not, add the following to .emacs:
+
+   (add-hook 'idlwave-mode-hook 'turn-on-font-lock)
+
+The level of colorization can be controlled with the variable
+`font-lock-maximum-decoration'.
+
+
+5. ARE YOU UPGRADING FROM THE OLD `idl.el' FILE?
+================================================
+
+If you have any customization for the older `idl-mode' in your .emacs
+file, you need to do the following:
+a) Change all variable and function prefixes from `idl-' to `idlwave-'.
+b) Remove the now invalid `autoload' and `auto-mode-alist'
+   forms pointing to the `idl.el' and `idl-shell.el' files.
+c) If you did use the hook recommended in earlier versions to get
+   a separate frame for the IDL shell, remove that hook again.
+   Instead, set the variable `idlwave-shell-use-dedicated-frame' with
+      (setq idlwave-shell-use-dedicated-frame t)
+d) The key sequence `M-TAB' no longer inserts a TAB character, but (as 
+   in many other Emacs modes) does completion.  Inserting a TAB is now 
+   bound to `C-TAB'.
+
+6. YOU ARE DONE
+===============
+
+IDLWAVE has online documentation in Info format.  To view this
+information, use `M-x idlwave-info' or follow the Menu entry in the
+IDLWAVE menu.  You can also convert the documentation into Postscript
+with `make ps' and into HTML with `make html'.
+
+-------------------------------------------------------------------------
+
+7. INSTALLING ONLINE HELP
+=========================
+
+If you want IDLWAVE to display online help about IDL routines, you
+need an ASCII version of the IDL documentation and a file with
+pointers to the topics in the documentation.  You can download the
+files from the IDLWAVE website.
+
+   INSTALL BY HAND
+   ---------------
+   Unpack the `idlwave-help.tar.gz' file and copy the files
+   `idlw-help.el' and `idlw-help.txt' into an arbitrary directory.
+   Byte-compile `idlw-help.el'.
+
+   INSTALL USING MAKE
+   ------------------
+   Unpack `idlwave-help.tar.gz' into the same directory where also the
+   IDLWAVE distribution is located.  Edit the header of the IDLWAVE 
+   Makefile to make sure the variable "helpdir" is set correctly.
+   Then, type:
+
+          make install-help
+
+Now all you have to do is to tell IDLWAVE where these files are
+located with 
+
+  (setq idlwave-help-directory "/path/to/help/files/")
+
+in your .emacs file.  For a system-wide installation, you can instead
+set the environment variable IDLWAVE_HELP_DIRECTORY.
+
+
+8. SCANNING THE LOCAL IDL LIBRARY
+=================================
+
+If you would like to use routine information and completion for
+modules in the local and your private IDL library, the library has to
+be scanned.  Set the variable `idlwave-libinfo-file' to the absolute
+name of a file in which to store the extracted information.  The
+default is "~/idlcat.el".  Then from within Emacs, start the IDLWAVE
+shell with `M-x idlwave-shell'.  
+Execute `M-x idlwave-create-libinfo-file' and follow the instructions.
+
+This final point (scanning the library to produce a catalog file)
+should be done by individual users in order to make sure their private
+libraries will be included as well.  I could support separate catalogs
+for shared and private libraries, but currently this is not the case.
+

@@ -1,0 +1,1055 @@
+ACOS
+     
+     Notes
+        ACOS now supports complex input.
+
+CONVOL
+        
+     Keywords
+        MISSING 
+        The value to return for elements that contain no valid points within the kernel.  The default
+        is the IEEE floating-point value NaN.  This keyword is only used if the NAN keyword is set.
+
+        MISSING 
+        The value to return for elements that contain no valid points within the kernel.  The default
+        is the IEEE floating-point value NaN.  This keyword is only used if the NAN keyword is set.
+
+ADAPT_HIST_EQUAL
+
+     Keywords
+        FCN 
+        Set this keyword to the desired cumulative probability distribution function in the form of a
+        256 element vector. If omitted, a linear ramp, which yields equal probability bins results.
+        This function is later normalized, so magnitude is inconsequential, though it should increase
+        monotonically.
+
+ASIN
+
+     Notes
+        ASIN now supports complex input.
+
+ATAN
+
+     Notes
+        ATAN now supports complex input.
+
+BINDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+BREAKPOINT
+
+     Keywords
+        ON_RECOMPILE
+        This new keyword allows you to specify that a breakpoint will not take effect until the next
+        time the file containing it is compiled.
+
+BYTARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+BYTE
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+CINDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+COMPLEX
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+     Keywords
+        DOUBLE
+        Set this keyword to return a double-precision complex result. This is equivalent to using the
+        DCOMPLEX function, and is provided as a programming convenience.
+
+COMPLEXARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+COND
+
+     Keywords
+        LNORM
+        Set this keyword to indicate which norm to use for the computation. The possible values of
+        this keyword are:
+
+           * LNORM = 0 Use the L norm (the maximum
+             absolute row sum norm).
+           * LNORM = 1 Use the L1 norm (the maximum
+             absolute column sum norm).
+           * LNORM = 2 Use the L2 norm (the spectral 
+             norm).
+        For LNORM = 2, A cannot be complex.  LNORM is set to 0 by default.
+
+CONGRID 
+
+     Keywords
+
+        CENTER
+        If this keyword is set, the interpolation is shifted so that points in the input and output
+        arrays are assumed to lie at the midpoint of their coordinates rather than at their
+        lower-left corner.
+
+CONVOL
+
+     Keywords
+        MISSING
+        The value to return for elements that contain no valid points within the kernel.  The default
+        is the IEEE floating-point value NaN.  This keyword is only used if the NAN keyword is set.
+
+        NAN
+        Set this keyword to cause the routine to check for occurrences of the IEEE floating-point
+        value NaN in the input data. Elements with the value NaN are treated as missing data, and are
+        ignored when computing the convolution for neighboring elements.  In the Result, missing
+        elements are replaced by the convolution of all other valid points within the kernel.  If all
+        points within the kernel are missing, then the result at that point is given by the MISSING
+        keyword.  Note that CONVOL should never be called without the NAN keyword if the input array
+        may possibly contain NaN values.
+
+CW_FIELD
+
+     Keywords
+        TEXT_FRAME
+        Set this keyword to the width in pixels of a frame to be drawn around the text field.  This
+        keyword is only a "hint" to the toolkit, and may be ignored in some instances. Under
+        Microsoft Windows, text widgets always have a frame of width 1 pixel.
+
+CW_FSLIDER
+
+     Keywords
+        DOUBLE
+        Set this keyword to return double-precision values for the GET_VALUE keyword to
+        WIDGET_CONTROL, and for the VALUE field in widget events. If DOUBLE=0 then the GET_VALUE
+        keyword and the VALUE field will return single-precision values. The default is /DOUBLE if
+        one of the MINIMUM, MAXIMUM, or VALUE keywords is double precision, otherwise the default is
+        DOUBLE=0.
+
+        SCROLL
+        Under the Motif window manager, the SCROLL value specifies how many units the scroll bar
+        should move when the user clicks the left mouse button inside the slider area, but not on the
+        slider itself. On Macintosh and Microsoft Windows, the SCROLL value specifies how many units
+        the scroll bar should move when the user clicks the left mouse button on the slider arrows,
+        but not within the slider area or on the slider itself. The default SCROLL value is 1% of the
+        slider width.
+
+CW_PDMENU
+
+     Keywords
+        CONTEXT_MENU
+        (Windows, UNIX only) Set this new keyword to create a context menu pulldown. If CONTEXT_MENU
+        is set, Parent must be the widget ID of a context menu base, and the return value of
+        CW_PDMENU is this widget ID. Also see the CONTEXT_MENU keyword to WIDGET_BASE.
+        
+DBLARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+DCINDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+DCOMPLEX
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+DCOMPLEXARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+DEVICE
+
+     Keywords
+        LANUAGE_LEVEL
+        Set this keyword to indicate the language level of the PostScript output that is to be
+        generated by the device.  Valid values include 1 (the default) and 2 (required for some
+        features, such as filled patterns for polygons).
+        
+        TRUE_COLOR
+        You can now use this keyword to specify any TrueColor visual depth.  The most common are 15,
+        16, and 24.
+
+DINDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+DOUBLE
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+FFT
+
+     Keywords
+        DIMENSION
+        Set this keyword to the dimension across which to calculate the FFT. If this keyword is not
+        present or is zero, then the FFT is computed across all dimensions of the input array. If
+        this keyword is present, then the FFT is only calculated only across a single dimension.  For
+        example, if the dimensions of Array are N1, N2, N3, and DIMENSION is 2, the FFT is calculated
+        only across the second dimension.
+
+FILE_CHMOD
+
+     Keywords
+        NOEXPAND_PATH
+        If specified, FILE_CHMOD uses File exactly as specified, without applying the usual file path
+        expansion.
+
+FILE_DELETE
+
+     Keywords
+        NOEXPAND_PATH
+        If specified, FILE_DELETE uses File exactly as specified, without applying the usual file
+        path expansion.
+
+FILE_MKDIR
+
+     Keywords
+        NOEXPAND_PATH
+        If specified, FILE_MKDIR uses File exactly as specified, without applying the usual file path
+        expansion.
+
+FILE_TEST
+
+     Keywords
+        NOEXPAND_PATH
+        If specified, FILE_TEST uses File exactly as specified, without applying the usual file path
+        expansion.
+
+FINDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+FINITE
+
+     Keywords
+        SIGN
+        If the INFINITY or NAN keyword is set, then set this keyword to one of the following values:
+
+           * SIGN > 0: For /INFINITY, return True (1) if X is
+              positive infinity, False (0) otherwise. For /NAN,
+              return True (1) if X is +NaN (negative sign bit is
+              not set), False (0) otherwise.
+
+           * SIGN = 0 (the default): The sign of X (positive or
+              negative) is ignored.
+
+           * SIGN < 0: For /INFINITY, return True (1) if X is
+              negative infinity, False (0) otherwise. For /NAN,
+              return True (1) if X is -NaN (negative sign bit is
+              set), False (0) otherwise.
+          
+        If neither the INFINITY nor NAN keyword is set, then this keyword is ignored.
+        
+FIX
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+FLOAT
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+FLTARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+GAUSSFIT
+
+     Keywords
+        ESTIMATES
+        The way the estimates are constructed in GAUSSFIT if not provided by the user has been
+        improved. If the ESTIMATES array is not specified, estimates are calculated by first
+        subtracting a polynomial of degree NTERMS-4 (only if NTERMS is greater than 3) and then
+        forming a simple estimate of the Gaussian coefficients.
+        
+
+GET_DRIVE_LIST
+
+     Keywords
+        COUNT
+        This new keyword is named variable into which the number of drives/volumes found is
+        placed. If no drives/volumes are found, a value of 0 is returned.
+
+        CDROM
+        If set by this new keyword, compact disk drives are reported. Note that although CDROM
+        devices are removable, they are treated as a special case, and the REMOVABLE keyword does not
+        apply to them.  Note - This is a Windows only keyword.
+
+        FIXED
+        If set by this new keyword, hard drives physically attached to the current system are
+        reported.  Note - This is a Windows only keyword.
+
+        REMOTE
+        This new keyword specifies that remote (i.e. network) drives should be reported.  Note - This
+        is a Windows only keyword.
+
+        REMOVABLE
+        This new keyword reports removable media devices (e.g. floppy, zip drive) other than CDROMs.
+        Note - This is a Windows only keyword.
+
+GETENV
+
+     Notes
+        Returns the equivalence string for Name from the environment of the IDL process, or a null
+        string if Name does not exist in the environment. If Name is an array, the result has the
+        same structure, with each element containing the equivalence string for the corresponding
+        element of Name.
+
+        
+HELP
+        
+     Keywords
+        DEVICE
+        On UNIX systems, a new field (Bits Per RGB) has been added to the output from the DEVICE
+        keyword.  This Bits Per RGB field indicates the amount of bits utilized for each RGB
+        component.
+
+HIST_EQUAL
+        
+     Keywords
+        FCN
+        Set this keyword to the desired cumulative probability distribution function in the form of a
+        256 element vector. If omitted, a linear ramp, which yields equal probability bins results.
+        This function is later normalized, so magnitude is inconsequential, though it should increase
+        monotonically.
+        
+INDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+L64INDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+LINDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+LONARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+LONG
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+LONG64
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+MAKE_ARRAY
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+     Keywords
+        DIMENSION
+        This modified keyword represents a vector of 1 to 8 elements specifying the dimensions of the
+        result. This is equivalent to the array form of the Di plain arguments.
+        
+MAX
+
+     Keywords
+        DIMENSION
+        Set this new keyword to the dimension over which to find the maximum values for an array. If
+        this keyword is not present or is zero, then the maximum is found over the entire array. If
+        this keyword is present, then the return values for Result, Max_Subscript, MIN, and
+        SUBSCRIPT_MIN will all be arrays of one dimension less than the input array. For example, if
+        the dimensions of Array are N1, N2, N3, and DIMENSION is 2, the dimensions of the result are
+        (N1, N3), and element (i,j) of the result contains the maximum value of Array[i, *, j].
+
+        SUBSCRIPT_MIN 
+        A named variable that, if supplied, is converted to an integer containing the one-dimensional
+        subscript of the minimum element, the value of which is available via the MIN keyword.
+
+MESH_OBJ
+
+     Keywords
+        CLOSED
+        This new keyword, if set, "closes" the polygonal mesh topologically by using the first vertex
+        in a row for both the first and last polygons in that row. This keyword parameter is only
+        applicable to the CYLINDRICAL, SPHERICAL, REVOLUTION, and EXTRUSION surface types. This
+        keyword parameter removes the discontinuity where the mesh wraps back around on itself, which
+        can improve the mesh's appearance when viewing it as a shaded object. For the EXTRUSION
+        surface type, this procedure handles input polygons that form a closed loop with the last
+        vertex being a copy of the first vertex, as well as those that do not.
+
+MESSAGE
+
+     Keywords
+        BLOCK
+        If specified, BLOCK supplies the name of the message block to use. The BLOCK keyword is
+        ignored unless the NAME keyword is also specified.
+
+        NAME
+        If specified, NAME supplies the name of the message to throw. NAME is often used in
+        conjunction with the BLOCK keyword.
+
+MIN
+
+     Keywords
+        DIMENSION
+        Set this new keyword to the dimension over which to find the minimum values of an array. If
+        this keyword is not present or is zero, then the minimum is found over the entire array. If
+        this keyword is present, then the return values for Result, Min_Subscript, MAX, and
+        SUBSCRIPT_MAX will all be arrays of one dimension less than the input array. For example, if
+        the dimensions of Array are N1, N2, N3, and DIMENSION is 2, the dimensions of the result are
+        (N1, N3), and element (i,j) of the result contains the minimum value of Array[i, *, j].
+
+        SUBSCRIPT_MAX
+        A named variable that, if supplied, is converted to an integer containing the one-dimensional
+        subscript of the maximum element, the value of which is available via the MAX keyword.
+
+N_TAGS
+
+     Keywords
+        DATA_LENGTH
+        Set this new keyword to return the length of the data fields contained within the structure,
+        in bytes. This differs from LENGTH in that it does not include any alignment padding required
+        by the structure. The length of the data for a given structure will be the same on any
+        system.
+
+NORM
+
+     Keywords
+        LNORM
+        Set this keyword to indicate which norm to compute.  If A is a vector, then the possible
+        values of this keyword are:
+
+           * LNORM = 0 Compute the L norm, defined as
+             MAX(ABS(A)).
+
+           * LNORM = 1 Compute the L1 norm, defined as
+             TOTAL(ABS(A)).
+
+           * LNORM = 2 Compute the L2 norm, defined as
+             SQRT(TOTAL(ABS(A)^2)).
+
+           * LNORM = n Compute the Ln norm, defined as
+             (TOTAL(ABS(A)^n))^(1/n) where n is any
+             number, float-point or integer.
+
+        LNORM for vectors is set to 2 by default.  If A is a two-dimensional array, then the possible
+        values of this keyword are:
+
+           * LNORM = 0 Compute the L norm (the
+             maximum absolute row sum norm), defined as
+             MAX(TOTAL(ABS(A), 1)).
+
+           * LNORM = 1 Compute the L1 norm (the maximum
+             absolute column sum norm), defined as
+             MAX(TOTAL(ABS(A), 2)).
+
+           * LNORM = 2 Compute the L2 norm (the spectral
+             norm) defined as the largest singular value,
+             computed from SVDC. For LNORM = 2, A
+             cannot be complex.
+
+        LNORM for two-dimensional arrays is set to 0 by default.
+
+OBJARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+  
+OPEN
+
+     Keywords
+        NOEXPAND_PATH
+        If specified, File is used exactly as specified, without applying the usual file path
+        expansion.
+
+
+POLYWARP
+
+     Keywords
+        DOUBLE
+        Set this keyword to use double-precision for computations and to return a double-precision
+        result.  Set DOUBLE=0 to use single-precision for computations and to return a
+        single-precision result.  The default is /DOUBLE if any of the inputs are double precision,
+        otherwise the default is DOUBLE=0.
+
+        STATUS
+        Set this keyword to a named variable to receive the status of the operation.  Possible status
+        values are:
+
+           0 = Successful completion.
+           1 = Singular array (which indicates that the
+               inversion is invalid).
+           2 = Warning that a small
+               pivot element was used
+               and that significant
+               accuracy was probably lost.
+
+        Note - If STATUS is not specified, any warning messages will be output to the screen.
+
+POLY_AREA
+
+     Keywords
+        DOUBLE
+        Set this keyword to use double-precision for computations and to return a double-precision
+        result.  Set DOUBLE = 0 to use single-precision for computations and to return a
+        single-precision result. If either of the inputs are double-precision, the default is /DOUBLE
+        (DOUBLE = 1), otherwise the default is DOUBLE = 0.
+
+PTRARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+QUERY_TIFF
+
+     Arguments
+        Info
+        The Info argument to QUERY_TIFF returns an anonymous structure containing information about
+        the image in the file. New Info structure fields have been added. See "New Returned
+        Information for TIFF Queries" on page 45.
+        
+RANDOMN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+RANDOMU
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+READ_TIFF
+     
+     Notes
+        READ_TIFF now imports 1- and 4-bit images from TIFF files. For 1-bit (bi-level) images, the
+        image values are 0 or 1. For 4-bit grayscale images, the image values are in the range 0 to
+        15.
+
+     Keywords
+        ORIENTATION
+        Set this keyword to a named variable that will contain the orientation value from the TIFF
+        file. Possible return values are:
+
+           * 1 = Column 0 represents
+                 the left-hand side, and
+                 row 0 represents the top.
+           * 2 = Column 0 represents
+                 the right-hand side, and
+                 row 0 represents the top.
+           * 3 = Column 0 represents
+                 the right-hand side, and
+                 row 0 represents the bottom.
+           * 0 or 4 = Column 0
+                 represents the left-hand side,
+                 and row 0 represents the bottom.
+           * 5 = Column 0 represents the top, and row 0
+                 represents the left-hand side.
+           * 6 = Column 0 represents the top, and row 0
+                 represents the right-hand side.
+           * 7 = Column 0 represents the bottom, and row 0
+                 represents the right-hand side.
+           * 8 = Column 0 represents the bottom, and row 0
+                 represents the left-hand side.
+
+        If an orientation value does not appear in the TIFF file, an orientation of 0 is returned.
+        
+REBIN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+RECON3
+
+     Keywords
+        QUIET
+        Set this keyword to suppress the output of informational messages when the processing of each
+        image is completed.
+        
+REFORM
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+REPLICATE
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+SETENV
+
+     Arguments
+        Environment_Expression
+        This argument may now be either a scalar or array string variable containing environment
+        expressions to be added to the environment.
+                
+SHIFT
+
+     Arguments
+        Si           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+        
+SINDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+SMOOTH
+
+     Arguments
+        Width
+        This modified argument defines the width of the smoothing window. Width can either be a
+        scalar or a vector with length equal to the number of dimensions of Array. If Width is a
+        scalar then the same width is applied for each dimension that has length greater than 1
+        (dimensions of length 1 are skipped). If Width is a vector, then each element of Width is
+        used to specify the smoothing width for each dimension of Array.  Values for Width must be
+        smaller than the corresponding Array dimension. If a Width value is even, then Width+1 will
+        be used instead. The value of Width does not affect the running time of SMOOTH to a great
+        extent.  Note - A Width value of zero or 1 implies no smoothing. However, if the NAN keyword
+        is set, then any NaN values within the Array will be treated as missing data and will be
+        replaced.  Tip - For a multidimenional array, set widths to 1 within the Width vector for
+        dimensions that you don't want smoothed.
+
+     Keywords
+        MISSING
+        The value to return for elements that contain no valid points within the kernel.  The default
+        is the IEEE floating-point value NaN.  This keyword is only used if the NAN keyword is set.
+        
+        NAN
+        Set this keyword to cause the routine to check for occurrences of the IEEE floating-point
+        value NaN in the input data. Elements with the value NaN are treated as missing data, and are
+        ignored when computing the smooth value for neighboring elements.  In the Result, missing
+        elements are replaced by the smoothed value of all other valid points within the smoothing
+        window. If all points within the window are missing, then the result at that point is given
+        by the MISSING keyword. Note that SMOOTH should never be called without the NAN keyword if
+        the input array may possibly contain NaN values.
+
+STRARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+UINDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+UINT
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+UINTARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+UL64INDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+ULINDGEN
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+ULON64ARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+ULONARR
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+ULONG64
+
+     Arguments
+        Di           
+        This modified argument can now specify dimensions as a single array as well as a sequence of
+        scalar values.
+
+WARP_TRI
+
+     Keywords
+        TPS
+        This new keyword uses Thin Plate Spline interpolation which is ideal for modeling functions
+        with complex local distortions, such as warping functions, which are too complex to be fit
+        with polynomials.
+
+WIDGET_BASE
+
+     Keywords
+        CONTEXT_MENU
+        (Windows, UNIX only) Set this new keyword to generate context events when the right mouse
+        button is pressed over the widget. To request right mouse button events in a draw widget use
+        the BUTTON_EVENTS keyword to WIDGET_DRAW at creation or the DRAW_BUTTON_EVENTS keyword to
+        WIDGET_CONTROL for an existing draw widget. A right button press generates a WIDGET_DRAW
+        event with the EVENT.TYPE field equal to 0 and the EVENT.RELEASE field equal to 4.
+
+
+WIDGET_CONTROL
+
+     Keywords
+        CONTEXT_MENU
+        (Windows, UNIX only) Set this new keyword to enable context menu events generated by right
+        mouse button clicks. Setting a zero value disables such events.  This keyword applies to
+        widgets created with WIDGET_BASE, WIDGET_TEXT, or WIDGET_LIST.
+
+WIDGET_INFO
+
+     Keywords
+        CONTEXT_EVENTS
+        (Windows, UNIX only) Set this new keyword to return 1 if Widget_ID is a widget with the
+        CONTEXT_EVENTS attribute set.  Otherwise, 0 is returned.  This keyword applies to widgets
+        created with WIDGET_BASE, WIDGET_TEXT, or WIDGET_LIST.
+
+        SYSTEM_COLORS
+        (Windows, UNIX only) This new keyword requires a valid IDL widget identifier and returns an
+        IDL structure named WIDGET_SYSTEM_COLORS. The structure contains RGB values for 25 display
+        elements. Each RGB value is a three-dimensional array of integers representing the red,
+        green, blue values in the range 0 to 255 or a value of ­1 if unavailable.  For more detailed
+        information on the WIDGET_SYSTEM_COLORS structure fields and their meaning see the "Emulating
+        System Colors in Application Widgets" on page 41.
+
+WIDGET_LIST
+
+     Keywords
+        CONTEXT_EVENTS
+        (Windows, UNIX only) Set this new keyword to generate context events when the right mouse
+        button is pressed over the widget. To request right mouse button events in a draw widget use
+        the BUTTON_EVENTS keyword to WIDGET_DRAW at creation or the DRAW_BUTTON_EVENTS keyword to
+        WIDGET_CONTROL for an existing draw widget. A right button press generates a WIDGET_DRAW
+        event with the EVENT.TYPE field equal to 0 and the EVENT.RELEASE field equal to 4.
+
+WIDGET_SLIDER
+        
+     Keywords
+        SCROLL
+        Under the Motif window manager, the SCROLL value specifies how many units the scroll bar
+        should move when the user clicks the left mouse button inside the slider area, but not on the
+        slider itself. The default on Motif is 10% of the slider width. On Macintosh and Microsoft
+        Windows, the SCROLL value specifies how many units the scroll bar should move when the user
+        clicks the left mouse button on the slider arrows, but not within the slider area or on the
+        slider itself. The default on Macintosh and Microsoft Windows is 1 unit.
+
+WIDGET_TEXT
+
+     Keywords
+        CONTEXT_EVENTS
+        (Windows, UNIX only) Set this new keyword to generate context events when the right mouse
+        button is pressed over the widget. To request right mouse button events in a draw widget use
+        the BUTTON_EVENTS keyword to WIDGET_DRAW at creation or the DRAW_BUTTON_EVENTS keyword to
+        WIDGET_CONTROL for an existing draw widget. A right button press generates a WIDGET_DRAW
+        event with the EVENT.TYPE field equal to 0 and the EVENT.RELEASE field equal to 4.
+
+WRITE_TIFF
+
+     Keywords
+        BITS_PER_SAMPLE
+        This new keyword can be used for a grayscale image, by being set to either 1, 4, or 8 to
+        indicate the bits per sample to write. For 1-bit (bi-level) images, an output bit is assigned
+        the value 1 if the corresponding input pixel is nonzero. For 4-bit grayscale images, the
+        input pixel values should be in the range 0 through 15. The default is BITS_PER_SAMPLE =
+        8. This keyword is ignored if an RGB image or color palette is present, or if one of the
+        FLOAT, LONG, or SHORT keywords is set.  Item
+        
+        ORIENTATION
+        Set this new keyword to indicate the orientation of the image with respect to the columns and
+        rows of Image.  Possible values are:
+
+           * 1 = Column 0 represents
+                 the left-hand side, and
+                 row 0 represents the top.
+           * 2 = Column 0 represents
+                 the right-hand side, and
+                 row 0 represents the top.
+           * 3 = Column 0 represents
+                 the right-hand side, and
+                 row 0 represents the bottom.
+           * 0 or 4 = Column 0
+                 represents the left-hand side,
+                 and row 0 represents the bottom.
+           * 5 = Column 0 represents the top, and row 0
+                 represents the left-hand side.
+           * 6 = Column 0 represents the top, and row 0
+                 represents the right-hand side.
+           * 7 = Column 0 represents the bottom, and row 0
+                 represents the right-hand side.
+           * 8 = Column 0 represents the bottom, and row 0
+                 represents the left-hand side.
+
+        The default is ORIENTATION=1.  Warning - Not all TIFF readers honor the value of the
+        ORIENTATION field. IDL writes the value into the file, but many known readers ignore this
+        value. In such cases, it is recommended that the image be converted to top to bottom order
+        with the REVERSE function and then ORIENTATION be set to 1.
+
+        UNITS
+        Set this new keyword to indicate the units of the XRESOL and YRESOL keywords. Possible values
+        are:
+
+           * 1 = No units
+           * 2 = Inches (the default)
+           * 3 = Centimeters
+
+        XRESOL
+        This existing keyword sets the horizontal resolution.  Units may now be set for XRESOL using
+        the UNITS keyword.
+
+        YRESOL
+        This existing keyword sets vertical resolution. Units may now be specified for YRESOL using
+        the UNITS keyword.
+
+XOBJVIEW
+        
+     Keywords
+        RENDERER
+        Set this keyword to an integer value indicating which graphics renderer to use when drawing
+        objects in the XOBJVIEW draw window. Valid values are:
+
+           * 0 = Platform native OpenGL
+           * 1 = IDL's software implementation
+                                          
+        By default, your platform's native OpenGL implementation
+        is used. If your platform does not have a native OpenGL implementation, IDL's software
+        implementation is used regardless of the value of this property.
+
+        JUST_REG
+        Set this keyword to indicate that the XOBJVIEW utility should just be registered and return
+        immediately.
+
+        XOFFSET
+        The horizontal offset of the widget in units specified by the UNITS keyword (pixels are the
+        default) relative to its parent.  Specifying an offset relative to a row-major or
+        column-major base widget does not work because those widgets enforce their own layout
+        policies. This keyword is primarily of use relative to a plain base widget. Note that it is
+        best to avoid using this style of widget layout.
+
+        YOFFSET
+        The vertical offset of the widget in units specified by the UNITS keyword (pixels are the
+        default) relative to its parent. This offset is specified relative to the upper left corner
+        of the parent widget.  Specifying an offset relative to a row-major or column-major base
+        widget does not work because those widgets enforce their own layout policies. This keyword is
+        primarily of use relative to a plain base widget. Note that it is best to avoid using this
+        style of widget layout.
+
+XROI
+        
+     Keywords
+        TOOLS
+        The values for the TOOLS keyword indicate the buttons to be included on an XROI toolbar. New
+        values to the TOOLS keyword are:
+
+           * 'Translate Scale' - Enables translation and scaling of ROIs. Mouse down on the bounding
+             box selects a region, mouse motion translates (repositions) the region. Mouse down on a
+             scale handle of the bounding box enables scaling (stretching, enlarging and shrinking)
+             of the region according to mouse motion. Mouse up finishes the translation or scaling.
+
+           * 'Rectangle' - Enables rectangular ROI drawing.  Mouse down positions one corner of the
+             rectangle, mouse motions creates the rectangle, positioning the rectangle's opposite
+             corner, mouse up finishes the rectangular region.
+
+           * 'Ellipse' - Enables elliptical ROI drawing.  Mouse down positions the center of the
+             ellipse, mouse motion positions the corner of the ellipse's imaginary bounding box,
+             mouse up finishes the elliptical region.
+        
+
+IDLgrBuffer::PickData
+        
+     Keywords
+        DIMENSIONS
+        Set this keyword to a two-element array [w, h] to specify data picking should occur for all
+        device locations that fall within a pick box of these dimensions. The pick box will be
+        centered about the coordinates [x, y] specified in the Location argument, and will occupy the
+        rectangle defined by: (x-(w/2), y-(h/2)) - (x+(w/2), y+(h/2)) By default, the pick box covers
+        a single pixel. The return value of the Pickdata method will match the dimensions of the pick
+        box. Likewise, the array returned via the XYZLocation argument will have dimensions [3, w,
+        h].
+        
+IDLgrContour::GetProperty
+        
+     Keywords
+        DEPTH_OFFSET
+        An integer value that specifies an offset in depth to be used when rendering filled
+        primitives. This offset is applied along the viewing axis, with positive values moving the
+        primitive away from the viewer.  The units are "Z-Buffer units", where a value of 1 is used
+        to specify a distance that corresponds to a single step in the device's Z-Buffer.  Use
+        DEPTH_OFFSET to always cause a filled primitive to be rendered slightly deeper than other
+        primitives, independent of model transforms.  This is useful for avoiding stitching artifacts
+        caused by rendering lines or polygons on top of other polygons at the same depth.  Note - RSI
+        suggests using this feature to remove stitching artifacts and not as a means for "layering"
+        complex scenes with multiple DEPTH_OFFSET values. It is safest to use only a DEPTH_OFFSET
+        value of 0, the default, and one other non-zero value such as 1. Many system-level graphics
+        drivers are not consistent in their handling of DEPTH_OFFSET values, particularly when
+        multiple non-zero values are used. This can lead to portability problems because one set of
+        DEPTH_OFFSET values may produce better results on one machine as compared to another. Using
+        IDL's software renderer will help improve the cross-platform consistency of scenes that use
+        DEPTH_OFFSET.  Note - DEPTH_OFFSET has no effect unless the FILL keyword is set.
+
+IDLgrContour::Init
+        
+     Keywords
+        DEPTH_OFFSET
+        An integer value that specifies an offset in depth to be used when rendering filled
+        primitives. This offset is applied along the viewing axis, with positive values moving the
+        primitive away from the viewer.  The units are "Z-Buffer units", where a value of 1 is used
+        to specify a distance that corresponds to a single step in the device's Z-Buffer.  Use
+        DEPTH_OFFSET to always cause a filled primitive to be rendered slightly deeper than other
+        primitives, independent of model transforms.  This is useful for avoiding stitching artifacts
+        caused by rendering lines or polygons on top of other polygons at the same depth.  Note - RSI
+        suggests using this feature to remove stitching artifacts and not as a means for "layering"
+        complex scenes with multiple DEPTH_OFFSET values. It is safest to use only a DEPTH_OFFSET
+        value of 0, the default, and one other non-zero value such as 1. Many system-level graphics
+        drivers are not consistent in their handling of DEPTH_OFFSET values, particularly when
+        multiple non-zero values are used. This can lead to portability problems because one set of
+        DEPTH_OFFSET values may produce better results on one machine as compared to another. Using
+        IDL's software renderer will help improve the cross-platform consistency of scenes that use
+        DEPTH_OFFSET.  Note - DEPTH_OFFSET has no effect unless the FILL keyword is set.
+
+IDLgrContour::SetProperty
+        
+     Keywords
+        DEPTH_OFFSET
+        An integer value that specifies an offset in depth to be used when rendering filled
+        primitives. This offset is applied along the viewing axis, with positive values moving the
+        primitive away from the viewer.  The units are "Z-Buffer units", where a value of 1 is used
+        to specify a distance that corresponds to a single step in the device's Z-Buffer.  Use
+        DEPTH_OFFSET to always cause a filled primitive to be rendered slightly deeper than other
+        primitives, independent of model transforms.  This is useful for avoiding stitching artifacts
+        caused by rendering lines or polygons on top of other polygons at the same depth.  Note - RSI
+        suggests using this feature to remove stitching artifacts and not as a means for "layering"
+        complex scenes with multiple DEPTH_OFFSET values. It is safest to use only a DEPTH_OFFSET
+        value of 0, the default, and one other non-zero value such as 1. Many system-level graphics
+        drivers are not consistent in their handling of DEPTH_OFFSET values, particularly when
+        multiple non-zero values are used. This can lead to portability problems because one set of
+        DEPTH_OFFSET values may produce better results on one machine as compared to another. Using
+        IDL's software renderer will help improve the cross-platform consistency of scenes that use
+        DEPTH_OFFSET.  Note - DEPTH_OFFSET has no effect unless the FILL keyword is set.
+
+System Variables 
+        !CPU                       
+        Supplies information about the state of the system processor, and of IDL's use of it. !CPU is
+        read-only, and cannot be modified directly.
+
+        !ERROR_STATE
+        A new field has been added to the returned structure called SYS_CODE_TYPE.  The new field
+        follows the SYS_CODE field and comes before the MSG field.  The SYS_CODE_TYPE field is a
+        string describing the type of system code contained in the SYS_CODE field. Possible values
+        are:
+
+           * errno - Unix/Posix system error.
+           * win32 - Microsoft
+             Windows Win32 system error.
+           * winsock - Microsoft
+             Windows sockets library error.
+           * macos - Macintosh system error.
+
+        A null string in this field indicates that there is no system code corresponding to the
+        current error.
+
+       !VERSION                   
+       This variable has been changed by the addition of an OS_NAME field.
+
+       !WARN                      
+       The !WARN system variable no longer contains the TRUNCATED_FILENAME field.
