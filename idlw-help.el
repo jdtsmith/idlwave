@@ -361,9 +361,8 @@ It collects and prints the diagnostics messages."
 	    ((string-match 
 	      "\\`!\\([a-zA-Z0-9_]+\\)\\(\.\\([A-Za-z0-9_]+\\)\\)?" 
 	      this-word)
-	     (let* ((word  (match-string-no-properties 1 this-word))
-		    (entry (assq (idlwave-sintern-sysvar word)
-			       idlwave-system-variables-alist))
+	     (let* ((entry (assq (idlwave-sintern-sysvar word)
+				 idlwave-system-variables-alist))
 		    (tag (match-string-no-properties 3 this-word))
 		    (tag-target (if tag
 				  (cdr
