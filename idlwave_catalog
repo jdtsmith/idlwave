@@ -31,7 +31,7 @@
 # (without spaces).  E.g. "NasaLib".  A file named .idlwave_catalog
 # will be created in each directory with ".pro" routine files.
 #
-# $Id: idlwave_catalog,v 1.1 2003/04/15 19:22:59 jdsmith Exp $
+# $Id: idlwave_catalog,v 1.2 2003/07/18 18:59:41 jdsmith Exp $
 
 use Getopt::Std;
 $opt_l=$opt_s=$opt_f=$opt_v=$opt_d=$opt_h=0;
@@ -108,8 +108,10 @@ foreach $dir (keys %dirs) {
     }
   }
 
-  open CATALOG, ">$dir/$cat" or
-    die "Can't open catalog file $dir/$cat for writing";
+  unless (open CATALOG, ">$dir/$cat") {
+    warn "Can't open catalog file $dir/$cat for writing... skipping\n";
+    next;
+  }
   $time=localtime();
   print CATALOG <<EOF;
 ;;
