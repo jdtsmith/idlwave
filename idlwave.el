@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/05/13 18:42:27 $
+;; Date: $Date: 2003/05/13 18:52:52 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -5414,12 +5414,12 @@ When we force a method or a method keyword, CLASS can specify the class."
 
 (defvar idlwave-complete-special nil
   "List of special completion functions.
-These functions are called for each completion.  Each function must check
-if its own special completion context is present.  If yes, it should
-use `idlwave-complete-in-buffer' to do some completion and return `t'.
-If such a function returns `t', *no further* attempts to complete
-other contexts will be done.  If the function returns `nil', other completions
-will be tried.")
+These functions are called for each completion.  Each function must
+check if its own special completion context is present.  If yes, it
+should use `idlwave-complete-in-buffer' to do some completion and
+return t.  If such a function returns t, *no further* attempts to
+complete other contexts will be done.  If the function returns nil,
+other completions will be tried.")
 
 (defun idlwave-call-special (functions &rest args)
   (let ((funcs functions)
