@@ -4,6 +4,19 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
+Revision 4.11
+=============
+
+   - New configureable class-driven keyword inheritance in Completion
+     for common methods (like Init, and (Get|Set)Property) which chain
+     keyword inheritance up the class stack.
+   - Bug fix for space padding: "->" will now be padded immediately,
+     if `idlwave-surround-by-blank' is non-nil.
+   - Bug fix in generic END completion, when coupled with 
+     reserved work upcasing.
+   - Numerous documentation improvements, including describing the
+     structure tag completion plug-in.
+
 Revision 4.10
 =============
    - New maintainer: J.D. Smith <jdsmith@astro.cornell.edu>
