@@ -1501,13 +1501,13 @@ displaying source file.
 @end defopt
 
 @defopt idlwave-help-doclib-name (@code{"name"})
-The heading word in doclib headers to locate the @emph{name} section.
-Can be a regexp, e.g. @code{"\\(name\\|nom\\)"}.
+The case-insensitive heading word in doclib headers to locate the
+@emph{name} section.  Can be a regexp, e.g. @code{"\\(name\\|nom\\)"}.
 @end defopt
 
 @defopt idlwave-help-doclib-keyword (@code{"KEYWORD"})
-The heading word in doclib headers to locate the @emph{keywords}
-section.  Can be a regexp.
+The case-insensitive heading word in doclib headers to locate the
+@emph{keywords} section.  Can be a regexp.
 @end defopt
 
 
