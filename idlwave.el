@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/05 21:26:23 $
+;; Date: $Date: 2001/12/06 18:18:27 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -1498,7 +1498,7 @@ KEY in `idlwave-mode-map' by defining an anonymous function calling
 `self-insert-command' followed by CMD.  If KEY contains more than one
 character a binding will only be set if SELECT is 'both.
 
-(KEY . CMD\ is also placed in the `idlwave-indent-expand-table',
+\(KEY . CMD\) is also placed in the `idlwave-indent-expand-table',
 replacing any previous value for KEY.  If a binding is not set then it
 will instead be placed in `idlwave-indent-action-table'.
 
@@ -1616,8 +1616,10 @@ Capitalize system variables - action only
 ;; Automatically add spaces for the following characters
 (idlwave-action-and-binding "&"  '(idlwave-surround -1 -1))
 (idlwave-action-and-binding "<"  '(idlwave-surround -1 -1))
-(idlwave-action-and-binding ">"  '(idlwave-surround -1 -1 '(?-)))
-(idlwave-action-and-binding "->" '(idlwave-surround -1 -1 nil 2))
+;; Binding works for both > and ->, by changing the length of the token.
+(idlwave-action-and-binding ">"  '(idlwave-surround -1 -1 '(?-) 1 
+						    'idlwave-gtr-pad-hook))
+(idlwave-action-and-binding "->" '(idlwave-surround -1 -1 nil 2) t)
 (idlwave-action-and-binding ","  '(idlwave-surround 0 -1))
 ;; Automatically add spaces to equal sign if not keyword
 (idlwave-action-and-binding "="  '(idlwave-expand-equal -1 -1))
@@ -2147,10 +2149,15 @@ Also checks if the correct end statement has been used."
 	    (bolp))
     (let ((idlwave-show-block nil))
       (newline-and-indent)))
-  (insert "end")
-  (idlwave-show-begin))
+  (let ((last-abbrev-location (point)))  ; for upcasing
+    (insert "end")
+    (idlwave-show-begin)))
 
-(defun idlwave-surround (&optional before after escape-chars length)
+(defun idlwave-gtr-pad-hook (char) 
+  "Let the > symbol expand around -> if present."
+  (setq length 2))
+
+(defun idlwave-surround (&optional before after escape-chars length ec-hook)
   "Surround the LENGTH characters before point with blanks.
 LENGTH defaults to 1.
 Optional arguments BEFORE and AFTER affect the behavior before and
@@ -2166,32 +2173,41 @@ The function does nothing if any of the following conditions is true:
 - the character before point is inside a string or comment
 - the char preceeding the string to be surrounded is a member of ESCAPE-CHARS.
   This hack is used to avoid padding of `>' when it is part of
-  the '->' operator.  In this case, ESCAPE-CHARS would be '(?-)."
+  the '->' operator.  In this case, ESCAPE-CHARS would be '(?-).
 
-  (setq length (or length 1))   ; establish a default for LENGTH
-
-  (when (and idlwave-surround-by-blank
-	     (not (idlwave-quoted))
-	     (not (memq (char-after (- (point) (1+ length))) escape-chars)))
-    (backward-char length)
-    (save-restriction
-      (let ((here (point)))
-	(skip-chars-backward " \t")
-	(if (bolp)
-	    ;; avoid clobbering indent
-	    (progn
-	      (move-to-column (idlwave-calculate-indent))
-	      (if (<= (point) here)
-		  (narrow-to-region (point) here))
-	      (goto-char here)))
-	(idlwave-make-space before))
-      (skip-chars-forward " \t"))
-    (forward-char length)
-    (idlwave-make-space after)
-    ;; Check to see if the line should auto wrap
-    (if (and (equal (char-after (1- (point))) ?\ )
-	     (> (current-column) fill-column))
-	(funcall auto-fill-function))))
+If a function is passed in EC-HOOK, and an ESCAPE-CHARS match occurs,
+it will be called with a single argument: the preceding character.
+The idlwave-surround will run as usual if EC-HOOK returns non-nil.
+EC-HOOK should not move the point, and can change the let-bound
+`length' variable to change the length of the token to be padded."
+  (when (and idlwave-surround-by-blank (not (idlwave-quoted)))
+    (let* ((length (or length 1)) ; establish a default for LENGTH
+	   (prev-char (char-after (- (point) (1+ length))))
+	   (ec-halt nil))
+      (if (memq prev-char escape-chars)
+	  (if (fboundp ec-hook) 
+	      (setq ec-halt (null (funcall ec-hook prev-char)))
+	    (setq ec-halt t)))
+      (unless ec-halt
+	(backward-char length)
+	(save-restriction
+	  (let ((here (point)))
+	    (skip-chars-backward " \t")
+	    (if (bolp)
+		;; avoid clobbering indent
+		(progn
+		  (move-to-column (idlwave-calculate-indent))
+		  (if (<= (point) here)
+		      (narrow-to-region (point) here))
+		  (goto-char here)))
+	    (idlwave-make-space before))
+	  (skip-chars-forward " \t"))
+	(forward-char length)
+	(idlwave-make-space after)
+	;; Check to see if the line should auto wrap
+	(if (and (equal (char-after (1- (point))) ?\ )
+		 (> (current-column) fill-column))
+	    (funcall auto-fill-function))))))
 
 (defun idlwave-make-space (n)
   "Make space at point.
