@@ -1,10 +1,10 @@
-;;; idlw-help.el --- Help code for IDLWAVE
+;;; idlw-help.el --- HTML Help code for IDLWAVE
 ;; Copyright (c) 2000 Carsten Dominik
 ;; Copyright (c) 2001, 2002 J.D. Smith
 ;; Copyright (c) 2003 Free Software Foundation
 ;;
-;; Authors: Carsten Dominik <dominik@astro.uva.nl>
-;;          J.D. Smith <jdsmith@as.arizona.edu>
+;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
+;;          Carsten Dominik <dominik@astro.uva.nl>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
 
@@ -41,8 +41,7 @@
 
 
 ;;; Code:
-
-(eval-when-compile (require 'browse-url))
+(require 'browse-url)
 
 (defgroup idlwave-online-help nil
   "Online Help options for IDLWAVE mode."
@@ -338,7 +337,7 @@ It collects and prints the diagnostics messages."
 	   (classtag (and (string-match "self\\." this-word)
 			  (< beg (- end 4))))
 	   (structtag (and (fboundp 'idlwave-complete-structure-tag)
-			   (string-match "\\`\\([^.]*\\)\\." this-word)
+			   (string-match "\\`\\([^.]+\\)\\." this-word)
 			   (< beg (- end 4))))
 	   module keyword cw mod1 mod2 mod3)
       (if (or arg 
@@ -360,125 +359,126 @@ It collects and prints the diagnostics messages."
 		      (setq module (list "init" 'fun (match-string 1 str))
 			    idlwave-current-obj_new-class (match-string 1 str))
 		    )))))
-      (cond (arg (setq mod1 module))
-	    	    
-	    ;; A special topic -- only system help
-            (st-ass (setq mod1 (list (cdr st-ass))))
-
-	    ;; A system variable -- only system help
-	    ((string-match 
-	      "\\`!\\([a-zA-Z0-9_]+\\)\\(\.\\([A-Za-z0-9_]+\\)\\)?" 
-	      this-word)
-	     (let* ((word  (match-string-no-properties 1 this-word))
-		    (entry (assq (idlwave-sintern-sysvar word)
-				 idlwave-system-variables-alist))
-		    (tag (match-string-no-properties 3 this-word))
-		    (tag-target (if tag
-				  (cdr
-				   (assq (idlwave-sintern-sysvartag tag)
-					 (cdr (assq 'tags entry))))))
-		    (link (nth 1 (assq 'link entry))))
-	       (if tag-target
-		   (setq link (idlwave-substitute-link-target link 
-							      tag-target)))
-	       (setq mod1 (list link))))
+      (cond 
+       (arg (setq mod1 module))
+       
+       ;; A special topic -- only system help
+       (st-ass (setq mod1 (list (cdr st-ass))))
+       
+       ;; A system variable -- only system help
+       ((string-match 
+	 "\\`!\\([a-zA-Z0-9_]+\\)\\(\.\\([A-Za-z0-9_]+\\)\\)?" 
+	 this-word)
+	(let* ((word  (match-string-no-properties 1 this-word))
+	       (entry (assq (idlwave-sintern-sysvar word)
+			    idlwave-system-variables-alist))
+	       (tag (match-string-no-properties 3 this-word))
+	       (tag-target (if tag
+			       (cdr
+				(assq (idlwave-sintern-sysvartag tag)
+				      (cdr (assq 'tags entry))))))
+	       (link (nth 1 (assq 'link entry))))
+	  (if tag-target
+	      (setq link (idlwave-substitute-link-target link 
+							 tag-target)))
+	  (setq mod1 (list link))))
 			  
-	    ;; An executive command -- only system help
-	    ((string-match "^\\.[A-Z]+" this-word)
-	     (let* ((word  (match-string 0 this-word))
-		    (link  (cdr (assoc-ignore-case 
-				 this-word
-				 idlwave-executive-commands-alist))))
-	       (setq mod1 (list link))))
-	    
-	    ;; A class -- system OR in-text help (via class__define).
-	    ((and (eq cw 'class)
-		  (or (idlwave-in-quote)  ; e.g. obj_new
-		      (re-search-backward "\\<inherits[ \t]+[A-Za-z0-9_]*\\="
-					  (max (point-min) (- (point) 40)) t)))
-	     ;; Class completion inside string delimiters must be
-	     ;; the class inside OBJ_NEW.
-	     (let* ((entry  (assq
-			     (idlwave-sintern-class this-word)
-			     idlwave-system-class-info))
-		    (name   (concat (downcase this-word) "__define"))
-		    (link   (nth 1 (assq 'link entry))))
-	       (setq mod1 (list link name 'pro))))
-
-	    ;; A class structure tag (self.BLAH) -- only in-text help available
-	    (classtag
-	     (let ((tag (substring this-word (match-end 0)))
-		   class-with)
-	       (when (setq class-with 
-			   (idlwave-class-or-superclass-with-tag
-			    (nth 2 (idlwave-current-routine))
-			    tag))
-		 (if (assq (idlwave-sintern-class class-with) 
-			   idlwave-system-class-info)
-		     (error "No help available for system class tags"))
-		 (setq idlwave-help-do-class-struct-tag t)
-		 (setq mod1 (list nil 
-				  (concat class-with "__define")
-				  'pro
-				  nil ; no class.... it's a procedure!
-				  tag)))))
-
-	    ;; A regular structure tag -- only in text, and if
-	    ;; optional `complete-structtag' loaded.
-	    (structtag
-	     (let ((var (match-string 1 this-word))
-		   (tag (substring this-word (match-end 0))))
-	       ;; Check if we need to update the "current" structure
-	       (idlwave-prepare-structure-tag-completion var)
-	       (setq idlwave-help-do-struct-tag
-		     idlwave-structtag-struct-location
-		     mod1 (list nil nil nil nil tag))))
-	    
-	    ;; A routine keyword -- in text or system help
-	    ((and (memq cw '(function-keyword procedure-keyword))
-		  (stringp this-word)
-		  (string-match "\\S-" this-word)
-		  (not (string-match "!" this-word)))
-	     (cond ((or (= (char-before beg) ?/)
-			(save-excursion (goto-char end)
-					(looking-at "[ \t]*=")))
-		    ;; Certainly a keyword. Check for abbreviation etc.
-		    (setq keyword (idlwave-expand-keyword this-word module))
-		    (cond
-		     ((null keyword)
-		      (idlwave-help-diagnostics
-		       (format "%s does not accept `%s' kwd"
-			       (idlwave-make-full-name (nth 2 module)
-						       (car module))
-			       (upcase this-word))
-		       'ding))
-		     ((consp keyword)
-		      (idlwave-help-diagnostics
-		       (format "%d matches for kwd abbrev `%s'"
-			       (length keyword) this-word)
-		       'ding)
-		      ;; We continue anyway with the first match...
-		      (setq keyword (car keyword))))
-		    ;; Keyword, or just module
-		    (setq mod1 (append (list t) module (list keyword)))
-		    (setq mod2 (append (list t) module)))
-		   ((equal (char-after end) ?\()
-		    ;; A function - what-module will have caught this
-		    (setq mod1 (append (list t) module)))
-		   (t
-		    ;; undecided - try function, keyword, then enclosing mod.
-		    ;; Check for keyword abbreviations, but do not report
-		    ;; errors, because it might be something else.
-		    ;; FIXME: is this a good way to handle this?
-		    (setq keyword (idlwave-expand-keyword this-word module))
-		    (if (consp keyword) (setq keyword (car keyword)))
-		    (setq mod1 (append (list t) module (list keyword))
-			  mod2 (list t this-word 'fun nil)
-			  mod3 (append (list t) module)))))
-	    
-	    ;; Everything else
-	    (t
-	     (setq mod1 (append (list t) module))))
+       ;; An executive command -- only system help
+       ((string-match "^\\.\\([A-Z_]+\\)" this-word)
+	(let* ((word  (match-string 1 this-word))
+	       (link  (cdr (assoc-ignore-case 
+			    word
+			    idlwave-executive-commands-alist))))
+	  (setq mod1 (list link))))
+       
+       ;; A class -- system OR in-text help (via class__define).
+       ((and (eq cw 'class)
+	     (or (idlwave-in-quote)  ; e.g. obj_new
+		 (re-search-backward "\\<inherits[ \t]+[A-Za-z0-9_]*\\="
+				     (max (point-min) (- (point) 40)) t)))
+	;; Class completion inside string delimiters must be
+	;; the class inside OBJ_NEW.
+	(let* ((entry  (assq
+			(idlwave-sintern-class this-word)
+			idlwave-system-class-info))
+	       (name   (concat (downcase this-word) "__define"))
+	       (link   (nth 1 (assq 'link entry))))
+	  (setq mod1 (list link name 'pro))))
+       
+       ;; A class structure tag (self.BLAH) -- only in-text help available
+       (classtag
+	(let ((tag (substring this-word (match-end 0)))
+	      class-with)
+	  (when (setq class-with 
+		      (idlwave-class-or-superclass-with-tag
+		       (nth 2 (idlwave-current-routine))
+		       tag))
+	    (if (assq (idlwave-sintern-class class-with) 
+		      idlwave-system-class-info)
+		(error "No help available for system class tags"))
+	    (setq idlwave-help-do-class-struct-tag t)
+	    (setq mod1 (list nil 
+			     (concat class-with "__define")
+			     'pro
+			     nil ; no class.... it's a procedure!
+			     tag)))))
+       
+       ;; A regular structure tag -- only in text, and if
+       ;; optional `complete-structtag' loaded.
+       (structtag
+	(let ((var (match-string 1 this-word))
+	      (tag (substring this-word (match-end 0))))
+	  ;; Check if we need to update the "current" structure
+	  (idlwave-prepare-structure-tag-completion var)
+	  (setq idlwave-help-do-struct-tag
+		idlwave-structtag-struct-location
+		mod1 (list nil nil nil nil tag))))
+       
+       ;; A routine keyword -- in text or system help
+       ((and (memq cw '(function-keyword procedure-keyword))
+	     (stringp this-word)
+	     (string-match "\\S-" this-word)
+	     (not (string-match "!" this-word)))
+	(cond ((or (= (char-before beg) ?/)
+		   (save-excursion (goto-char end)
+				   (looking-at "[ \t]*=")))
+	       ;; Certainly a keyword. Check for abbreviation etc.
+	       (setq keyword (idlwave-expand-keyword this-word module))
+	       (cond
+		((null keyword)
+		 (idlwave-help-diagnostics
+		  (format "%s does not accept `%s' kwd"
+			  (idlwave-make-full-name (nth 2 module)
+						  (car module))
+			  (upcase this-word))
+		  'ding))
+		((consp keyword)
+		 (idlwave-help-diagnostics
+		  (format "%d matches for kwd abbrev `%s'"
+			  (length keyword) this-word)
+		  'ding)
+		 ;; We continue anyway with the first match...
+		 (setq keyword (car keyword))))
+	       ;; Keyword, or just module
+	       (setq mod1 (append (list t) module (list keyword)))
+	       (setq mod2 (append (list t) module)))
+	      ((equal (char-after end) ?\()
+	       ;; A function - what-module will have caught this
+	       (setq mod1 (append (list t) module)))
+	      (t
+	       ;; undecided - try function, keyword, then enclosing mod.
+	       ;; Check for keyword abbreviations, but do not report
+	       ;; errors, because it might be something else.
+	       ;; FIXME: is this a good way to handle this?
+	       (setq keyword (idlwave-expand-keyword this-word module))
+	       (if (consp keyword) (setq keyword (car keyword)))
+	       (setq mod1 (append (list t) module (list keyword))
+		     mod2 (list t this-word 'fun nil)
+		     mod3 (append (list t) module)))))
+       
+       ;; Everything else
+       (t
+	(setq mod1 (append (list t) module))))
       (if mod3
 	  (condition-case nil
 	      (apply 'idlwave-online-help mod1)
@@ -593,7 +593,7 @@ Those words in `idlwave-completion-help-links' have links.  The
 		 word beg end doit)
 	    (goto-char (point-min))
 	    (re-search-forward "possible completions are:" nil t)
-	    (while (re-search-forward "\\s-\\([A-Za-z0-9_]+\\)\\(\\s-\\|\\'\\)"
+	    (while (re-search-forward "\\s-\\([A-Za-z0-9_.]+\\)\\(\\s-\\|\\'\\)"
 				      nil t)
 	      (setq beg (match-beginning 1) end (match-end 1)
 		    word (match-string 1) doit nil)
