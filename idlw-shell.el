@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/07/18 19:00:25 $
+;; Date: $Date: 2003/11/11 22:44:22 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -374,7 +374,7 @@ back, respectively.  See `idlwave-shell-input-mode-spells' for details."
   '("^<onechar>$" "^<chars>$" "^</chars>$")
   "The three regular expressions which match the magic spells for input modes.
 
-When the first regexp matches in the output streem of IDL, IDLWAVE
+When the first regexp matches in the output stream of IDL, IDLWAVE
 prompts for a single character and sends it immediately to IDL, similar
 to the command \\[idlwave-shell-send-char].
 
@@ -411,7 +411,7 @@ Usage:
 ======
 idlwave_char_input               ; Make IDLWAVE send one character
 idlwave_char_input,/on           ; Start the loop to send characters
-idlwave_char_input,/off          ; End the loop to send chracters
+idlwave_char_input,/off          ; End the loop to send characters
 
 
 pro idlwave_char_input,on=on,off=off
@@ -2993,7 +2993,7 @@ idlw-shell-examine-alist via mini-buffer shortcut key."
 (defun idlwave-retrieve-expression-from-level (expr level)
   "Return IDL command to print the expression EXPR from stack level LEVEL.
 
-It does not seem possible to evaluate an expression on a differnt
+It does not seem possible to evaluate an expression on a different
 level than the current.  Therefore, this function retrieves variables
 by reference from other levels, and then includes that variable in
 place of the chosen one.
@@ -3545,7 +3545,7 @@ only for glyphs)"
 
 (defun idlwave-shell-execute-default-command-line (arg)
   "Execute a command line.  On first use, ask for the command.
-Also with prefix arg, ask for the command.  You can also uase the command
+Also with prefix arg, ask for the command.  You can also use the command
 `idlwave-shell-edit-default-command-line' to edit the line."
   (interactive "P")
   (cond 
@@ -4145,7 +4145,11 @@ idlwave-shell-electric-debug-mode-map)
       :style toggle :selected idlwave-shell-use-input-mode-magic])
     "--"
     ["Update Working Dir" idlwave-shell-resync-dirs t]
-    ["Save Path Info" idlwave-write-paths idlwave-path-alist]
+    ["Save Path Info" 
+     (idlwave-shell-send-command idlwave-shell-path-query
+				 'idlwave-shell-get-path-info
+				 'hide)
+     t]
     ["Reset IDL" idlwave-shell-reset t]
     "--"
     ["Toggle Toolbar" idlwave-shell-toggle-toolbar t]
