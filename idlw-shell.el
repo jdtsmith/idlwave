@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/05/13 22:52:52 $
+;; Date: $Date: 2003/05/20 18:46:03 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -1829,7 +1829,7 @@ file name."
 	idlwave-shell-command-line-to-execute nil
 	idlwave-shell-bp-alist nil
 	idlwave-shell-calling-stack-index 0
-	idlwave-idlwave_routine_info-compile nil)
+	idlwave-idlwave_routine_info-compiled nil)
   (idlwave-shell-delete-temp-files)
   (idlwave-shell-display-line nil)
   (idlwave-shell-update-bp-overlays) ; kill old overlays
@@ -2220,8 +2220,11 @@ overlays."
 			    (- nmin)))))
     (setq idlwave-shell-calling-stack-routine 
 	  (nth 2 (nth idlwave-shell-calling-stack-index stack)))
+
+    ;; only edebug if in that mode already
     (idlwave-shell-display-line 
-     (nth idlwave-shell-calling-stack-index stack))
+     (nth idlwave-shell-calling-stack-index stack) nil
+     (unless idlwave-shell-electric-debug-mode 'no-debug)) 
     (message (or message 
 		 (format "In routine %s (stack level %d)"
 			 idlwave-shell-calling-stack-routine
@@ -2340,6 +2343,7 @@ debug mode."
 	  
 	  ;; Enter electric debug mode, if not prohibited and not in
 	  ;; it already
+	  (message "STATE %s (%s)" idlwave-shell-current-state no-debug)
 	  (when (and (or 
 		      (eq idlwave-shell-automatic-electric-debug t)
 		      (and 
@@ -3320,15 +3324,12 @@ Otherwise return the filename in bp."
       bp-file)))
 
 (defun idlwave-shell-set-bp (bp)
-  "Try to set a breakpoint BP.
-
+  "Try to set a breakpoint BP.  
 The breakpoint will be placed at the beginning of the statement on the
 line specified by BP or at the next IDL statement if that line is not
-a statement.
-Determines IDL's internal representation for the breakpoint which may
-have occured at a different line then used with the breakpoint
-command."
-  
+a statement.  Determines IDL's internal representation for the
+breakpoint, which may have occured at a different line than
+specified."
   ;; Get and save the old breakpoints
   (idlwave-shell-send-command 
    idlwave-shell-bp-query
