@@ -1,10 +1,10 @@
 ;;; idlw-help.el --- Help code and topics for IDLWAVE
 ;; Copyright (c) 2000 Carsten Dominik
-;; Copyright (c) 2001 J.D.Smith
+;; Copyright (c) 2001, 2002 J.D.Smith
 ;;
 ;; Author: Carsten Dominik <dominik@astro.uva.nl>
-;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
-;; Version: 4.10
+;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
+;; Version: 4.13d
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,9 +29,13 @@
 ;; online help feature.  This information is extracted automatically from
 ;; the IDL documentation.
 ;;
-;; Created by get_rinfo on Mon May  6 18:33:13 2002
+;; Created by get_rinfo on Wed May 22 16:40:34 2002
 ;; IDL version: 5.5
 ;;
+;; New versions of IDLWAVE, documentation, and more information
+;; available from:
+;;                 http://idlwave.org
+;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Code:
@@ -68,7 +72,6 @@
 (defvar idlwave-help-stack-forward nil
   "Help topic stack for forward motion. 
 Only gets populated when moving back.")
-
 
 ;; Define the key bindings for the Help application
 
