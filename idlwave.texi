@@ -272,8 +272,9 @@ Don't be confused by the sheer number of options available -- in most
 cases the default settings are just fine.  The variables are listed here
 to make sure you know where to look if you want to change anything.  For
 a full description of what a particular variable does and how to
-configure it, see the documentation string of that variable.  Some
-configuration examples are also given in the appendix.
+configure it, see the documentation string of that variable (available
+with @kbd{C-h v}).  Some configuration examples are also given in the
+appendix.
 
 @node IDLWAVE in a Nutshell, Getting Started, Introduction, Top
 @chapter IDLWAVE in a Nutshell
@@ -1317,11 +1318,13 @@ upper case, the string will be completed in upper case or mixed case.
 The default is to use upper case for procedures, functions and keywords,
 and mixed case for object class names and methods, similar to the
 conventions in the IDL manuals.  These defaults can be changed with the
-variable @code{idlwave-completion-case}.
+variable @code{idlwave-completion-case}.  For instance, to enable
+mixed-case completion for routines in addition to classes and methods,
+you need an entry such as @code{routine . preserve} in that variable.
 
 @defopt idlwave-completion-case
-Association list setting the case (UPPER/lower/Capitalized/...) of completed
-words. 
+Association list setting the case (UPPER/lower/Capitalized/MixedCase...)
+of completed words.
 @end defopt
 
 @defopt idlwave-completion-force-default-case (@code{nil})
@@ -2875,7 +2878,7 @@ actually set in your own configuration?
 @noindent
 @b{Answer:} Hardly any.  As the maintainer, I set the default of most
 options to what I think is best.  However, the default settings do not
-turn on features which
+turn on features which:
 
 @itemize @minus
 @item
@@ -2888,8 +2891,8 @@ will not work properly on all Emacs installations out there
 break with widely used standards.
 @end itemize
 
-@noindent To see what I mean, here is the @emph{entire} configuration I
-have in my @file{.emacs}:
+@noindent To see what I mean, here is the @emph{entire} configuration
+the old maintainer has in his @file{.emacs}:
 
 @lisp
 (setq idlwave-shell-debug-modifiers '(control shift)
@@ -2904,10 +2907,9 @@ have in my @file{.emacs}:
 @end lisp
 
 However, if you are an Emacs power-user and want IDLWAVE to work
-completely differently, the options allow you to change almost every
-aspect of it.  Here is an example of a much more extensive configuration
-of IDLWAVE.  To say it again - this is not what I recommend, but the
-user is King!
+completely differently, you to change almost every aspect of it.  Here
+is an example of a much more extensive configuration of IDLWAVE.  To say
+it again - this is not what I recommend, but the user is King!
 
 @example
 ;;; Settings for IDLWAVE mode
@@ -2932,7 +2934,6 @@ user is King!
 
 (add-hook 'idlwave-mode-hook
   (lambda ()
-    (setq abbrev-mode 1)                 ; Turn on abbrevs (-1 for off)
     (setq case-fold-search nil)          ; Make searches case sensitive
     ;; Run other functions here
     (font-lock-mode 1)                   ; Turn on font-lock mode
