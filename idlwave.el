@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2004/11/17 05:37:18 $
+;; Date: $Date: 2004/11/17 05:58:27 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -51,7 +51,7 @@
 ;; lines to your .emacs file:
 ;;
 ;; (autoload 'idlwave-mode "idlwave" "IDLWAVE Mode" t)
-;; (autoload 'idlwave-shel "idlw-shell" "IDLWAVE Shell" t)
+;; (autoload 'idlwave-shell "idlw-shell" "IDLWAVE Shell" t)
 ;; (setq auto-mode-alist (cons '("\\.pro\\'" . idlwave-mode) auto-mode-alist))
 ;;
 ;;
