@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/17 04:51:54 $
+;; Date: $Date: 2001/12/17 15:17:18 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -6776,8 +6776,7 @@ keyword region, change to the appropriate Init method."
 
 (defun idlwave-fix-keywords (name type class keywords)
   ;; This fixes the list of keywords.
-  (let ((case-fold-search t)
-	name1 type1)
+  (let ((case-fold-search t))
 
     ;; If this is the OBJ_NEW function, try to figure out the class and use
     ;; the keywords from the corresponding INIT method.
@@ -6803,13 +6802,11 @@ keyword region, change to the appropriate Init method."
     ;; If the class is `t', combine all keywords of all methods NAME
     (when (eq class t)
       (loop for x in (idlwave-routines) do
-	(and (nth 2 x)                         ; non-nil class
-	     (or (and (eq (nth 1 x) type)      ; default type
-		      (eq (car x) name))       ; default name
-		 (and (eq (nth 1 x) type1)     ; backup type
-		      (eq (car x) name1)))     ; backup name
-	     (mapcar (lambda (k) (add-to-list 'keywords k))
-		     (nth 5 x))))
+	    (and (nth 2 x)                ; non-nil class
+		 (eq (nth 1 x) type)      ; correct type
+		 (eq (car x) name)        ; correct name
+		 (mapcar (lambda (k) (add-to-list 'keywords k))
+			 (nth 5 x))))
       (setq keywords (idlwave-uniquify keywords)))
     
     ;; If we have inheritance, add all keywords from superclasses, if
@@ -6830,10 +6827,8 @@ keyword region, change to the appropriate Init method."
 	    (and (nth 2 x)                           ; non-nil class
 		 (or (eq (nth 2 x) class)            ; the right class
 		     (memq (nth 2 x) super-classes)) ; an inherited class
-		 (or (and (eq (nth 1 x) type)        ; default type
-			  (eq (car x) name))         ; default name
-		     (and (eq (nth 1 x) type1)       ; backup type
-			  (eq (car x) name1)))       ; backup name
+		 (eq (nth 1 x) type)                 ; correct type
+		 (eq (car x) name)                   ; correct name
 		 (mapcar (lambda (k) (add-to-list 'keywords k))
 			 (nth 5 x))))
       (setq keywords (idlwave-uniquify keywords)))
