@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2004/10/13 20:26:26 $
+;; Date: $Date: 2004/10/15 23:16:33 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -1783,8 +1783,7 @@ The main features of this mode are
    relative to the first will be retained.  Use
    \\[idlwave-auto-fill-mode] to toggle auto-fill mode for these
    comments.  When the variable `idlwave-fill-comment-line-only' is
-   nil, code can also be auto-filled and auto-indented (not
-   recommended).
+   nil, code can also be auto-filled and auto-indented.
 
    To convert pre-existing IDL code to your formatting style, mark the
    entire buffer with \\[mark-whole-buffer] and execute
@@ -3036,12 +3035,10 @@ groupings, are treated separately."
 		  ((catch 'assign ;
 		     (while (looking-at "[^=\n\r]*\\(=\\)[ \t]*")
 		       (goto-char (match-end 0))
-		       (if (eq (car (parse-partial-sexp (match-end 0) end-reg))
-			       0)
-			   (throw 'assign t))))
+		       (if (null (idlwave-what-function)) (throw 'assign t))))
 		   (unless (or
 			    (idlwave-in-quote)
-			    (looking-at "[ \t$]*\\(;.*\\)?$")
+			    (looking-at "[ \t$]*\\(;.*\\)?$") ; use basic
 			    (save-excursion
 			      (goto-char beg-last-statement)
 			      (eq (caar (idlwave-statement-type)) 'for)))
@@ -3134,7 +3131,8 @@ possibility of unbalanced blocks."
 		      (idlwave-is-continuation-line))
 		  (or (null end-reg) (< (point) end-reg)))
 	(unless comm-or-empty (setq min (min min (idlwave-current-indent)))))
-      (if comm-or-empty min
+      (if (or comm-or-empty (and end-reg (>= (point) end-reg)))
+	  min 
 	(min min (idlwave-current-indent))))))
 
 (defun idlwave-current-statement-indent (&optional last-line)
@@ -3406,11 +3404,11 @@ If not found returns nil."
           (current-column)))))
 
 (defun idlwave-auto-fill ()
-  "Called to break lines in auto fill mode.
-Only fills comment lines if `idlwave-fill-comment-line-only' is non-nil.
-Places a continuation character at the end of the line
-if not in a comment.  Splits strings with IDL concatenation operator
-`+' if `idlwave-auto-fill-split-string is non-nil."
+  "Called to break lines in auto fill mode.  
+Only fills non-comment lines if `idlwave-fill-comment-line-only' is
+non-nil.  Places a continuation character at the end of the line if
+not in a comment.  Splits strings with IDL concatenation operator `+'
+if `idlwave-auto-fill-split-string' is non-nil."
   (if (<= (current-column) fill-column)
       nil                             ; do not to fill
     (if (or (not idlwave-fill-comment-line-only)
@@ -3464,7 +3462,7 @@ if not in a comment.  Splits strings with IDL concatenation operator
 	    (if (save-excursion
 		  (end-of-line 0)
 		  (idlwave-in-comment))
-		;; Splitting a non-line comment.
+		;; Splitting a non-full-line comment.
 		;; Insert the comment delimiter from split line
 		(progn
 		  (save-excursion
@@ -3520,6 +3518,11 @@ automatically breaks the line at a previous space."
                 nil))
     ;; update mode-line
     (set-buffer-modified-p (buffer-modified-p))))
+
+;(defun idlwave-fill-routine-call ()
+;  "Fill a routine definition or statement, indenting appropriately."
+;  (let ((where (idlwave-where)))))
+
 
 (defun idlwave-doc-header (&optional nomark )
   "Insert a documentation header at the beginning of the unit.
@@ -3986,8 +3989,11 @@ you specify /."
 		    (message (concat "Tagging " item "..."))
 		    (setq errbuf (get-buffer-create "*idltags-error*"))
 		    (setq status (+ status
-				    (call-process "sh" nil errbuf nil "-c"
-						  (concat cmd append item))))
+				    (if (eq 0 (call-process 
+					       "sh" nil errbuf nil "-c"
+					       (concat cmd append item)))
+					0
+  	                                1)))
 		    ;;
 		    ;; Append additional tags
 		    (setq append " --append ")
