@@ -302,12 +302,6 @@ foreach $file (@files) {
     next FILE;
   }
 
-
-  # Look for executive commands
-  if ($title=~/^\.[A-Z]+$/) {
-    $executive_commands{$title}=$file;
-  }
-
   # Look for a version string
   if(!$idlversion &&
      $file_contents=~m|<a[^>]*>[^<]*?New Features in IDL ([0-9.]+)\s*</a>|) {
@@ -1527,9 +1521,10 @@ BEGIN {
 
      sname("IDL EXECUTIVE COMMAND") =>
      sub {
-       if ($syntax =~ /\A\.[A-Z]+/) {
-	 # Command starts with a dot.  Ignore it.
+       if ($syntax =~ /\A\.([A-Z][A-Z_]+)/) {
+	 # Command starts with a dot.  Save and ignore.
 	 $syntax = "";
+	 $executive_commands{$1}=$file;
 	 push @rejects, "IDL executive command.";
 	 $act = 2;
        } else {
