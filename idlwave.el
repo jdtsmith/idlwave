@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2004/10/15 23:16:33 $
+;; Date: $Date: 2004/10/16 01:05:49 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -3035,7 +3035,8 @@ groupings, are treated separately."
 		  ((catch 'assign ;
 		     (while (looking-at "[^=\n\r]*\\(=\\)[ \t]*")
 		       (goto-char (match-end 0))
-		       (if (null (idlwave-what-function)) (throw 'assign t))))
+		       (if (null (idlwave-what-function beg-reg)) 
+			   (throw 'assign t))))
 		   (unless (or
 			    (idlwave-in-quote)
 			    (looking-at "[ \t$]*\\(;.*\\)?$") ; use basic
