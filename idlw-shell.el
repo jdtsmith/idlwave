@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/05/20 18:46:03 $
+;; Date: $Date: 2003/07/18 19:00:25 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -2343,7 +2343,6 @@ debug mode."
 	  
 	  ;; Enter electric debug mode, if not prohibited and not in
 	  ;; it already
-	  (message "STATE %s (%s)" idlwave-shell-current-state no-debug)
 	  (when (and (or 
 		      (eq idlwave-shell-automatic-electric-debug t)
 		      (and 
@@ -3892,14 +3891,16 @@ Otherwise, just expand the file name."
 		   '(alt))))
        (shift (memq 'shift mod))
        (mod-noshift (delete 'shift (copy-sequence mod)))
-       s k1 c2 k2 cmd)
+       s k1 c2 k2 cmd cannotshift)
   (while (setq s (pop specs))
     (setq k1  (nth 0 s)
 	  c2  (nth 1 s)
 	  cmd (nth 2 s)
 	  electric (nth 3 s)
-	  only-buffer (nth 4 s))
-    ;; The prefix keymap.
+	  only-buffer (nth 4 s)
+	  cannotshift (and shift (char-valid-p c2) (eq c2 (upcase c2))))
+    
+    ;; The regular prefix keymap.
     (when (and idlwave-shell-activate-prefix-keybindings k1)
       (unless only-buffer 
 	(define-key idlwave-shell-mode-prefix-map k1 cmd))
@@ -3910,8 +3911,9 @@ Otherwise, just expand the file name."
 	  (setq k2 (vector (append mod-noshift
 				   (list (if shift (upcase c2) c2)))))
 	(setq k2 (vector (append mod (list c2)))))
-      (define-key idlwave-mode-map k2 cmd)
-      (unless only-buffer (define-key idlwave-shell-mode-map k2 cmd)))
+      (unless cannotshift
+	(define-key idlwave-mode-map k2 cmd)
+	(unless only-buffer (define-key idlwave-shell-mode-map k2 cmd))))
     ;; The electric debug single-keystroke map
     (if (and electric (char-or-string-p c2))
 	(define-key idlwave-shell-electric-debug-mode-map (char-to-string c2) 
