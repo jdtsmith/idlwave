@@ -5,7 +5,7 @@
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/05/13 21:51:28 $
+;; Date: $Date: 2002/05/22 00:34:39 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -2413,63 +2413,121 @@ idlw-shell-examine-alist from which to select the help command text."
 		     idlwave-shell-calling-stack-routine
 		     help))
 	(setq cmd (idlwave-shell-help-statement help expr)))
-      (idlwave-shell-recenter-shell-window)
+      ;(idlwave-shell-recenter-shell-window)
       (idlwave-shell-send-command 
        cmd 
        examine-hook 
        (if idlwave-shell-separate-examine-output 'hide)))))
 
+(defvar idlwave-shell-examine-window nil
+  "Variable to hold the last used examine window.")
+(defvar idlwave-shell-examine-window-alist nil
+  "Variable to hold the win/height pairs for all *Examine* windows.")
+
 (defun idlwave-shell-examine-display ()
   "View the examine command output in a separate buffer."
-  (let (win)
+  (let (win cur-beg cur-end)
     (save-excursion
-      (move-marker idlwave-rinfo-marker (point))
       (set-buffer (get-buffer-create "*Examine*"))
       (use-local-map idlwave-shell-examine-map)
       (setq buffer-read-only nil)
-      (erase-buffer)
-      (if (string-match "^% Syntax error." idlwave-shell-command-output)
-	  (insert "% Syntax error.")
-	(insert idlwave-shell-command-output)
-	;; Just take the last bit between the prompts (if more than one).
-	(let* ((end (or
-		    (re-search-backward idlwave-shell-prompt-pattern nil t)
-		    (point-max)))
-	      (beg (progn 
-		     (goto-char
-		      (or (progn (if (re-search-backward 
-				      idlwave-shell-prompt-pattern nil t)
-				     (match-end 0)))
-			  (point-min)))
-		     (re-search-forward "\n")))
-	      (str (buffer-substring beg end)))
-	  (erase-buffer)
-	  (insert str))
-	(when idlwave-shell-examine-label
-	  (goto-char (point-min))
-	  (insert idlwave-shell-examine-label)
-	  (setq idlwave-shell-examine-label nil)))
-      (setq buffer-read-only t)
-      (display-buffer "*Examine*")
-      (move-overlay idlwave-shell-output-overlay (point-min) (point-max)
-		    (current-buffer))
-      (when (setq win (get-buffer-window "*Examine*"))
-	(let ((ww (selected-window)))
-	  (unwind-protect
-	      (progn
-		(select-window win)
-		(enlarge-window (- (/ (frame-height) 2) 
+      (goto-char (point-max))
+      (save-restriction
+	(narrow-to-region (point) (point))
+	(if (string-match "^% Syntax error." idlwave-shell-command-output)
+	    (insert "% Syntax error.\n")
+	  (insert idlwave-shell-command-output)
+	  ;; Just take the last bit between the prompts (if more than one).
+	  (let* ((end (or
+		       (re-search-backward idlwave-shell-prompt-pattern nil t)
+		       (point-max)))
+		 (beg (progn 
+			(goto-char
+			 (or (progn (if (re-search-backward 
+					 idlwave-shell-prompt-pattern nil t)
+					(match-end 0)))
+			     (point-min)))
+			(re-search-forward "\n")))
+		 (str (buffer-substring beg end)))
+	    (delete-region (point-min) (point-max))
+	    (insert str)
+	    (if idlwave-shell-examine-label
+		(progn (goto-char (point-min))
+		       (insert idlwave-shell-examine-label)
+		       (setq idlwave-shell-examine-label nil)))))
+	(setq cur-beg (point-min)
+	      cur-end (point-max))
+	(setq buffer-read-only t)
+	(move-overlay idlwave-shell-output-overlay cur-beg cur-end
+		      (current-buffer))
+	
+	;; Look for the examine buffer in all windows.  If one is
+	;; found in a frame all by itself, use that, otherwise, switch
+	;; to or create an examine window in this frame, and resize if
+	;; it's a newly created window
+	(let* ((winlist (get-buffer-window-list "*Examine*" nil 'visible)))
+	  (setq win (idlwave-display-buffer 
+		     "*Examine*" 
+		     nil
+		     (let ((list winlist) thiswin)
+		       (catch 'exit
+			 (save-selected-window
+			   (while (setq thiswin (pop list))
+			     (select-window thiswin)
+			     (if (one-window-p) 
+				 (throw 'exit (window-frame thiswin)))))))))
+	  (set-window-start win (point-min)) ; Ensure the point is visible.
+	  (save-selected-window
+	    (select-window win)
+	    (let ((elt (assoc win idlwave-shell-examine-window-alist)))
+	      (when (and (not (one-window-p))
+			 (or (not (memq win winlist)) ;a newly created window
+			     (eq (window-height) (cdr elt))))
+		;; Autosize it.
+		(enlarge-window (- (/ (frame-height) 2)
 				   (window-height)))
-		(shrink-window-if-larger-than-buffer))
-	    (select-window ww)))))))
+		(shrink-window-if-larger-than-buffer)
+		;; Clean the window list of dead windows
+		(setq idlwave-shell-examine-window-alist
+		      (delq nil
+			    (mapcar (lambda (x) (if (window-live-p (car x)) x))
+				    idlwave-shell-examine-window-alist)))
+		;; And add the new value.
+		(if (setq elt (assoc win idlwave-shell-examine-window-alist))
+		    (setcdr elt (window-height))
+		  (add-to-list 'idlwave-shell-examine-window-alist 
+			       (cons win (window-height)))))
+	      (setq idlwave-shell-examine-window win)))))
+      ;; Recenter for maximum output, after widened
+      (save-selected-window
+	(select-window win)
+	(goto-char (point-max))
+	(skip-chars-backward "\n")
+	(recenter -1)))))
 
 (defvar idlwave-shell-examine-map (make-sparse-keymap))
 (define-key idlwave-shell-examine-map "q" 'idlwave-shell-examine-display-quit)
+(define-key idlwave-shell-examine-map "c" 'idlwave-shell-examine-display-clear)
 
 (defun idlwave-shell-examine-display-quit ()
   (interactive)
-  (let ((win (get-buffer-window "*Examine*")))
-    (if (window-live-p win) (delete-window win))))
+  (let ((win (if (window-live-p idlwave-shell-examine-window)
+		 idlwave-shell-examine-window
+	       (get-buffer-window "*Examine*" 'visible))))
+    (setq idlwave-shell-examine-window nil)
+    (if (one-window-p)
+	(delete-frame (window-frame win))
+      (delete-window win))))
+
+(defun idlwave-shell-examine-display-clear ()
+  (interactive)
+  (save-excursion 
+    (let ((buf (get-buffer "*Examine*")))
+      (when (bufferp buf)
+	(set-buffer buf)
+	(setq buffer-read-only nil)
+	(erase-buffer)
+	(setq buffer-read-only t)))))
 
 (defun idlwave-retrieve-expression-from-level (expr level routine help)
   "Return IDL command to print the expression EXPR from stack level LEVEL.
@@ -2659,35 +2717,9 @@ Does not work for a region with multiline blocks - use
 	  (delete-file idlwave-shell-temp-rinfo-save-file)
 	(error nil))))
 
-;;(defun idlwave-display-buffer (buf not-this-window-p &optional frame)
-;;  (if (or (< emacs-major-version 20)
-;;	  (and (= emacs-major-version 20)
-;;	       (< emacs-minor-version 3)))
-;;      ;; Only two args.
-;;      (display-buffer buf not-this-window-p)
-;;    ;; Three ares possible.
-;;    (display-buffer buf not-this-window-p frame)))
-
 (defun idlwave-display-buffer (buf not-this-window-p &optional frame)
-  (if (featurep 'xemacs)
-      ;; The XEmacs version enforces the frame
-      (display-buffer buf not-this-window-p frame)
-    ;; For Emacs, we need to force the frame ourselves.
-    (let ((this-frame (selected-frame)))
-      (if (frame-live-p frame)
-	  (select-frame frame))
-      (if (eq this-frame (selected-frame))
-	  ;; same frame:  use display buffer, to make sure the current
-	  ;; window stays.
-	  (display-buffer buf)
-	;; different frame
-	(if (one-window-p)
-	    ;; only window:  switch
-	    (progn
-	      ;; several windows - use display-buffer
-	      (switch-to-buffer buf)
-	      (selected-window))   ; must return the window.
-	  (display-buffer buf not-this-window-p))))))
+  (if (not (frame-live-p frame)) (setq frame nil))
+  (display-buffer buf not-this-window-p frame))
 
 (defvar idlwave-shell-bp-buffer " *idlwave-shell-bp*"
   "Scratch buffer for parsing IDL breakpoint lists and other stuff.")
