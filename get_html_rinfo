@@ -1,0 +1,1942 @@
+#!/usr/bin/perl
+#
+# Program to extract the information from the HTML version of the IDL
+# manuals (v5.6 and on) and IDL itself, to support IDLWAVE.
+#
+# (c) 1999, 2000 Carsten Dominik <dominik@astro.uva.nl>
+# (c) 2001-2003 J.D. Smith <jdsmith@as.arizona.edu>
+#
+# Requires the HTML documentation files distributed with IDL 5.6 or
+# later, decompiled from HTMLHelp idl.chm with Microsoft's HTML Help
+# Workshop.
+#
+# Talks to the local version of IDL in order to get additional information.
+#
+# Call this program from the command line like this:
+#
+#      get_html_rinfo -path path/to/htmlfiles/ --idl /path/to/idl/executable
+#
+# This will scan the HTML, extract routine information, talk to IDL
+# and write the following file, needed by IDLWAVE:
+#
+# idlw-rinfo.el:       Routine information for completion etc.
+
+# The full manpage of this program is available with "perldoc get_html_rinfo".
+
+# Commentary:
+# ===========
+#
+# IDL currently contains more than 1400 functions, procedures and
+# object methods with more than 6500 keywords.  In order to support
+# writing IDL programs, the IDLWAVE mode uses a list of routines and
+# keywords.  RSI does not provide such a list in machine-readable
+# form.  Therefore this program embarks on the task of extracting the
+# necessary information from available sources - the IDL manuals which
+# are supplied by RSI in HTMLHelp (and thence HTML) format.
+# get_html_rinfo works by looking for the "Syntax" sections and
+# extracting information from there.
+#
+# The program extracts information from manuals written by humans (the
+# documentation department at RSI).  Naturally, such documents are not
+# always complete, consistent or free of typos.  As a result of this,
+# the list of routines and keywords extracted from the manuals will
+# not be perfect.  In order to account for incorrect or inconsistent
+# "Syntax" entries in the manual, get_html_rinfo contains a number of
+# special matchers which detect specific entries and corrects them
+# manually.  See the definition of %specials in the BEGIN block.  When
+# a new version of IDL is released, the actions of these special
+# matchers needs to be checked, because the involved syntax entries
+# may have changed.
+#
+# Please contact the maintainer if you find any inconsistencies between
+# the routine information supplied by IDLWAVE, and the IDL documentation.
+#
+# Full source-guided online help, via the decompiled HTML help files,
+# is available for use in many different browsers and help
+# systems. See the IDLWAVE documentation for details.
+#
+# Acknowledgement:
+# ================
+#
+# Without Perl, the task of reverse-engineering thousands of pages of
+# documentation would have been impossible.  With Perl, it only takes
+# a small (ok, medium-sized) program like this.  Thanks to Larry Wall
+# and the Perl community.
+#
+# Thanks to Mark Goosman & Stephanie Staley from RSI for granting me
+# permission to extract and distribute routine information from the
+# IDL manual, and to Doug Dirks for suggesting the use of decompiled
+# HTML help instead of the (infinitely more complicated) PDF help used
+# previously, and for patiently fixing the documentation typos this
+# routine finds.
+#
+# Maintainer Information:
+# =======================
+# When a new version of IDL is published, the following things might need
+# work in order to make the result of this program as good as possible.
+# To find the corresponding places in the file, search for "UPDATE".
+#
+# 1. UPDATE: Manual sections
+#    -----------------------
+#    Each Routine description has many sections.  The liast can be
+#    corrected when necessary.  Right now, the Syntax and Keywords
+#    sections are being parsed.  This relies explicitly on the HTML
+#    "heading" syntax, which should be verified to continue to be
+#    operational.
+#
+# 2. UPDATE: Special matchers
+#    ------------------------
+#    The %specials hash contains all the special matchers which fix
+#    unusual or incorrect routine descriptions.  They change the entry
+#    so that the parser does the right thing, or they add entries to
+#    special arrays.  The first thing to do with a new version is to
+#    run get_html_rinfo with the -debug flag.  Part of the output will
+#    be a list of all special matchers, with additional info how often
+#    the matcher matches, and if it did its actions correctly.
+#    Matchers which no longer match should be checked.  Matching, but
+#    not acting may be due to the fact that RSI fixed that particular
+#    entry.  It is also possible that new special matchers have to be
+#    written for new entries - you need to check what's new with the
+#    IDL version and if it is processed correctly.  Read the
+#    documentation just before the definition of the %specials hash to
+#    find out how such a matcher must behave.
+#
+# 3. UPDATE: Special sections matchers & parsers
+#    -------------------------------------------
+#    Certain keywords are linked to a separate, special section, apart
+#    from the routines which use those keywords.  Examples include
+#    Graphics Keywords, Multi-Threading Keywords, Device Keywords, and
+#    system variables.  The %special_sections hash names these
+#    sections as keys, and two routines as values: one to detect
+#    whether a given html file is this section (mathcer), and the
+#    other parse its keywords (parser).  These special sections are
+#    scanned for keywords, and linked to from other routines for the
+#    with the relevant keywords.
+#
+# 4. UPDATE: Statement regexp
+#    ------------------------
+#    This is also a special matcher which makes sure that no routine
+#    info is produced by the syntax entries for IDL language
+#    constructs.  As RSI adds new statements (as COMPILE_OPT in
+#    version 5.3 or SWITCH/BREAK/CONTINUE in version 5.4), this regexp
+#    must be extended to match the new statements as well.
+#
+# 5. UPDATE: Special help topics
+#    ---------------------------
+#    Some words which can show up in IDL source code have special help
+#    topics (not routine names) associated with them.  The
+#    %special_topics hash links downcase versions of these words to
+#    the appropriate topics.  Even if word and topic are the same, it
+#    must be mentioned here in order to trigger help on this word.
+#
+# For more detailed info, run `get_html_rinfo' with the `-debug' flag
+# and check the resulting files get_html_rinfo.cpl,
+# get_html_rinfo.rej, and get_html_rinfo.log.  The .cpl "complaint"
+# file can be sent to the RSI documentation group for fixing problems
+# detected.
+#
+#============================================================================
+
+require 5.004;
+use Data::Dumper;
+# Parse command line options and make file names
+use Getopt::Long;
+GetOptions("-debug"     => \$debug,
+	   "-path=s"    => \$path,
+	   "-idl=s"     => \$idl,
+	   "-xname=s"   => \$ignore_name_re,
+	   "-xclass=s"  => \$ignore_class_re)
+  or usage();
+
+if (@ARGV) {
+  # Something on the command line
+  print STDERR "Unrecognized command line args: @ARGV\n";
+  exit(1);
+}
+
+$idl = $idl || "idl";
+
+%compress = (".gz"   => "gunzip -c",
+	     ".bz2"  => "bunzip2 -c",
+	     ".Z"    => "zcat");
+
+# Establish default output file names
+$rinfofile  = "idlw-rinfo.el";
+$topicsfile = "idlw-help-topics.el";
+
+# Check the path
+$path ||= ".";
+die "Invalid path $path\n" unless !$path || -d $path;
+
+opendir(DIR,$path) or die "can't opendir $path: $!";
+@files=grep {-r "$path/$_" && /\.html$/} readdir(DIR);
+closedir(DIR);
+
+%routines = ();
+
+# Open the REJECT and LOG files file for debugging information
+if ($debug) {
+  open REJECT,  ">get_html_rinfo.rej" or
+    die "Cannot write to get_html_rinfo.rej\n";
+  open COMPLAIN,">get_html_rinfo.cpl" or
+    die "Cannot write to get_html_rinfo.cpl\n";
+  open LOG,     ">get_html_rinfo.log" or
+    die "Cannot write to get_html_rinfo.log\n";
+}
+
+# Open the lisp file for output
+open RINFO,">$rinfofile" or die "Cannot open $rinfofile for writing: $!";
+
+# Scan the files
+FILE:
+foreach $file (@files) {
+  open(FILE,"$path/$file");
+  local $/=undef;			#Slurp mode
+  $file_contents=<FILE>;
+
+  # Title
+  if ($file_contents=~m|<title>\s*([^<]+?)\s*</title>|) {
+    $title=$1;
+  } else {
+    $title="";
+  }
+
+  # Check for special topic sections, which have no keywords (like
+  # if...then...else)
+  foreach (keys %special_topics) {
+    if (!defined $special_topics{$_}{file} &&
+	$title=~m|^\Q$_\E$|i) {
+      $special_topics{$_}{file}=$file;
+      next FILE;
+    }
+  }
+
+  # Save files with upcase titles, for tracking classes
+  $files{uc $title}=$file;
+
+  # Check if file contains one of the various special keyword
+  # sections, and parse those keywords
+  foreach (keys %special_sections ) {
+    if (&{$special_sections{$_}{matcher}}) { #Is it a special section?
+      &{$special_sections{$_}{parser}}; #Parse the keywords for it
+      $special_sections{$_}{file}=$file;
+      %{$special_sections{$_}{kwds}}=%txt_kwds;
+      next FILE;
+    }
+  }
+
+  # Look for system variable definitions
+  if ($title=~/System Variables$/) {
+    my ($sysvar,%fake_sysvars,$link);
+    @parts=split(/(?=<h3\s*class="Heading2">)/,$file_contents);
+    shift @parts;
+
+    foreach (@parts) {
+      parse_keywords($_,1,'<h3\s*class="Heading2">');
+      next unless %txt_kwds;
+      %fake_sysvars=%txt_kwds;
+      parse_keywords($_,1);  # Get the tags if any
+      foreach (keys %fake_sysvars) {
+	$sysvar=uc $_;
+	$sysvar=~s/^\!//;
+	print "GOT SYSVAR: $sysvar\n"  if $debug;
+	%{$sysvars{$sysvar}{tags}}=%txt_kwds;
+	$sysvars{$sysvar}{main}=$fake_sysvars{$_}?
+	  "$file#$fake_sysvars{$_}":$file;
+      }
+    }
+    next FILE;
+  }
+
+  # Look for executive commands
+  if ($title=~/^\.[A-Z]+$/) {
+    $executive_commands{$title}=$file;
+  }
+
+  # Look for a version
+  if(!$idlversion &&
+     $file_contents=~m|<a[^>]*>New Features in IDL ([0-9.]+)\s*</a>|) {
+    $idlversion=$1;
+  }
+
+  # Split into component parts
+  @parts=split(/<h3\s+class="Heading2">\s+/,$file_contents);
+  shift @parts;
+
+  # Extract the Syntax and Keyword parts
+  $syntax=$kwds="";
+  foreach (@parts) {
+    # Require a proper heading
+    next unless  m|^\s*<a\s+name="[0-9]+">\s+</a>\s*([^\n\r]+)\s+|i;
+    my $type=$1;
+    if (!$syntax && $type=~/^Syntax/) {
+      $syntax=$_;
+    } elsif ($type=~/^((?:[A-Z][a-z0-9_]+\s+){0,2}Keywords|
+                       Keywords:\s*(?:[A-Z][a-z0-9_]+\s*){1,2})\s*$/x) {
+      $kwds.=$_ unless $1=~/Thread Pool Keywords/; # Nothing useful in TPool
+    }
+  }
+  next FILE unless $syntax;
+
+  # Clear a few variables which are used by deeper routines to return stuff
+  @rejects = @complaints = @add_keywords  = @enter = ();
+  clean_up_syntax();
+
+  diag("$file($title):>>>>>>>>>>>>>>>>>>\n");
+  diag("GOT KWDS SECTION:\n+++++++\n$kwds\n---------\n") if $kwds;
+
+  # Apply the special syntax matchers
+  &try_specials();
+  diag("$syntax\n");
+
+  # See if there are reasons to reject or complain about this entry
+  if (@rejects) {
+    # Reject
+    $n_rejections += scalar(@rejects);
+    reject($syntax,$file,@rejects);
+    next FILE;
+  }
+
+  # Try to parse out the name, class, calling sequence, and syntax keywords
+  unless (parse_syntax($syntax)) {
+    # Make a note that this section could not be parsed and move on
+    # to the next file.
+    reject($syntax,$file,("Could not be parsed"));
+    next FILE;
+  }
+
+  # Parse the text keywords, and compare to syntax keywords.
+  @kwds=make_unique(@kwds);
+  parse_keywords($kwds);
+
+  # Complain strenuously
+  if (@complaints) {
+    # Keep, but complain
+    $n_complaints += scalar(@complaints);
+    complain($syntax,$file,@complaints);
+  }
+
+  diag("  SYNTAX KWDS FOUND: \n   ".join("\n   ",@kwds));
+  diag("\n$file($title):<<<<<<<<<<<<<<<<<<\n\n\n");
+
+  # Normalize the class/routine cases
+  if ($class) {
+    $class = case_name("class",$class);
+    $name = case_name("method",$name);
+  } else {
+    $name  = case_name("routine",$name);
+  }
+
+  my $fname=make_full_name($class,$name);
+
+  # If the special matchers have not set @enter, do it here
+  $enter[0] = [$name,$type,$class,$call] unless @enter;
+
+  # Write a message for debugging output
+  diag(sprintf("%-20s %-15s %-20s with %3d keywords\n",
+	       $type,$class,$name,scalar(keys %txt_kwds)));
+
+  # Store the stuff.
+  foreach $a (@enter) {
+    my $name  = $$a[0];
+    my $class = $$a[2];
+    my $type  = $$a[1];
+    if ($ignore_name_re && $name =~ /$ignore_name_re/o) {
+      diag("Ignoring name $name because of -xname option\n");
+      $ignore_name_cnt++;
+      next;
+    }
+    if ($ignore_class_re && $class =~ /$ignore_class_re/o) {
+      diag("Ignoring name $name because of -xclass option\n");
+      $ignore_class_cnt++;
+      next;
+    }
+    $e{$class}{$type}{$name}{file}=$file;
+    %{$e{$class}{$type}{$name}{kwds}}=%txt_kwds if %txt_kwds;
+    push @{$e{$class}{$type}{$name}{Get}},@getkwds if @getkwds;
+    push @{$e{$class}{$type}{$name}{Set}},@setkwds if @setkwds;
+    $e{$class}{$type}{$name}{call} = $$a[3];
+
+    # Add keywords from other routines
+    push @{$e{$class}{$type}{$name}{add_kwds}},@add_keywords if
+      @add_keywords;
+
+    # Special section links
+    my @special_section_has=grep {$has_special_section_keywords{$_} eq "has"}
+      (keys %has_special_section_keywords);
+    push @{$e{$class}{$type}{$name}{has_special_secs_kwds}},
+      @special_section_has if @special_section_has;
+
+    my @special_section_needs=grep {$has_special_section_keywords{$_} eq
+				      "needs"}
+      (keys %has_special_section_keywords);
+    push @{$e{$class}{$type}{$name}{needs_special_secs_kwds}},
+      @special_section_needs if @special_section_needs;
+
+  }
+  close(FILE);
+}
+
+# We have all the information now in one huge hash.  A few things
+# still need to be fixed...
+
+# 1. The IDL manual for object methods GetProperty and SetProperty
+#    include only an incomplete list of keywords.  Additional keywords
+#    are documented under "Init" with a "Get" or "Set" (or both)
+#    marker.  These were collected during the scan - here we put them
+#    into the right space.
+
+foreach $class (keys %e) {
+  next unless $class;
+  $iname = case_name("method","Init");
+  next unless defined $e{$class}{fun}{$iname};
+  $ifile = $e{$class}{fun}{$iname}{file};
+  foreach $getset ("Get","Set") {
+    $pname = case_name("method",$getset."Property");
+    if (defined $e{$class}{fun}{$iname} &&
+	@{$e{$class}{fun}{$iname}{$getset}}) {
+      foreach (@{$e{$class}{fun}{$iname}{$getset}}) {
+	$e{$class}{pro}{$pname}{extra}{$ifile}{kwds}{$_}=
+	  $e{$class}{fun}{$iname}{kwds}{$_};
+	$e{$class}{pro}{$pname}{extra}{$ifile}{special}="$class::$iname"
+      }
+    }
+  }
+}
+
+# 2. The special syntax matchers may have indicated that some
+#    routine's keywords are linked to special sections (like Graphics
+#    Keywords), or that keywords from special sections weren't
+#    mentioned in the syntax, and need to be added outright (like
+#    MultiThreading).  Do this now.
+foreach $class (keys %e) {
+  foreach $type (keys %{$e{$class}}) {
+    foreach $name (keys %{$e{$class}{$type}}) {
+      # Needs the keywords added outright
+      if (defined($e{$class}{$type}{$name}{needs_special_secs_kwds})) {
+	foreach my $s (@{$e{$class}{$type}{$name}{needs_special_secs_kwds}}) {
+	  unless (defined($special_sections{$s})) {
+	    diag("No such special section: $s.");
+	    next;
+	  }
+	  my $sfile=$special_sections{$s}{file};
+	  foreach (keys %{$special_sections{$s}{kwds}}) {
+	    $e{$class}{$type}{$name}{extra}{$sfile}{kwds}{$_}=
+	      $special_sections{$s}{kwds}{$_};
+	  }
+	  $e{$class}{$type}{$name}{extra}{$sfile}{special}=$s;
+	}
+      }
+      # Already mentions keywords, just needs links
+      if (defined($e{$class}{$type}{$name}{has_special_secs_kwds})) {
+	foreach my $s (@{$e{$class}{$type}{$name}{has_special_secs_kwds}}) {
+	  unless (defined($special_sections{$s})) {
+	    diag("No such special section: $sec.");
+	    next;
+	  }
+	  my $sfile=$special_sections{$s}{file};
+	  foreach (keys %{$special_sections{$s}{kwds}}) {
+	    # Skip if keyword not defined in routine, or already linked
+	    next if(!defined($e{$class}{$type}{$name}{kwds}{$_}) or
+		    $e{$class}{$type}{$name}{kwds}{$_});
+	    delete $e{$class}{$type}{$name}{kwds}{$_}; #Move to extra kwds
+	    $e{$class}{$type}{$name}{extra}{$sfile}{kwds}{$_}=
+	      $special_sections{$s}{kwds}{$_};
+	    $e{$class}{$type}{$name}{extra}{$sfile}{special}=$s;
+	  }
+	}
+      }
+    }
+  }
+}
+
+# 3. Some special matchers may have put in a request to add or link
+#    keywords of one more routines (or maybe just special section
+#    keywords from a routine) to another.  Since now we know all
+#    keywords of all routines and their origins (special sections,
+#    etc.), we can do this.
+
+foreach $class (keys %e) {
+  foreach $type ("fun","pro") {
+    foreach $name (keys %{$e{$class}{$type}}) {
+      $n_routines_total++;
+
+      next unless defined($e{$class}{$type}{$name}{add_kwds});
+
+      foreach my $add (@{$e{$class}{$type}{$name}{add_kwds}}) {
+	my (%nokeys,$file_to_add,$keys_to_add,$special_to_add);
+	my ($has,$aname,$atype,$aclass,$nokeys,$special_sec)=@$add;
+	# Does it already have the keywords, just requiring a link
+	$has=$has eq "has";
+	# Is it a real entry being asked for?
+	next unless defined($e{$aclass}{$atype}{$aname});
+	foreach (@$nokeys) {$nokeys{$_}++;}
+
+	my $afile=$e{$aclass}{$atype}{$aname}{file};
+
+
+	# Look for special section keywords only (e.g. "graphics
+	# keywords accepted by PLOT")
+	if($special_sec and defined($e{$aclass}{$atype}{$aname}{extra})) {
+	  foreach $file (keys %{$e{$aclass}{$atype}{$aname}{extra}}) {
+	    if($e{$aclass}{$atype}{$aname}{extra}{$file}{special} =~
+	       /$special_sec/) {
+	      $keys_to_add=$e{$aclass}{$atype}{$aname}{extra}{$file}{kwds};
+	      $file_to_add=$file;
+	      $special_to_add=
+		$e{$aclass}{$atype}{$aname}{extra}{$file}{special};
+	      last;
+	    }
+	  }
+	}
+	# Otherwise, add from the set of regular keywords
+	$keys_to_add=$keys_to_add || $e{$aclass}{$atype}{$aname}{kwds};
+	$file_to_add=$file_to_add || $afile;
+
+	# Actually add the keys (moving unlinked ones to extra if necessary)
+	foreach (keys %$keys_to_add) {
+	  next if $nokeys{$_};
+	  if($has) { #exists in kwds already, move and link it
+	    next if !defined($e{$class}{$type}{$name}{kwds}{$_}) or
+	      $e{$class}{$type}{$name}{kwds}{$_};
+	    delete $e{$class}{$type}{$name}{kwds}{$_}; # Move to extra keywords
+	  }
+	  $e{$class}{$type}{$name}{extra}{$file_to_add}{kwds}{$_}=
+	    $$keys_to_add{$_};
+	  $e{$class}{$type}{$name}{extra}{$file_to_add}{special}=
+	    $special_to_add if $special_to_add;
+	}
+      }
+    } continue {
+      $n_keywords_total += scalar(keys %{$e{$class}{$type}{$name}{kwds}})
+	if defined $e{$class}{$type}{$name}{kwds};
+      if(defined($e{$class}{$type}{$name}{extra})) {
+	foreach (keys %{$e{$class}{$type}{$name}{extra}}) {
+	  $n_keywords_total +=
+	    scalar(keys %{$e{$class}{$type}{$name}{extra}{$_}{kwds}});
+	}
+      }
+    }
+  }
+}
+
+#print Dumper(%e),"\n";
+#print Dumper(%special_sections),"\n";
+#print "SYSVARS:\n",Dumper(%sysvars),"\n";
+
+# Print debug information about how often each special matcher matched.
+# Will only be visible in debugging mode.
+diag("SPECIAL MATCHERS-------------------------------matched success failed\n");
+foreach $key (sort ignoring_case keys %specials) {
+  diag(sprintf("%-50s %3d    %3d    %3d\n",
+	       $key,$special_matcnt{$key},$special_actcnt{$key},
+	       $special_matcnt{$key}-$special_actcnt{$key}));
+}
+diag(sprintf("\nProblematic entries: %d rejected, %d complains.\n",
+	     $n_rejections,$n_complaints));
+
+
+# Write the lisp file
+# Also write some statistics to STDERR
+write_rinfo_header();
+print RINFO "(defconst idlwave-system-routines\n";
+print RINFO "  '(\n";
+printf STDERR "\n Nr Class                 Npro  Nfun Ntot  Nkwd\n";
+printf STDERR   "-----------------------------------------------\n";
+$classcnt = -1;
+foreach $class (sort ignoring_case keys %e) {
+  $npro = scalar(keys %{$e{$class}{"pro"}});
+  $nfun = scalar(keys %{$e{$class}{"fun"}});
+  $nkwd = 0;
+  foreach $type ("pro","fun") {
+    foreach $name (keys %{$e{$class}{$type}}) {
+      $nkwd += scalar keys %{$e{$class}{$type}{$name}{kwds}}
+	if defined($e{$class}{$type}{$name}{kwds});
+      if(defined($e{$class}{$type}{$name}{extra})) {
+	foreach $file (keys %{$e{$class}{$type}{$name}{extra}}) {
+	  $nkwd+= scalar keys %{$e{$class}{$type}{$name}{extra}{$file}{kwds}};
+	}
+      }
+    }
+  }
+  $nprotot += $npro;
+  $nfuntot += $nfun;
+  $nclass++;
+  printf STDERR "%3d %-21s %4d %4d %4d %5d\n",
+    ++$classcnt,$class,$npro,$nfun,$npro+$nfun,$nkwd;
+  foreach $type ("pro","fun") {
+    foreach $name (sort ignoring_case keys %{$e{$class}{$type}}) {
+      print RINFO "    " . make_lisp_reader_string($class,$type,$name) . "\n";
+    }
+  }
+}
+
+print STDERR "-" x 47,"\n";
+printf STDERR "Total                     %4d %4d %5d %5d\n",
+  $nprotot,$nfuntot,$nprotot+$nfuntot,$n_keywords_total;
+printf STDERR "Routines ignored due to -xname:  %4d\n",$ignore_name_cnt
+  if $ignore_name_re;
+printf STDERR "Routines ignored due to -xclass: %4d\n",$ignore_class_cnt
+  if $ignore_class_re;
+print RINFO <<EOF;
+   )
+  "$n_routines_total builtin routines with $n_keywords_total keywords for IDL version $idlversion.")
+EOF
+
+# Gather sysvar and class info, and write the info
+talk_to_idl();
+write_sysvar_info();
+
+# Attach classes to the files documenting them.
+foreach $class (keys %e) {
+  if (defined $files{uc $class} && !defined($classes{$class}{file})) {
+    $classes{$class}{file}=$files{uc $class};
+  }
+}
+write_classtag_info();
+
+
+write_executive_commands();
+
+
+print RINFO <<EOF;
+;; Special words with associated help topic files
+(defconst idlwave-help-special-topic-words
+  '(
+EOF
+
+foreach (sort ignoring_case keys %special_topics) {
+  foreach $word (sort ignoring_case @{$special_topics{$_}{words}}) {
+    print RINFO "    (\"$word\" . \"$special_topics{$_}{file}\")\n";
+  }
+}
+print RINFO <<EOF;
+)
+  "Association list of help files for special context words.")
+
+EOF
+
+write_rinfo_footer();
+
+close RINFO;
+
+printf STDERR "Wrote file $rinfofile  (%4d kBytes)\n", (-s $rinfofile)/1024.;
+
+
+
+# ==========================================================================
+# ==========================================================================
+#      SUB-ROUTINES
+
+###--- LOGS AND MESSAGES ---###
+
+sub usage {
+  # Print usage information
+  print STDERR <<EOF;
+usage: get_html_rinfo [-debug] [-path DIR] [-idl /path/to/idl]
+                      [-xname REGEXP] [-xclass REGEXP]
+EOF
+  exit(1);
+}
+
+sub diag {
+  # Write diagnosis to STDERR and to the LOG file if we are debugging.
+  my $msg = @_[0];
+  if ($debug) {
+    #print STDERR $msg;
+    print $msg;
+    print LOG $msg;
+  }
+}
+
+sub reject {
+  # Write a message to the reject file.
+  my($string,$file,@reasons) = @_;
+  if ($debug) {
+    print REJECT (("-" x 80) . "\n") x 2;
+    print REJECT "File:    $file\n";
+    print REJECT "Syntax:  $string\n";
+    foreach $reason (@reasons) {
+      print REJECT "Reason:  $reason\n";
+    }
+  }
+}
+
+sub complain {
+  # Write a message to the reject file.
+  my($string,$file,@reasons) = @_;
+  if ($debug) {
+    print COMPLAIN (("-" x 80) . "\n") x 2;
+    print COMPLAIN "File:    $file\n";
+    print COMPLAIN "Syntax:  $string\n";
+    foreach $reason (@reasons) {
+      print COMPLAIN "Reason:  $reason\n";
+    }
+  }
+}
+
+###--- SYNTAX ---###
+
+sub clean_up_syntax {
+  # Clean up Syntax
+  $syntax=~s|<a\s+name="[0-9]+">\s+</a>Syntax\s+</h3>||; #Entro Syntax
+  $syntax=~s|^<p\s+class="Note">.*?^</p>\s*||msg; # Remove notes
+  $syntax=~s|^<h5\s+class="Heading4">.*?^</h5>\s*||msg; # And headings
+  $syntax=~s/and then,.*//s;
+  $syntax=~s/<br>/\n/g;
+  $syntax=~s/<.*?>//g;
+  $syntax=~s/&nbsp;/ /g;
+  $syntax=~s/&#151;/ - /g;
+  $syntax=~s/^\s+//;
+  $syntax=~s/\s+$//;
+  $syntax=~s/&([gl])t;/$1=="g"?">":"<"/eg;
+}
+
+sub parse_syntax {
+  my $txt = $_[0];
+
+  # Initialize a few variables.
+  # Note that these are global vars which are interpreted by the caller.
+  @args = @kwds = @getkwds = @setkwds = ();
+  $name = $type = $class   = $call = "";
+
+  # and any initial explanation string, as in for OPEN
+  $txt =~ s/^.*?\w:(?!:)\s*//;
+
+  # Determine type (function or procedure)
+  if ($txt =~ /^\s*[a-z][a-z0-9_]+\s*=/si) {
+    $type = "fun";
+  } else {
+    $type = "pro";
+  }
+
+  # Determine Class (ignore the name - we grab it later)
+  if ($override_class) {
+    $class=$override_class;
+    $override_class
+      ="";
+  } else {
+    if ($txt =~ /->\s*\[([a-z][a-z0-9_]+)::?\]([a-z][a-z0-9_]+)/i) {
+      $class = $1;
+    }
+  }
+
+  # Clean out the remarks about BLABLA keywords
+  $txt =~ s/^.*?\bkeywords\b.*?://gmi;
+  # Clean out the "only in..." stuff
+  $txt =~ s/\(only\s*in[^\)]*\)//gi;
+
+
+  # Collapse each chunk of whitespace into a single SPACE
+  $txt =~ s/[ \t\n\r]+/ /gm;
+
+  # Remove various other bits of detritus.
+  $txt =~ s/\bor [a-z0-9 ]+,/or/gi;
+  $txt =~ s/\bFor [a-z0-9 ]+:/or/gi;
+
+  # Get all keywords.  Keywords are things with `/' before it or with `='
+  # after it.
+  while ($txt =~m!(\{([/XYZ |]*)\})?
+	          (\/)?
+	          \b
+                  (_?[A-Z][A-Z0-9_]*)
+	          (\ *\{\s*(Get|Set|Get\s*,\s*Set)\s*\})?
+                  \s*
+                  (=)?!gx
+	) {
+    {
+      next unless $` =~ /,/;
+    }				# ignores the "result=" in functions
+    ($xyz,$slash,$identifier,$getset,$equal) = ($2,$3,$4,$6,$7);
+    next unless $slash || $equal || ($xyz && $xyz=~m|/|);
+
+    # Everything before the first keyword is part of the calling sequence
+    $call = $` unless $call;
+
+    # Some keywords have a {X|Y|Z} in front which must be expanded
+    if ($xyz) {
+      @ids = map {tr|/||d; $_ . $identifier} (split(/ *\| */,$xyz));
+    } else {
+      @ids = ($identifier);
+    }
+
+    # Save the recognized keywords away
+    push @kwds,@ids;
+
+    # When the keyword has a Get or Set flag, add it to these lists,
+    # so it can be appended to the Get|SetProperty methods' keyword
+    # lists later on.
+    push @getkwds,@ids if $getset =~ /get/i;
+    push @setkwds,@ids if $getset =~ /set/i;
+  }
+
+  # If there was no keyword, the whole text must be calling sequence
+  $call = ($call || $txt);
+
+  # Final whitespace and parens are killed.
+  $call =~ s/[ \n\t\[\]\{\}\|,]*$//; #]
+  # We may have killed needed closing parenthesis - fix this.
+  $call = close_open_parens($call);
+
+  # Find the name of the routine in the calling sequence.
+  if ($override_name) {
+    $name=$override_name;
+    $override_name="";
+  } else {
+    if ($class) {
+      if ($call =~ /->\s*\[[^\]]+\]([a-z][a-z0-9$_]*)/i) {
+	$name = $1;
+      }
+    } else {
+      if ($type eq "fun") {
+	if ($call =~ /=\s*([a-z][a-z0-9\$_]*)/i) {
+	  $name = $1;
+	}
+      } elsif ($type eq "pro") {
+	if ($call =~ /^\s*([a-z][a-z0-9\$_]*)/si) {
+	  $name = $1;
+	}
+      }
+    }
+  }
+
+  # Return the name to indicate success
+  return $name;
+}
+
+# Parse the keywords section, gathering links, and comparing to the
+# syntax-derived list @kwds (unless no_syntax_kwds is true)
+sub parse_keywords {
+  my ($txt,$no_syntax_kwds,$heading) = @_;
+  my ($kwd,$key_base,@missing_from_syntax,@missing_from_text,
+      %syntax_kwds,$link);
+  @special_keywords=();
+  %txt_kwds=();
+  $heading=$heading || '<h4\s*class="Heading3">';
+
+  while ($txt =~ m{$heading\s*
+		  <a\s*name="([0-9]+)">\s*</a>  # Embedded Link
+                   \s*([^\n]+)\n                # Everything to end of line
+                  }gxs) {
+    $kwd=$2;
+    if ($kwd=~/Keyword/) {
+      push @special_keywords,$kwd;
+      next;
+    }
+
+    $link=$1;
+    next unless
+      $kwd =~ m{(
+	         (?:(\[XYZ?\])?(\!?[A-Z0-9-_]+)# opt. [XYZ] ff. by caps keybase
+	            (?![a-z])                  # Not ff. by lowercase lets
+                    (?:\s*,\s*)?               # With an optional comma
+                 )+                            # One or more of the above
+                )}gxs;
+    ($kwd,$xyz,$key_base)=($1,$2,$3);
+    if ($xyz) {
+      $xyz=~tr/XYZ//cd;
+      map {$txt_kwds{$_ . $key_base}=$link} split(/(?=[XYZ])/,$xyz);
+    } else {
+      foreach (split(/,\s*/,$kwd)) {
+	$txt_kwds{$_}=$link;
+      }
+    }
+  }
+
+  unless($no_syntax_kwds) {
+    foreach $kwd (@kwds) {
+      $syntax_kwds{$kwd}++;
+      unless (defined $txt_kwds{$kwd}) {
+	push @missing_from_text,$kwd;
+      }
+    }
+
+    push @complaints,"Syntax keywords missing from text: " .
+      join(",",@missing_from_text) if @missing_from_text;
+
+    foreach $kwd (keys %txt_kwds) {
+      push @missing_from_syntax,$kwd unless $syntax_kwds{$kwd};
+    }
+    push @complaints,"Text keywords missing from syntax: " .
+      join(",",@missing_from_syntax) if @missing_from_syntax;
+
+    # No link found, but add the missing keywords from Syntax anyway.
+    map {$txt_kwds{$_}=""} @missing_from_text;
+  }
+}
+
+sub fix_keywords {
+  # Fix the case of keywords, sort and uniquify the list.
+  my @a;
+  @a = map { case_name("keyword",$_) } @_;
+  @a = make_unique(@a);
+  @a = sort ignoring_case @a;
+  @a;
+}
+
+sub case_name {
+  # Return $name in a unique case.
+  # The first time this function gets called, the default casification
+  # is determined and stored.  Later calls with same or different case only
+  # return this initial value.
+  my ($type,$name) = @_;
+  my $lcname = lc($name);
+  if ($debug) {
+    $origcase{$type}{$lcname} = $name unless defined $origcase{$type}{$lcname};
+    if (defined $origcase{$type}{$lcname} && 
+	$name ne $origcase{$type}{$lcname}) {
+      diag("CASECHANGE $type: old $origcase{$type}{$lcname}, new $name\n");
+    }
+  }
+
+  if (defined $casedname{$type}{$lcname}) {
+    return $casedname{$type}{$lcname};
+  } else {
+    my $casedname;
+    if ($type eq "class" || $type eq "method") {
+      $casedname = $name;
+    } else {
+      $casedname = uc($name)
+    }
+    return $casedname{$type}{$lcname} = $casedname;
+  }
+}
+
+sub make_full_name {
+  my ($class,$name) = @_;
+  ($class ? "$class" . "::" : "") . $name
+}
+
+sub balanced_parens {
+  # Check if all parenthesis are balanced
+  my $string = $_[0];
+  $string =~ tr/()[]{}//cd;
+  1 while $string =~ s/\(\)|\[\]|\{\}//g;
+  $string eq "";
+}
+
+sub close_open_parens {
+  # Add all necessary closing parenthesis to the end if a string
+  my $rtn = $_[0];
+  my $string = $_[0];
+  $string =~ tr/()[]{}//cd;
+  1 while $string =~ s/\(\)|\[\]|\{\}//g;
+  my $close = reverse($string);
+  $close =~ tr/([{/)]}/;
+  $rtn . $close;
+}
+
+sub make_lisp_reader_string {
+  # Make a string which will be correctly interpreted by the Emacs Lisp reader
+  # as a lisp list containing all needed information about a routine.
+  my ($class,$type,$name) = @_;
+  my $call=$e{$class}{$type}{$name}{call};
+  my ($entry,$kwds);
+  
+  # In the calling sequence we want `%s' instead of name and class.
+  # The calling sequence will later be used as format string to make
+  # a calling sequence with the correct version of class and name.
+  $call =~ s/^result/Result/;
+  if ($class) {
+    $call =~ s/(\[)($class)(:+)(\])($name)\b/$1%s$3$4%s/i;
+  } else {
+    $call =~ s/\b$name\b/%s/i;
+  }
+
+  # Now we make the string which can be parsed by the Lisp reader
+  # It looks like this:
+  # ("NAME" TYPE "CLASS" (system) "CALLING SEQUENCE"
+  #  ("FILE1.html" "KWD1" LINK1 "KWD2" LINK2 ...))
+  $entry = sprintf('(%s %3s %s', "\"$name\"", $type,
+		   ($class eq "" ? "nil" : "\"$class\""));
+  $entry .= " (system) \"$call\"";
+  $kwds = " (\"$e{$class}{$type}{$name}{file}\"";
+      
+  if (defined $e{$class}{$type}{$name}{kwds}) {
+    $kwds.=" ";
+    $kwds.=join(" ",map {"(\"$_\"" .
+			   ($e{$class}{$type}{$name}{kwds}{$_}?
+			    " . $e{$class}{$type}{$name}{kwds}{$_}":"") . ")"}
+		(sort ignoring_case keys %{$e{$class}{$type}{$name}{kwds}}));
+  }
+  $kwds.= ')';
+  if (defined $e{$class}{$type}{$name}{extra}) {
+    foreach $file (sort keys %{$e{$class}{$type}{$name}{extra}}) {
+      $kwds .= " (\"$file\" " .
+	join(" ",map {"(\"$_\"" .
+			($e{$class}{$type}{$name}{extra}{$file}{kwds}{$_}?
+			 " . $e{$class}{$type}{$name}{extra}{$file}{kwds}{$_}":
+			"") .")"}
+	     (sort ignoring_case
+	      keys %{$e{$class}{$type}{$name}{extra}{$file}{kwds}})) . ')';
+    }
+  }
+  $kwds=$kwds || " nil";
+
+  $entry .= $kwds . ')';
+
+  # Return the entry
+  $entry;
+}
+
+###--- TALKING TO IDL & WRITING RINFO FILE ---###
+
+sub write_rinfo_header {
+  my ($part_of) = $emacs ?
+    $lisp_part_of_gnu_emacs : $lisp_not_part_of_gnu_emacs;
+  $date = localtime;
+  chomp $date;
+  ($progname = $0) =~ s|.*/||;
+  chomp $progname;
+  $n_files_scanned = @files;
+  print RINFO <<EOF;
+;;; idlw-rinfo.el --- Routine Information for IDLWAVE
+;; Copyright (c) 1999 Carsten Dominik
+;; Copyright (c) 1999, 2000, 2001, 2002, 2003 Free Software Foundation
+
+;; Author: J.D. Smith <jdsmith\@as.arizona.edu>
+;; Version: 5.1
+;; Keywords: languages
+$part_of
+;;; Commentary:
+
+;; The constants which contain information about IDLs builtin
+;; functions, procedures, system variables and class tags.  This
+;; information is extracted automatically from the IDL documentation
+;; and by talking to IDL.
+;;
+;; Created by $progname on $date
+;; IDL version: $idlversion
+;; Number of files scanned:  $n_files_scanned
+;; Number of routines found: $n_routines_total
+;; Number of keywords found: $n_keywords_total
+;;
+;; New versions of IDLWAVE, documentation, and more information
+;; available from:
+;;                 http://idlwave.org
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Code:
+EOF
+}
+
+sub write_rinfo_footer {
+  print RINFO <<EOF;
+(provide 'idlw-rinfo)
+(provide 'idlwave-rinfo)
+
+;;; idlw-rinfo.el ends here
+EOF
+}				#'
+
+sub talk_to_idl {
+  # Run IDL and get some important information
+  my ($code,$class);
+  open IDLWAVE_EL,"idlwave.el" or die "Can't open idlwave.el";
+  while ($_=<IDLWAVE_EL>) {
+    $code .= $_ if /^;; START OF IDLWAVE SUPPORT ROUTINES/..
+      /^;; END OF IDLWAVE SUPPORT ROUTINES/;
+  }
+  close IDLWAVE_EL;
+  $code =~ s/([^\\])\\\"/$1\"/g;
+  open TMP, ">tmp.pro" or die "Can't write to tmp.pro\n";
+  print TMP $code;
+  close TMP;
+
+  use IPC::Open2;
+  # Run IDL in order to get the names of system variables
+  print STDERR "\nTalking to $idl...\n";
+  $pid = open2(\*RDR, \*WTR, $idl . ' 2>/dev/null');
+  print WTR ".run tmp.pro\n";
+  print WTR "idlwave_get_sysvars\n";
+  my $fmt = "idlwave_get_class_tags, '%s'\n";
+  foreach $class (sort ignoring_case keys %e) {
+    next unless $class;
+    printf WTR $fmt,$class;
+  }
+  print WTR "exit\n";
+
+  # Collect the output
+  while ($_=<RDR>) {
+    diag("Read: $_\n");
+    if (/^IDLWAVE-SYSVAR: (.*[A-Z0-9\$])/) {
+      push @sv_entries,$1;
+    } elsif (/^IDLWAVE-CLASS-TAGS: (.*[A-Z0-9\$])/) {
+      @F=split " ",$1;
+      $class = shift @F;
+      $class =~ s/^!//;
+      $nclass++;
+      $ntags += scalar(@F);
+      @{$classes{$class}{tags}} = @F;
+    }
+  }
+  printf STDERR
+    "%6d System Variables\n%6d Class Structures\n",
+      scalar(@sv_entries),scalar(keys %classes);
+}
+
+sub write_sysvar_info {
+  # Print the definition of the sysvar alist to the lisp file.
+  my $main;
+  print RINFO "\n(setq idlwave-system-variables-alist\n  '(";
+  foreach (@sv_entries) {
+    @F=split;
+    $main = shift @F;
+    $main =~ s/^!//;
+    print RINFO "\n    (\"$main\"";
+    $main=uc($main);
+    if (@F) {
+      print RINFO " (tags";
+      foreach (@F) {
+	if($sysvars{$main}{tags}{$_}) {
+	  print RINFO " (\"$_\" . $sysvars{$main}{tags}{$_})";
+	} else {
+	  print RINFO " (\"$_\")";
+	}
+      }
+      print RINFO ")";
+    }
+
+    my $link=$sysvars{$main}{main};
+    if ($link) {
+      print RINFO " (link \"$link\")";
+    }
+
+    print RINFO ")";
+  }
+  print RINFO "))\n\n";
+}
+
+sub write_executive_commands {
+  print RINFO "\n(setq idlwave-executive-commands-alist '(\n";
+  foreach (keys %executive_commands) {
+    print RINFO "    (\"$_\" . \"$executive_commands{$_}\")\n";
+  }
+  print RINFO "))\n\n";
+}
+
+sub write_classtag_info {
+  # print the class tags to the lisp file.
+  my ($class,$class1,$nclass,$ntags,$ntags1);
+  my @classes;
+  my @F;
+  print RINFO "\n(setq idlwave-system-class-info\n  '(";
+    @classes = sort {$#{$classes{$b}{tags}} <=> $#{$classes{$a}{tags}}}
+    keys %classes;
+ CLASS:
+  for ($i=0;$i<$#classes;$i++) {
+    $c1 = $classes[$i];
+    @c1tags = @{$classes{$c1}{tags}};
+  SUPERCLASS_CANDIDATE:
+    for ($j=$i+1;$j<=$#classes;$j++) {
+      $c2 = $classes[$j];
+      @c2tags = @{$classes{$c2}{tags}};
+      next SUPERCLASS_CANDIDATE unless @c2tags;
+      if (is_subset(\@c2tags,\@c1tags)) {
+	@c1tags=@{$classes{$c1}{tags}}=
+	  remove_tags($classes{$c1}{tags},@c2tags);
+	push @{$inherits{$c1}}, $c2;
+	$n_inherits++;
+	next SUPERCLASS_CANDIDATE;
+      } else {
+	next SUPERCLASS_CANDIDATE;
+      }
+    }
+  }
+
+  foreach $class (@classes) {
+    print RINFO "\n    (\"$class\"";
+    if (@{$classes{$class}{tags}}) {
+      print RINFO " (tags";
+      foreach (@{$classes{$class}{tags}}) {
+	print RINFO " \"$_\"";$ntags1++;
+      }
+      print RINFO ")";
+    }
+    if (@{$inherits{$class}}) {
+      print RINFO " (inherits";
+      foreach $class1 (@{$inherits{$class}}) {
+	print RINFO " \"$class1\"";
+      }
+      print RINFO ")";
+    }
+    if ($classes{$class}{file}) {
+      print RINFO " (link \"$classes{$class}{file}\")";
+      print RINFO ")";
+    }
+  }
+  print RINFO "))\n\n";
+  print STDERR "$ntags tags, $nclass classes, $n_inherits inheritance cases deduced -> $ntags1 native tags\n" if $debug;
+}
+
+###--- UTILITY ---###
+
+sub max {$_[0] > $_[1] ? $_[0] : $_[1]}
+
+sub is_subset {
+  # Accepts two array references as arguments.
+  # Checks if the first array is a subset of the second.
+  my ($ref2,$ref1) = @_;
+  my @tags1 = @$ref1;
+  my @tags2 = @$ref2;
+  my %taghash;
+  foreach (@tags1) {
+    $taghash{$_}=1;
+  }
+  foreach (@tags2) {
+    return 0  unless defined($taghash{$_});
+  }
+  return 1;
+}
+
+sub remove_tags {
+  # Remove entries in the array in the first ref
+  # the entries to remove are the remaining arguments.
+  my $ref1 = shift @_;
+  my @tags = @$ref1;
+  my @rmtags = @_;
+  my %taghash;
+  my $cnt = 0;
+  foreach (@tags) {
+    $taghash{$_}=++$cnt;
+  }
+  foreach (@rmtags) {
+    delete $taghash{$_};
+  }
+  sort {$taghash{$a} <=> $taghash{$b}} keys %taghash;
+}
+
+sub make_unique {
+  # make an array unique.
+  my @new;
+  my %seen;
+  foreach (@_) {
+    push @new,$_ unless $seen{$_}++;
+  }
+  @new;
+}
+
+# for case-insensitive sorting..
+sub ignoring_case {lc($a) cmp lc($b)}
+
+
+###--- FINDING AND FIXING SPECIAL CASES OF THE SYNTAX ---###
+
+sub try_specials {
+  # Try if any of the special matchers in %specials matches the current
+  # entry.
+  my($key,$sub);
+  foreach (keys %special_sections) {
+    $has_special_section_keywords{$_} = 0;
+  }
+ SPECIAL:
+  foreach $key (sort keys %specials) {
+    $sub = $specials{$key};
+    $act = 0;
+    $rtn = &$sub();
+    if ($rtn) {
+      $special_matcnt{$key}++;
+      $special_actcnt{$key}++ if $act;
+      diag("Special $key matched.  Count is $special_matcnt{$key}, $special_actcnt{$key}\n");
+      next SPECIAL if $rtn == 1;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+# UPDATE: Special matchers
+# ------------------------
+# The BEGIN block sets the array which contains special matchers.  The
+# hash keys are just strings identifying the matcher.  The values are
+# anonymous subroutines which work on the global variable $syntax
+# which contains the full syntax entry.  To fix a problem, the matcher
+# may change the $syntax variable.
+# The return value of a matcher must be 0, 1, or 2
+# 0: The matcher did not match the entry.
+# 1: The matcher matched, and further matchers should be tried.
+# 2: The matcher did match and no further matchers should be tried.
+
+# Matching should mean that the matcher found the entry it was supposed to
+# find.  When the entry is successfully changed, the matcher should also set
+# the variable $act.  As typos get fixed by RSI, some matchers will still
+# match but not act - a sign that they can be removed from the %specials list.
+
+# Matchers of buggy entries should also push onto the @complaints array
+# an explanation why the matched entry is buggy.  The result can later
+# be mailed to RSI to make them fix the problem.
+
+# Some entries describe actually several routines, for example PRINT/PRINTF.
+# The matcher must then place entries into the @enter array for each routine.
+
+# Finally, some routines do not list all the keywords, but just say
+# "accepts all keywords accepted by PLOT" or so.  See the SURFACE
+# matcher for an example how to tell the system to add the
+# corresponding keywords to the routine description as well, using the
+# @add_keywords array, with format:
+#
+#   [ ("needs"|"has"),name,type,class,no_keys_reference,specials_only ]
+#
+# "needs" or "has": depending on whether the routine being scanned
+#     "needs" keywords added, or already "has" them, but just requires
+#     linking to the proper section.
+# name: The name of the add routine
+# type: The type of the add routine
+# class: The class (if any) of the add routine
+# no_keys_reference: A reference to a list of keywords *not* to add.
+# specials_only: A string mentioning one of the special keyword
+#     section names (see %special_sections below), which will limit
+#     added keywords to those with the named special section origin
+#     (e.g. "Graphics").
+
+# When this program is being run with the -d flag, it will list which
+# matcher was used how often at the end.
+BEGIN {
+
+  # The following function prefixes the names of special matchers with
+  # numbers, to make sure they are called in the same sequence as 
+  # specified here.
+  $cnt = 0;
+  sub sname {sprintf("%03d %s",++$cnt,$_[0])}
+
+  # The hash with the matchers
+  %specials =
+    (
+     # ------------------------------------------------------------------
+     # Some typos which occur globally in many entries ------------------
+     # ------------------------------------------------------------------
+
+     sname("UNBANACED PARENTHESIS") =>
+     sub {
+       if (! balanced_parens($syntax)) {
+	 # A parenthesis is missing in the Syntax entry
+	 push @complaints, "Unbalanced parenthesis";
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # The explanation of what the "Syntax" entry is must be rejected ---
+     # ------------------------------------------------------------------
+
+     sname("SYNTAX") =>
+     sub {
+       if ($syntax =~ /The\s*"?syntax"?\s*section\s*shows/si) {
+	 # Ignore when Syntax is used to explain itself
+	 push @rejects, "Rejecting SYNTAX section explanation.";
+	 $syntax = "";
+	 $act = 2;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # C Functions ------------------------------------------------------
+     # ------------------------------------------------------------------
+
+     sname("C FUNCTION") =>
+     sub {
+       if ($syntax =~ /\A\s*Syntax\s*
+	                  (int         |
+			   char        |
+			   void        |
+			   IDL_MEMINT  |
+			   IDL_FUN_RET |
+			   IDL_VPTR    |
+			   Client
+			  )\b
+	   /xsi) {
+	 push @rejects, "Seems to be a C routine";
+	 $syntax = "";
+	 $act = 2;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # IDL statements ---------------------------------------------------
+     # ------------------------------------------------------------------
+
+     # UPDATE: Statement regexp
+     sname("IDL STATEMENT") =>
+     sub {
+       if ($syntax =~ /\A\s*
+	              (BEGIN            \s+ statements     |
+		       CASE             \s+ expression     |
+		       SWITCH           \s+ expression     |
+		       BREAK            \s+                |
+		       CONTINUE         \s+                |
+		       COMMON           \s+ Block_name     |
+		       COMPILE_OPT      \s+                |
+		       FORWARD_FUNCTION \s+                |
+		       FOR              \s+ variable       |
+		       FUNCTION         \s+ Function_Name  |
+		       GOTO \s* ,       \s+ label          |
+		       IF               \s+ expression     |
+		       PRO              \s+ Procedure_Name |
+		       REPEAT           \s+ statement      |
+		       WHILE            \s+ expression)
+	   /ix) {
+	 # Ignore
+	 $syntax = "";
+	 push @rejects, "IDL control stucture.";
+	 $act = 2;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # Executive statements ---------------------------------------------
+     # ------------------------------------------------------------------
+
+     sname("IDL EXECUTIVE COMMAND") =>
+     sub {
+       if ($syntax =~ /\A\.[A-Z]+/) {
+	 # Command starts with a dot.  Ignore it.
+	 $syntax = "";
+	 push @rejects, "IDL executive command.";
+	 $act = 2;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # Entries which must produce several rinfo list entries ------------
+     # ------------------------------------------------------------------
+
+     sname("CALL_METHOD") =>
+     sub {
+       if ($syntax =~ /CALL_METHOD.*\bor\b.*CALL_METHOD/s) {
+				# Can be called as function or method - make 2 entries.
+	 $enter[0] = ["CALL_METHOD","pro","","CALL_METHOD, Name, ObjRef, [, P1, ..., Pn]"];
+	 $enter[1] = ["CALL_METHOD","fun","","Result = CALL_METHOD, Name, ObjRef, [, P1, ..., Pn]"];
+	 $act = 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("OPEN") =>
+     sub {
+       if ($syntax =~ /OPENR.*OPENW.*OPENU/s) {
+	 # Make this 3 separate entries
+	 $enter[0] = ["OPENR","pro","","OPENR, Unit, File"];
+	 $enter[1] = ["OPENW","pro","","OPENW, Unit, File"];
+	 $enter[2] = ["OPENU","pro","","OPENU, Unit, File"];
+	 $override_name="OPEN";
+	 $act = 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("READ") =>
+     sub {
+       if ($syntax =~ /^\s*READ, \[Prompt/si) {
+	 # Make this 2 separate entries
+	 $syntax =~ s/^[ \t]*READ,.*?\n//m;
+	 $syntax =~ s/^[ \t]*READF,.*?\n/m/;
+	 $enter[0] = ["READ","pro","","READ, [Prompt,] Var1, ..., Varn"];
+	 $enter[1] = ["READF","pro","","READF, [Prompt,] Unit, Var1, ..., Varn"];
+	 $act = 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("PRINT") =>
+     sub {
+       if ($syntax =~ /^\s*PRINT \[, Expr/si) {
+	 # Make this two separate entries
+	 $syntax =~ s/^[ \t]*PRINT .*?\n//m;
+	 $syntax =~ s/^[ \t]*PRINTF .*?\n/m/;
+	 $enter[0] = ["PRINT","pro","","PRINT [, Expr1, ..., Exprn]"];
+	 $enter[1] = ["PRINTF","pro","","PRINTF [, Unit, Expr1, ..., Exprn]"];
+	 $act = 1;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # INIT and CLEANUP -------------------------------------------------
+     # ------------------------------------------------------------------
+
+     sname("IDLcomIDispatch::Init") =>
+     sub {
+       if ($syntax =~ /obj_new\('IDLcomIDispatch[^\']*'\)/si) {
+	 $enter[0] = ["Init","fun","IDLcomIDispatchCLSID","Result = Obj -> [IDLcomIDispatchCLSID::]Init()"];
+	 $enter[1] = ["Init","fun","IDLcomIDispatchPROGID","Result = Obj -> [IDLcomIDispatchPROGID::]Init()"];
+	 $act=1;
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("INIT & OBJ_NEW") =>
+     sub {
+       if ($syntax =~ /.*Init.*\bor\b.*OBJ_NEW\b/s) {
+	 # Mention only "Init", not OBJ_NEW in calling sequence
+	 $act = ($syntax =~ s/\bor\b.*OBJ_NEW.*subclass.*?\)//s);
+	 push @complaints,"Most syntax entries for INIT methods list OBJ_NEW before INIT";
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("OBJ_NEW & INIT") =>
+     sub {
+       if ($syntax =~ /\s*OBJ_NEW\(\s*[\`\'][^\`\']+[\'\`]\s*(.*?)\s*\bor\s*(Result\b.*Init\()[^\)]*\)(.*)/si) {
+	 # Mention only "Init", not OBJ_NEW in calling sequence
+	 $syntax = "$2$1$3"; 
+	 $syntax =~ s/\([^\)]*in\s+a\s+subclass[^\)]*Init[^\)]*\)\s*//i;
+	 $syntax =~ s/\n[ \t\n]*\n/\n/;
+	 $act = 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("INIT MISSING") =>
+     sub {
+       if ($syntax =~ /OBJ_NEW\(\s*[\`\']([a-zA-Z0-9_]+)[\`\'](.*?)(\(Only\s+in\s+a\s+sub|\))/s) { #`)
+	 my $class = $1;
+	 my $args  = $2;
+	 $args =~ s/^(\s*\[\s*),/$1/;
+	 $syntax = "Result = Obj -> [${class}::]Init($args)";
+	 push @complaints,"INIT calling sequence missing";
+	 $act = 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("OBJ_DESTROY & CLEANUP") =>
+     sub {
+       if ($syntax =~ /^\s*OBJ_DESTROY,\s*Obj\s+or\s*(.*)/si) {
+	 # Mention only "Cleanup" in calling sequence, not OBJ_DESTROY
+	 $syntax = $1;
+	 $syntax =~ s/\(.*?in\s+[^)]*subclass[^)]*Cleanu[^)]*\)//i;
+	 $act = 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("CLEANUP & OBJ_DESTROY") =>
+     sub {
+       if ($syntax =~ /.*Cleanup.*\bor\b.*OBJ_DESTROY\b/si) {
+	 # Mention only "Cleanup" in calling sequence, not OBJ_DESTROY
+	 push @complaints,"Most syntax entries for CLEANUP methods list OBJ_DESTROY before CLEANUP";
+	 $act = ($syntax =~ s/\bor\b.*OBJ_DESTROY.*subclass.*?\)//s);
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # Cleaning up some calling sequences -------------------------------
+     # ------------------------------------------------------------------
+
+     sname("ATAN") =>
+     sub {
+       if ($syntax =~ /ATAN.*ATAN/s) {
+	 # Write a simpler calling sequence
+	 $syntax = "Result = ATAN([Y,] X)";
+	 $act = 1;
+       } else {
+	 0;
+       }
+     },
+     sname("INTERPOL") =>
+     sub {
+       if ($syntax =~ /For regular grids.*INTERPOL/i) {
+	 # Simplify calling sequence
+	 $act = ($syntax =~ s/^[ \t]*for (ir)?regular grids:\s*//gmi);
+	 1;
+       } else {
+	 0;
+       }
+     },
+     sname("WRITE_JPEG") =>
+     sub {
+       if ($syntax =~ /^\s*WRITE_JPEG\b/si) {
+	 # Remove the UNIT thing from the syntax
+	 $act = ($syntax =~ s/\[,\s*Filename\s*\|\s*,\s*UNIT=lun\s*\](.*)/[, Filename]$1 [, UNIT=lun]/si);
+	 $syntax =~ s/\{.*?\}//sg;
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # Attach or link keywords from another procedure -------------------
+     # ------------------------------------------------------------------
+     sname("SURFACE,CONTOUR,PLOT_3DBOX (ADD PLOT KEYWORDS)") =>
+     sub {
+       if ($syntax =~ /^\s*(SURFACE|CONTOUR|PLOT_3DBOX)/si) {
+	 if ($syntax =~
+	     /Graphics Keywords: Accepts.*PLOT.*except([^\.]*)/s) {
+	   # Most PLOT keywords need to be added later.
+	   $act = 1;
+	   push @complaints, "Keyword list not complete (PLOT kwds omitted)";
+	   my $nokeys = $1;
+	   $nokeys =~ s/\{XYZ\}([A-Z0-9_]+)/X$1, Y$1, Z$1/g;
+	   my @nokeys = (split(/[^A-Z0-9_]+/,$nokeys));
+	   shift @nokeys unless $nokeys[0]; # Useless material
+	   push @add_keywords,["needs","PLOT","pro","",\@nokeys,"Graphics"];
+	 }
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("POLAR_CONTOUR (LINK CONTOUR KEYWORDS)") =>
+     sub {
+       if ($syntax =~ /^\s*POLAR_CONTOUR/si) {
+	 if ($kwds =~ /accepts all of the keywords.*CONTOUR routine except([^\.]*)\./s) {
+	   # Most CONTOUR keywords need to be linked later.
+	   $act = 1;
+	   push @complaints, "Keyword list not complete (CONTOUR kwds omitted)";
+	   my $nokeys = $1;
+	   $nokeys =~ s/\{XYZ\}([A-Z0-9_]+)/X$1, Y$1, Z$1/g;
+	   $nokeys =~ s/and//;
+	   my @nokeys = (split(/[^A-Z0-9_]+/,$nokeys));
+	   shift @nokeys unless $nokeys[0]; # Useless material
+	   push @add_keywords,["has","CONTOUR","pro","",\@nokeys];
+	 }
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("TVSCL (ADD TV)") =>
+     sub {
+       if ($syntax =~ /^\s*TVSCL/si) {
+	 # Most TV keywords need to be added later.
+	 $act = 1;
+	 push @complaints, "Keyword list not complete (TV kwds omitted)";
+	 push @add_keywords,["needs","TV","pro"];
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("LINK SURFACE KEYWORDS") =>
+     sub {
+       if ($kwds =~ m|<a\s+name="[0-9]+">\s+</a>SURFACE Keywords|) {
+	 # All SURFACE keywords listed in syntax need to be added later.
+	 $act = 1;
+	 push @complaints,
+	   "Keyword list not complete (SURFACE kwds omitted)";
+	 push @add_keywords,["has","SURFACE","pro",""];
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # Attach or link keywords from a special section -------------------
+     # ------------------------------------------------------------------
+
+     sname("GRAPHICS KEYWORDS") =>
+     sub {
+       if ($syntax =~ /Graphics +Keywords *:/i) {
+	 $act = 1;
+	 $has_special_section_keywords{Graphics} = "has";
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("THREAD POOL KEYWORDS") =>
+     sub {
+       if ($kwds =~ m|</a>Thread Pool Keywords\s*$|mi) {
+	 $act = 1;
+	 $has_special_section_keywords{MultiThreading} = "needs";
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("DEVICE KEYWORDS") =>
+     sub {
+       if ($syntax =~ /^\s*DEVICE/si) {
+	 $act = 1;
+	 $has_special_section_keywords{Device} = "has";
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # Typos ------------------------------------------------------------
+     # ------------------------------------------------------------------
+
+     sname("SLASH MISSING") =>
+     sub {
+       if ($syntax =~ /Keywords|\[ *, *(\/|[A-Z][A-Z0-9_]* *=)/g) {
+	 my $left = $` . $&;
+	 my $right = $';
+	 my $n=0;
+	 while ($right =~ s/((\[|\|)[ \n]*,[ \n]*)([A-Z][A-Z0-9_]*)( *(\||\]))/$1\/$3$4/s) {
+	   $n++;
+	   push @complaints, "Slash before keyword $3 missing";
+	   print "Fixing keyword $n $3\n" if $debug;
+	 }
+	 if ($n) {
+	   $syntax = $left . $right;
+	   $act = 1;
+	   1;
+	 } else {
+	   0;
+	 }
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # Keyword omissions ------------------------------------------------
+     # ------------------------------------------------------------------
+
+     sname("SLASH SEPARATED FROM KEYWORD") =>
+     sub {
+       if ($syntax =~ /\/\s+[A-Z][A-Z0-9_]+/) {
+	 $act = ($syntax =~ s|/\s+([A-Z][A-Z0-9_]+)|/$1|);
+	 push @complaints,"space between slash and KEYWORD $1";
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     # ------------------------------------------------------------------
+     # Miscellaneous ----------------------------------------------------
+     # ------------------------------------------------------------------
+
+     sname("Class missing")=>
+     sub {
+       if ($syntax =~ /->\s*[a-zA-Z0-9_]+/) {
+	 return 1 unless $title;
+	 ($class)=split(/::/,$title);
+	 $act = ($syntax =~ s/(->\s*)/$1\[${class}::\]/);
+	 push @complaints,"Class missing from syntax entry";
+	 1;
+       } else {
+	 0;
+       }
+     },
+
+     sname("Obj-> & CLASS BRACKETS") =>
+     sub {
+       if ($syntax =~ /=\s*[a-zA-Z0-9_]+::Init/) {
+	 $act =
+	   ($syntax =~ s/(=\s*)([a-zA-Z0-9_]+::)Init/$1 Obj ->\[$2\]Init/);
+	 push @complaints,"'Obj->' and class brackets missing";
+	 1;
+       } else {
+	 0;
+       }
+     }
+    );
+
+  # UPDATE: Special keyword sections
+  # --------------------------------
+  # Some keywords are present only in special, separate sections,
+  # either for brevity, or because many routine refer to them (e.g.,
+  # Graphics Keywords).  This hash helps locate these sections, and
+  # parse the keywords from it, so that routines relevant keywords can
+  # be linked to it correctly.  The format is a hash with keywords
+  # identifying the section (e.g. as used with
+  # %has_special_section_keywords in the syntax special matchers, and
+  # matching the file <title> of the given section), and the value is
+  # a reference to a hash with two subroutines.  The first,"matcher",
+  # identifies whether a given file corresponds to one of the special
+  # sections (it can use $title or $file_contents to help it), and the
+  # second, "parser", parses the keywords in the special section into
+  # %txt_kwds.
+
+  # The hash with the matchers
+  %special_sections =
+    (
+     Graphics=>
+     { matcher=> sub {
+	 $title=~"Graphics Keywords";
+       },
+       parser=> sub {
+	 $file_contents=~s|.*<h3\s*class="Heading2">\s*<a name="[0-9]+">\s*</a>Graphics? Keywords List||s;
+	 parse_keywords($file_contents,1,'<h3\s*class="Heading2">');
+       }
+     },
+     MultiThreading=>
+     { matcher=>sub {
+	 $title=~"Thread Pool Keywords";
+       },
+       parser=>sub {
+	 $file_contents=~s|.*<h3\s*class="Heading2">\s*<a name="[0-9]+">\s*</a>Thread Pool Keywords||s;
+	 parse_keywords($file_contents,1);
+       }
+     },
+     Device=>
+     { matcher=>sub {
+	 $title=~"Keywords Accepted by the IDL Devices";
+       },
+       parser=>sub {
+	 parse_keywords($file_contents,1);
+       }
+     });
+
+
+  # UPDATE: Special help topics
+  # ---------------------------
+
+  # Some words which can show up in IDL source code have special
+  # help topics associated with them.  This hash links downcase
+  # versions of these special sections (which must match the title
+  # of the file to be searched), to the appropriate words.  Even if
+  # word and topic are the same, it must be mentioned here in order
+  # to trigger help on this word to visit that special section.
+  %special_topics = 
+    (
+     ("begin...end"=>      {words=>["begin"]}),
+     (case=>               {words=>["case","endcase","of"]}),
+     (common=>             {words=>["common"]}),
+     (compile_opt=>        {words=>["compile_opt"]}),
+     (continue=>           {words=>["continue"]}),
+     ("repeat...until"=>   {words=>["endrep","repeat","until"]}),
+     ("while...do"=>       {words=>["while","do","endwhile"]}),
+     ("if...then...else"=> {words=>["if","then","endif","else","endelse"]}),
+     (pro=>                {words=>["pro","end"]}),
+     (for=>                {words=>["for","endfor"]}),
+     (switch=>             {words=>["switch","endswitch"]}),
+     (return=>             {words=>["return"]})
+    );
+
+  # The standard Emacs file header notice.
+  $part_of_gnu_emacs = <<EOF;
+
+This file is part of GNU Emacs.
+
+GNU Emacs is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2, or (at your option)
+any later version.
+
+GNU Emacs is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GNU Emacs; see the file COPYING.  If not, write to the
+Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+Boston, MA 02111-1307, USA.
+EOF
+  
+  # Make the Lisp versions, with the comment chars.
+  ($lisp_part_of_gnu_emacs = $part_of_gnu_emacs) =~ s/^.*?\S/;; $&/mg;
+}
+
+
+__END__
+
+=head1 NAME
+
+get_html_rinfo - Extract information from IDL HTML documentation for
+use with IDLWAVE
+
+=head1 SYNOPSIS
+
+B<get_html_rinfo> [-path path/to/html/files]
+                  [-debug]
+                  [-idl path/to/idl]
+                  [-xname regexp]
+                  [-xclass regexp]
+
+=head1 DESCRIPTION
+
+I<get_html_rinfo> processes the HTML documentation provided with IDL
+(the Interactive Data Language, a proprietary language owned by
+Research Systems Inc.).  It also talks to the IDL program itself for
+additional info.  It produces the files needed by the Emacs IDLWAVE
+mode to support completion, short help (routine info display) and
+extensive online HTML help.  It produces the file:
+
+=over 4
+
+=item F<idlw-rinfo.el>
+
+Contains the routine information needed for completion and compact
+routine info display, along with URL links into the HTML help system
+for routines, keywords, system variables, and special statement.  This
+file must be installed on the Emacs load path and is part of the
+standard IDLWAVE distribution.
+
+=back
+
+=head1 OPTIONS
+
+=over 5
+
+=item B<-path> B<path/to/html/files>
+
+Specify the path to the HTML documentation files, as converted from
+IDL's HTMLHelp docs using MS HTMLHelp Workshop.  Default is the
+current directory.
+
+=item B<-idl> B</name/or/path/of/idl/executable>
+
+Specify the name of the IDL executable to talk to for additional
+information.  The default is F<idl>.
+
+=item B<-debug>
+
+Debugging.  Writes diagnostics to STDERR and creates these
+files:
+
+F<get_html_rinfo.log>: A copy of the messages printed to STDERR.
+
+F<get_html_rinfo.rej>: All syntax entries which could not be parsed
+correctly, together with an explanation.
+
+F<get_html_rinfo.cpl>: Syntax entries which contain typos or other
+inconsistencies.  I<get_html_rinfo> actually fixes most of these problems,
+but you should feel free to complain about them to RSI.
+
+=item B<-xname> B<regexp>
+
+Exclude routine names matched by the regular expression REGEXP.
+For example setting this to "^CDF_" will not store information
+about routines starting with the "CDF_" prefix.
+
+=item B<-xclass> B<regexp>
+
+Exclude object classes matched by the regular expression REGEXP.
+
+Options may be abbreviated to uniqueness
+=head1 FILES
+
+F<get_html_rinfo.log>, F<get_html_rinfo.cpl>, F<get_html_rinfo.rej>
+
+=head1 AUTHOR
+
+J.D. Smith <jdsmith@as.arizona.edu>
+
+=cut
