@@ -4,6 +4,14 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
+Revision 4.14
+=============
+   - More sensible handling of multiple *Examine* buffer windows,
+     allowing permanent resizing of windows.
+   - "q" in an *Examine* window closes it, and "c" clears the old contents.
+   - Continued statements at the end of a multi-line statement (with
+     `&') have continuation indent correctly calculated.
+
 Revision 4.13
 =============
    - Security improvement for temporary files.

@@ -9,12 +9,12 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 4.13
-@set EDITION 4.13
+@set VERSION 4.14
+@set EDITION 4.14
 @set IDLVERSION 5.5
 @set NSYSROUTINES 1322
 @set NSYSKEYWORDS 5952
-@set DATE May 2002
+@set DATE June 2002
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set AUTHOR-EMAIL dominik@@astro.uva.nl
 @set MAINTAINER J.D. Smith
@@ -2642,6 +2642,12 @@ process of building it!  You can even print arbitrary expressions from
 older input or output further up in the shell window --- any expression,
 variable, number, or function you see can be examined.
 
+If the variable @code{idlwave-shell-separate-examine-output} is
+non-@code{nil} (the default), all examine output will be sent to a
+special @file{*Examine*} buffer, rather than the shell.  The output of
+prior examine commands is saved.  In this buffer @key{c} clears the
+contents, and @key{q} hides the buffer.
+
 The two most basic examine commands are bound to @kbd{C-c C-d C-p}, to
 print the expression at point, and @kbd{C-c C-d ?}, to invoke help on
 this expression.  The expression at point is either an array expression
@@ -2655,13 +2661,13 @@ current region as expression.
 For added speed and convenience, there are mouse bindings which allow
 you to click on expressions and examine their values.  Use
 @kbd{S-mouse-2} to print an expression and @kbd{C-M-mouse-2} to invoke
-help.  I.e. you need to hold down @key{SHIFT} and @key{CONTROL} while
-clicking with the middle mouse button.  If you simply click, the nearest
-expression will be selected in the same manner as described above.  You
-can also @emph{drag} the mouse in order to highlight exactly a specific
-expression or sub-expression to be examined.  For custom expression
-examination, and the customizable pop-up examine selection, @xref{Custom
-Expression Examination}.
+help (i.e. you need to hold down @key{META} and @key{CONTROL} while
+clicking with the middle mouse button).  If you simply click, the
+nearest expression will be selected in the same manner as described
+above.  You can also @emph{drag} the mouse in order to highlight exactly
+a specific expression or sub-expression to be examined.  For custom
+expression examination, and the customizable pop-up examine selection,
+@xref{Custom Expression Examination}.
 
 @cindex Printing expressions, on calling stack
 @cindex Restrictions for expression printing
@@ -2700,7 +2706,7 @@ recent output of IDL when examining an expression."
 
 @defopt idlwave-shell-separate-examine-output (@code{t})
 If non-@code{nil}, re-direct the output of examine commands to a special
-buffer, instead of in the shell itself.
+@file{*Examine*} buffer, instead of in the shell itself. 
 @end defopt
 
 @node Custom Expression Examination,  , Examining Variables, The IDLWAVE Shell
@@ -2708,14 +2714,33 @@ buffer, instead of in the shell itself.
 @cindex Expressions, custom examination
 @cindex Custom expression examination
 
-You can easily create your own customized ways to inspect expressions
-using the two convenience macros @code{idlwave-shell-inspect} and
+The variety of possible variable and expression examination commands is
+endless (just look, for instance, at the keyword list to
+@code{widget_info()}).  Rather than attempt to include them all, IDLWAVE
+provides two easy methods to customize your own commands, with a special
+mouse examine command, and two macros for generating your own examine
+bindings.
+
+The most powerful and flexible mouse examine command is available on
+@kbd{C-S-mouse-2}.  Just as for all the other mouse examine commands, it
+permits click or drag expression selection, but instead of sending
+hard-coded commands to the shell, it pops-up a customizable selection
+list of examine functions to choose among, configured with the
+@code{idlwave-shell-examine-alist} variable.  This variable is a list of
+key-value pairs (an @emph{alist} in Emacs parlance), where the keys name
+the command, and the values are the command strings, in which the text
+@code{___} (three underscores) will be replaced by the selected
+expression before being sent to the shell.  An example might be key
+@code{Structure Help} with value @code{help,___,/STRUCTURE}.
+
+In addition to the popup mouse command, you can easily create your own
+customized bindings to inspect expressions using the two convenience
+macros @code{idlwave-shell-inspect} and
 @code{idlwave-shell-mouse-inspect}.  These create keyboard or
 mouse-based custom inspections of variables, sharing all the same
-properties of the built-in examine commands (e.g., mouse custom examines
-can be dragged over text to examine sub-expressions).  Both functions
-take a single string argument --- the examine command --- with the text
-@code{___} (three underscores) replaced by the expression, e.g.:
+properties of the built-in examine commands.  Both functions take a
+single string argument sharing the syntax of the
+@code{idlwave-shell-examine-alist} values, e.g.:
 
 @lisp
 (add-hook 'idlwave-shell-mode-hook
@@ -2737,16 +2762,11 @@ highlighted expression.  Pressing @key{f10} will give the type string,
 and @key{f11} will show the contents of a nearby structure.  As you can
 see, the possibilities are only marginally finite.
 
-The most powerful mouse examine command, available on @kbd{C-S-mouse-2},
-expands on the idea of custom examines.  Just as for all the other mouse
-examine commands, it permites click or drag expression selection, but
-instead of sending a hard-coded command to the shell, it pops-up a
-customizable selection list of examine functions to choose among,
-configured with the @code{idlwave-shell-examine-alist} variable.
-
 @defopt idlwave-shell-examine-alist
-An alist of examine commands with the keys displayed in the selection
-popup, and the values a custom IDL expression examine command to send.
+An alist of examine commands in which the keys name the command and are
+displayed in the selection popup, and the values are custom IDL examine
+command strings to send, after all instances of @code{___} are replaced
+by the indicated expression.
 @end defopt
 
 
