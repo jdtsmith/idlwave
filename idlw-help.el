@@ -48,6 +48,14 @@
   "Online Help options for IDLWAVE mode."
   :group 'idlwave)
 
+(defcustom idlwave-html-help-pre-v6 nil
+  "Whether pre or post-v6.0 IDL help documents are being used."
+  :group 'idlwave-online-help
+  :type 'boolean)
+
+(defvar idlwave-html-link-sep 
+  (if idlwave-html-help-pre-v6 "#" "#wp"))
+
 (defcustom idlwave-html-help-location 
   (if (memq system-type '(ms-dos windows-nt))
       nil
@@ -687,7 +695,7 @@ see if a link is set for it.  Try extra help functions if necessary."
   ;; Lookup link
   (if (eq link t) 
       (let ((entry (idlwave-best-rinfo-assoc name type class 
-					     (idlwave-routines))))
+					     (idlwave-routines) nil t)))
 	(cond
 	 ;; Try keyword link
 	 ((and keyword 
