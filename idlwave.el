@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/05 20:04:09 $
+;; Date: $Date: 2001/12/05 21:26:23 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -2079,9 +2079,6 @@ An END token must be preceded by whitespace."
 (defun idlwave-show-begin ()
   "Finds the start of current block and blinks to it for a second.
 Also checks if the correct end statement has been used."
-  ;; Re-indent end line
-  (if idlwave-reindent-end
-      (idlwave-indent-line))
   ;; All end statements are reserved words
   (let* ((pos (point))
 	 end end1)
@@ -2097,7 +2094,7 @@ Also checks if the correct end statement has been used."
 	(idlwave-block-jump-out -1 'nomark)
 	(when (setq end1 (cdr (idlwave-block-master)))
 	  (cond
-	   ((null end1)) ; no-opeartion
+	   ((null end1)) ; no-operation
 	   ((string= (downcase end) (downcase end1))
 	    (sit-for 1))
 	   ((string= (downcase end) "end")
@@ -2113,7 +2110,10 @@ Also checks if the correct end statement has been used."
 	    (beep)
 	    (message "Warning: Shouldn't this be \"%s\" instead of \"%s\"?" 
 		     end1 end)
-	    (sit-for 1))))))))
+	    (sit-for 1)))))))
+  ;; Re-indent end line
+  (if idlwave-reindent-end
+      (idlwave-indent-line)))
 
 (defun idlwave-block-master ()
   (let ((case-fold-search t))
@@ -2633,9 +2633,10 @@ See `idlwave-surround'. "
 				 (max 0 (- (point) 10)) t)
 	     (looking-at "\\(end\\)\\([ \n\t]\\|\\'\\)"))
 	(progn (goto-char (match-end 1))
-	       (idlwave-show-begin))))
-  (idlwave-indent-line t)
-  )
+	       ;;Expand the END abbreviation, just as RET or Space would have.
+	       (if abbrev-mode (expand-abbrev)
+		 (idlwave-show-begin)))))
+  (idlwave-indent-line t))
 
 (defun idlwave-indent-line (&optional expand)
   "Indents current IDL line as code or as a comment.
