@@ -199,7 +199,7 @@ ccompile:
 #	if [ ! -d $(MY_INFODIR) ]; then mkdir $(MY_INFODIR); else true; fi ;
 #	$(CP) $(INFOFILES) $(MY_INFODIR)
 
-distfile:
+distfile: $(DISTFILES)
 	@if [ "X$(TAG)" = "X" ]; then echo "*** No tag ***"; exit 1; fi
 #	make rinfo
 	rm -rf idlwave-$(TAG)
