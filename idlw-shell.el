@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2004/10/15 20:35:08 $
+;; Date: $Date: 2004/11/17 05:25:00 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -1341,10 +1341,10 @@ message, independent of what HIDE is set to."
 	(goto-char save-point))
       (set-buffer save-buffer))))
 
-(defun idlwave-shell-send-char (c &optional no-error)
+(defun idlwave-shell-send-char (c &optional error)
   "Send one character to the shell, without a newline."
-  (interactive "cChar to send to IDL: ")
-  (let ((errf (if (interactive-p) 'error 'message))
+  (interactive "cChar to send to IDL: \np")
+  (let ((errf (if error 'error 'message))
 	buf proc)
     (if (or (not (setq buf (get-buffer (idlwave-shell-buffer))))
 	    (not (setq proc (get-buffer-process buf))))
@@ -3563,6 +3563,16 @@ Existing overlays are recycled, in order to minimize consumption."
 			      (t 'bp-n)))
 			    (t 'bp))
 			 'bp))
+		 (help-list 
+		  (delq nil
+			(list
+			 (if count
+			     (concat "n=" (int-to-string count)))
+			 (if condition
+			     (concat "condition: " condition))
+			 (if disabled "disabled"))))
+		 (help-text (if help-list 
+				(mapconcat 'identity help-list ",")))
 		 (full-type (if disabled
 				(intern (concat (symbol-name type)
 						"-disabled"))
@@ -3570,7 +3580,8 @@ Existing overlays are recycled, in order to minimize consumption."
 		 (ov-existing (assq full-type ov-alist))
 		 (ov (or (and (cdr ov-existing)
 			      (pop (cdr ov-existing)))
-			 (idlwave-shell-make-new-bp-overlay type disabled)))
+			 (idlwave-shell-make-new-bp-overlay 
+			  type disabled help-text)))
 		 match)
 	    (move-overlay ov beg end)
 	    (if (setq match (assq full-type idlwave-shell-bp-overlays))
@@ -3597,11 +3608,13 @@ Existing overlays are recycled, in order to minimize consumption."
 
 
 (defvar idlwave-shell-bp-glyph)
-(defun idlwave-shell-make-new-bp-overlay (&optional type disabled)
+(defun idlwave-shell-make-new-bp-overlay (&optional type disabled help)
   "Make a new overlay for highlighting breakpoints.  
+
 This stuff is strongly dependant upon the version of Emacs.  If TYPE
 is passed, make an overlay of that type ('bp or 'bp-cond, currently
-only for glyphs)"
+only for glyphs).  If HELP is set, use it to make a tooltip with that
+text popup."
   (let ((ov (make-overlay 1 1))
 	(use-glyph (and (memq idlwave-shell-mark-breakpoints '(t glyph))
 			idlwave-shell-bp-glyph))
@@ -3645,7 +3658,9 @@ only for glyphs)"
 		   (propertize "@" 
 			       'display 
 			       (list (list 'margin 'left-margin)
-				     image-props)))
+				     image-props)
+			       'mouse-face 'highlight
+			       'help-echo help))
 	      (overlay-put ov 'before-string string))
 	  ;; just the face
 	  (overlay-put ov 'face face)))
