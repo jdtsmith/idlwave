@@ -1,0 +1,205 @@
+#!/usr/bin/perl -w
+#
+# idlwave_catalog
+#
+# Program to create IDLWAVE library catalogs.
+#
+# (c) 2002-2003 J.D. Smith <jdsmith@as.arizona.edu>
+#
+# Scans all IDL ".pro" files at the current level and recursively in
+# all directories beneath it, compiling a catalog of information for
+# each directory with any routines found, stored in a file named
+# ".idlwave_catalog".  Any such "library catalogs" on the IDL path
+# will be automatically loaded into IDLWAVE.
+#
+# Usage: idlwave_catalog  [-l] [-v] [-d] [-s] [-f] [-h] libname
+#        libname - Unique name of the catalog (4 or more alphanumeric
+#                  characters -- only 10 will be shown in routine info).
+#             -l - Scan local directory only, otherwise recursively
+#                  catalog all directories at or beneath this one.
+#             -v - Print verbose information.
+#             -d - Instead of scanning, delete all .idlwave_catalog files
+#                  here or below.
+#             -s - Be silent.
+#             -f - Force overwriting any catalogs found with a different
+#                  library name.
+#             -h - Print this usage.
+#
+# You can arrange to have this script run automatically to update
+# libraries which change frequently.  The name will be used to refer
+# to the routines collectively, so make it unique and descriptive
+# (without spaces).  E.g. "NasaLib".  A file named .idlwave_catalog
+# will be created in each directory with ".pro" routine files.
+#
+# $Id: idlwave_catalog,v 1.1 2003/04/15 19:22:59 jdsmith Exp $
+
+use Getopt::Std;
+$opt_l=$opt_s=$opt_f=$opt_v=$opt_d=$opt_h=0;
+getopt('');
+$opt_v=0 if $opt_s;
+
+usage() if $opt_h;
+
+unless ($opt_d) {
+  $libname=shift or usage();
+  if (length($libname)<=3 or ($libname=~tr/A-Za-z0-9_//c)) {
+    die
+      "LibName must be alphanumeric, >3 characters, and contains no spaces.\n"
+    }
+}
+
+$cat=".idlwave_catalog";
+
+unless ($opt_l) {
+  use File::Find;
+  find(sub{
+	 if (/\Q$cat\E$/) {
+	   if ($opt_d) {
+	     if (unlink $_) {
+	       print "Removing catalog $File::Find::name\n" if $opt_v;
+	     } else {
+	       warn "Can't remove catalog $File::Find::name: $!\n"
+		 unless $opt_s;
+	     }
+	   } else {
+	     $dirs{$File::Find::dir}{cat}=libname($_);
+	   }
+	   return;
+	 }
+	 return if $opt_d;
+	 return unless -f and /\.pro$/i;
+	 parsefile($File::Find::dir, $_);
+       }, '.');
+} else { #Just process the local directory
+  opendir(DIR,".") || die "Can't open this directory: $!";
+  if (-f $cat) {
+    if ($opt_d) {
+      if (unlink $cat) {
+	print "Removing catalog $cat\n" if $opt_v;
+      } else {
+	warn "Can't remove catalog $cat: $!\n" unless $opt_s;
+      }
+    } else {
+      $dirs{"."}{cat}=libname($cat);
+    }
+  }
+  unless($opt_d) {
+    foreach (grep {-f and /\.pro$/i} readdir(DIR)) {
+      parsefile(".",$_);
+    }
+  }
+  closedir DIR;
+}
+
+exit if $opt_d;  #Nothing more to do
+
+foreach $dir (keys %dirs) {
+  print "Cataloging $dir\n" if $opt_v;
+
+  if (exists $dirs{$dir}{cat} && $dirs{$dir}{cat} ne $libname) {
+    if ($opt_f) {
+      warn "Overwriting existing \"$dirs{$dir}{cat}\" catalog in " .
+	($dir eq "."?"this directory":$dir) . ".\n" unless $opt_s;
+    } else {
+      warn "Skipping existing \"$dirs{$dir}{cat}\" catalog in " .
+	($dir eq "."?"this directory":$dir) .
+	  " (-f overrides).\n" unless $opt_s;
+      next;
+    }
+  }
+
+  open CATALOG, ">$dir/$cat" or
+    die "Can't open catalog file $dir/$cat for writing";
+  $time=localtime();
+  print CATALOG <<EOF;
+;;
+;; IDLWAVE catalog for library $libname
+;; Automatically Generated -- do not edit.
+;; Created by idlwave_catalog on $time
+;;
+(setq idlwave-library-catalog-libname "$libname")
+(setq idlwave-library-catalog-routines
+EOF
+  print CATALOG " '(".join("\n   ",@{$dirs{$dir}{pro}});
+  print CATALOG "))\n";
+
+}
+
+if($opt_v && !%dirs) {
+  print $opt_l?"Current directory contains no .pro files.\n":
+    "No directories with .pro files found.\n";
+}
+
+sub parsefile {
+  my ($dir,$file)=@_;
+  my ($call,@kwds,@args,@entries);
+  open FILE, $file;
+  while (<FILE>) {
+    next unless
+      /^[ \t]*(pro|function)[ \t]+(?:([a-zA-Z0-9\$_]+)::)?([a-zA-Z0-9\$_]+)/i;
+    ($type,$class,$name)=(lc($1) eq "pro"?"pro":"fun",$2,$3);
+    $call="";
+    @kwds=@args=();
+    while (/[ \t]*\$\s*(;.*)?[\r\n]+/) { # Continuations
+      $call.=$`;
+      $_=<FILE>;
+      while (/^\s*(;.*)?[\r\n]+/) {$_=<FILE>} #skip blank or comment lines
+    }
+    s/\s*(;.*)?[\r\n]+//;
+    $call.=$_;
+    while($call=~/,\s*([a-zA-Z][a-zA-Z0-9\$_]*|(?:_ref)?_extra)\s*(=)?/gi) {
+      if ($2) {
+	push @kwds, $1;
+      } else {
+	push @args, $1;
+      }
+    }
+    $is_func=$type eq "fun";
+    @kwds=sort {lc($a) cmp lc($b)} @kwds;
+
+    # Name type class
+    push @{$dirs{$dir}{pro}}, 
+      qq{("$name" $type } . ($class?qq("$class"):"nil") .
+	# Source (source-type file dir library-name)
+	qq< (lib "$file" nil "$libname") > .
+	  #Calling sequence
+	  '"' . ($is_func?"Result = ":"") . ($class?'Obj ->[%s::]':"") . '%s' .
+	    # Argument list
+	    (@args?($is_func?"(":", ") .
+	     join(", ",@args) .
+	     ($is_func?')':""):"") . '"' .
+	       # Keywords
+	       ' (nil' . (@kwds?' ("'.join('") ("', @kwds).'")':"") . "))";
+  }
+  close FILE;
+  return
+
+}
+
+sub libname {
+  my $file=shift;
+  open FILE, $file;
+  while (<FILE>) {
+    return $1 if /\(setq idlwave-library-catalog-libname "([^"]+)"\)/;
+  }
+  "";
+}
+
+sub usage {
+  print <<EOF;
+Usage: idlwave_catalog  [-l] [-v] [-d] [-s] [-f] [-h] libname
+       libname - Unique name of the catalog (4 or more alphanumeric
+                 characters -- only 10 will be shown in routine info).
+            -l - Scan local directory only, otherwise recursively
+                 catalog all directories at or beneath this one.
+            -v - Print verbose information.
+            -d - Instead of scanning, delete all .idlwave_catalog files
+                 here or below.
+            -s - Be silent.
+            -f - Force overwriting any catalogs found with a different
+                 library name.
+            -h - Print this usage.
+EOF
+  exit;
+}
+
