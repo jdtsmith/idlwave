@@ -4,6 +4,24 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
+Revision 5.2
+=============
+   - Supports IDLv6.0, including a new set of HTML documentation.
+   - Pads new IDL6 assignment operators (e.g. #=, XOR=), when
+     `idlwave-surround-with-space' is set.  Operators with
+     alphabetical prefixes must be separated from the left-hand-side
+     with a space.  
+   - Better behavior of keyword and for-loop assignment padding.
+   - Rescan saved paths when "Save Path Info" selected.
+   - Fixed small continued statement indentation for closing
+     parentheses on a line by themselves.
+   - Better handling of continued statement indents with in-line
+     assignments and for loops, e.g. "if 1 then a=1 else $".
+   - Always show HTML help if available, using in-file help for those
+     routines with available source code as a backup.
+   - Filename completion after "." no longer confused with structure
+     completion.
+
 Revision 5.1
 =============
    - Fixed handling of method calls and keywords when padding

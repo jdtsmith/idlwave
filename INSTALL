@@ -33,7 +33,14 @@ Put them in /tmp (or anywhere), then do (as root):
 where "version" is something like 5.0.  This by default puts idlwave
 in /usr/local/share/emacs/site-lisp/, which is a fine place.  
 
-To install the HTML Help (needed for online help), get:
+HTML Help packages
+---------------------------------------------------------------------------
+
+Note that you do *not* need to update your help package with each
+version of IDLWAVE, but only when you change IDL versions -- there is
+only one help package per IDL version.
+
+To install the HTML Help (needed for context-aware online help), get:
 
 http://idlwave.org/download/idlwave-help.tar.bz2
 
@@ -43,9 +50,8 @@ and
   % mv /path/to/idlwave-help.tar.bz2 .
   % make install-help
 
-This puts the help files in /usr/local/etc.  The help installation is
-only required if you're updating the HTML help on your system (i.e.,
-once per IDL release).  
+This simply puts the help files in /usr/local/etc (you can unpack it
+there yourself, if you prefer). 
 
 N.B. Windows users do not need the help package to use online help.
 
@@ -160,30 +166,15 @@ The level of colorization can be controlled with the variable
 `font-lock-maximum-decoration'.
 
 
-5. ARE YOU UPGRADING FROM THE OLD `idl.el' FILE?
-================================================
-
-If you have any customization for the older `idl-mode' in your .emacs
-file, you need to do the following:
-a) Change all variable and function prefixes from `idl-' to `idlwave-'.
-b) Remove the now invalid `autoload' and `auto-mode-alist'
-   forms pointing to the `idl.el' and `idl-shell.el' files.
-c) If you did use the hook recommended in earlier versions to get
-   a separate frame for the IDL shell, remove that hook again.
-   Instead, set the variable `idlwave-shell-use-dedicated-frame' with
-      (setq idlwave-shell-use-dedicated-frame t)
-d) The key sequence `M-TAB' no longer inserts a TAB character, but (as 
-   in many other Emacs modes) does completion.  Inserting a TAB is now 
-   bound to `C-TAB'.
-
-6. YOU ARE DONE
-===============
+6. YOU ARE DONE WITH THE REQUIRED STEPS
+=======================================
 
 IDLWAVE has online documentation in Info format.  To view this
 information, use `M-x idlwave-info' or follow the Menu entry in the
 IDLWAVE menu.  You can also convert the documentation into Postscript
 with `make ps', HTML with `make html', and PDF with "make pdf' in the
-source directory.
+source directory, or download the manual in one of these formats from
+idlwave.org.
 
 -------------------------------------------------------------------------
 OPTIONAL STEPS
@@ -220,7 +211,7 @@ located with
   (setq idlwave-html-help-location "/path/to/help/files/")
 
 in your .emacs file ("/usr/local/etc" is the default).  Alternatively,
-you can set the environment variable IDLWAVE_HELP_LOCATION.
+you can just set the environment variable IDLWAVE_HELP_LOCATION.
 
 If you have an older version of IDL than is supported by the current
 IDLWAVE, you can install a "downgrade kit", which provides the older
@@ -236,8 +227,9 @@ notice by RSI.
 
 If you would like to use routine information and completion for
 routines in your local and private IDL libraries, they have to be
-scanned into catalogs.  Some libraries are pre-scanned (look for
-.idlwave_catalog files), and you have two choices: use the Perl script
-`idlwave_catalog' to create your own library catalog files (the
-preferred way), and/or create a user catalog of your routines within
-Emacs.  See the manual for more information.
+scanned into catalogs.  Some popular libraries come pre-scanned (look
+for .idlwave_catalog files).  To scan your own libraries, you have two
+choices: use the Perl script `idlwave_catalog' to create your own
+library catalog files (the preferred way), and/or create a user
+catalog of your routines within Emacs.  See the manual for more
+information.

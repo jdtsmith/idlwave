@@ -15,7 +15,8 @@ idlw-shell.el       The Lisp code for idlwave-shell-mode
 idlw-rinfo.el       The Lisp constant for routine-info and help links
 idlw-help.el        The Lisp code for the help system
 idlw-toolbar.el     The Lisp code for the toolbar
-idlw-complete-structtag.el The Lisp code for option structure tag completion
+idlw-complete-structtag.el 
+		    The Lisp code for optional structure tag completion
 idlw-roprompt.el    The Lisp code for the optional read-only prompt
 
 idlwave.texi        The TeX-Info documentation source
@@ -27,11 +28,12 @@ idlwave-3 /
 idlwave_catalog     A Perl program to produce library catalog 
                     ".idlwave_catalog" files.
 get_html_rinfo      A Perl program to scan the IDL documentation and
-                    produce several files needed by IDLWAVE.
+                    produce several files used by IDLWAVE online help.
 
 tutorial.pro        Intentionally buggy source code for the tutorial.  
                     See the`Getting Started' section in the manual.
 
-The most recent version of IDLWAVE is available at:
+The most recent version of IDLWAVE and associated help files are
+available at:
 
     http://idlwave.org

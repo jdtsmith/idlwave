@@ -9,14 +9,14 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 5.0
-@set EDITION 5.0
-@set IDLVERSION 5.6
-@set NSYSROUTINES 1460
-@set NSYSKEYWORDS 6586
-@set DATE May 2003
+@set VERSION 5.2
+@set EDITION 5.2
+@set IDLVERSION 6.0
+@set NSYSROUTINES 1713
+@set NSYSKEYWORDS 7258
+@set DATE November, 2003
 @set AUTHOR J.D. Smith & Carsten Dominik
-@set AUTHOR-EMAIL dominik@@astro.uva.nl
+@set AUTHOR-EMAIL jdsmith@@as.arizona.edu
 @set MAINTAINER J.D. Smith
 @set MAINTAINER-EMAIL jdsmith@@as.arizona.edu
 @set IDLWAVE-HOMEPAGE http://idlwave.org/
@@ -478,10 +478,12 @@ Let's check out two particular editing features of IDLWAVE.  Place the
 cursor after the @code{end} statement of the @code{for} loop and press
 @key{SPC}.  IDLWAVE blinks back to the beginning of the block and
 changes the generic @code{end} to the specific @code{endfor}
-automatically.  Now place the cursor in any line you would like to split
-and press @kbd{M-@key{RET}}.  The line is split at the cursor position,
-with the continuation @samp{$} and indentation all taken care of.  Use
-@kbd{C-/} to undo the last change.
+automatically (as long as the variable @code{idlwave-expand-generic-end}
+is turned on --- @pxref{Lesson II -- Customization}).  Now place the
+cursor in any line you would like to split and press @kbd{M-@key{RET}}.
+The line is split at the cursor position, with the continuation @samp{$}
+and indentation all taken care of.  Use @kbd{C-/} to undo the last
+change.
 
 The procedure @code{plot_wday} is supposed to plot the day of the week
 of a given date for the first 10 years of the 21st century.  As in
@@ -631,11 +633,12 @@ there is another, more user-friendly way to customize all the IDLWAVE
 variables.  You can access it through the IDLWAVE menu in one of the
 @file{.pro} buffers, menu item @code{Customize->Browse IDLWAVE
 Group}. Here you'll be presented with all the various variables grouped
-into categories.  You can navigate the hierarchy (e.g. IDLWAVE Code
-Formatting->Idlwave Main Block Indent), read about the variables, change
-them, and `Save for Future Sessions'.  Few of these variables need
-customization, but you can exercise considerable control over IDLWAVE's
-functionality with them.
+into categories.  You can navigate the hierarchy (e.g. @samp{IDLWAVE
+Code Formatting->Idlwave Abbrev And Indent Action->Idlwave Expand
+Generic End} to turn on @code{END} expansion), read about the variables,
+change them, and `Save for Future Sessions'.  Few of these variables
+need customization, but you can exercise considerable control over
+IDLWAVE's functionality with them.
 
 You may also find the key bindings used for the debugging commands too
 long and complicated.  Often we have heard complaints along the lines
@@ -790,16 +793,16 @@ them.
 
 The IDL language, with its early roots in FORTRAN, modern
 implementation in C, and liberal borrowing of features of many vector
-languages along its 25+ year history, has inherited an unusual mix of
-syntax elements.  Left to his or her own devices, a novice IDL
-programmer will often conjure code which is very difficult to read and
-impossible to adapt.  Much can be gleaned from studying available IDL
-code libraries for coding style pointers, but, due to the variety of
-IDL syntax elements, replicating this style can be challenging at
-best.  Luckily, IDLWAVE understands the structure of IDL code very
-well, and takes care of almost all formatting issues for you.  After
-configuring it to match your coding standards, you can rely on it to
-help keep your code neat and organized.
+and other languages along its 25+ year history, has inherited an
+unusual mix of syntax elements.  Left to his or her own devices, a
+novice IDL programmer will often conjure code which is very difficult
+to read and impossible to adapt.  Much can be gleaned from studying
+available IDL code libraries for coding style pointers, but, due to
+the variety of IDL syntax elements, replicating this style can be
+challenging at best.  Luckily, IDLWAVE understands the structure of
+IDL code very well, and takes care of almost all formatting issues for
+you.  After configuring it to match your coding standards, you can
+rely on it to help keep your code neat and organized.
 
 
 @node Code Indentation, Continued Statement Indentation, Code Formatting, Code Formatting
@@ -1696,8 +1699,9 @@ enabled by default --- the variable @code{idlwave-store-inquired-class}
 can be used to turn it on.
 
 @defopt idlwave-completion-show-classes (@code{1})
-Non-@code{nil} means show classes in @file{*Completions*} buffer when
-completing object methods and keywords.
+Non-@code{nil} means show up to that many classes in
+@file{*Completions*} buffer when completing object methods and
+keywords.
 @end defopt
 
 @defopt idlwave-completion-fontify-classes (@code{t})
@@ -4021,6 +4025,10 @@ instead.
 @item Other issues as yet unnamed...
 @end itemize
 
+Windows users who'd like to make use of IDLWAVE's context-aware HTML
+help can skip the browser and use the HTMLHelp functionality directly.
+@xref{Help with HTML Documentation}.
+
 @ifhtml
 <A NAME="TROUBLE"></A>
 @end ifhtml
@@ -4045,6 +4053,33 @@ these shortcuts.  Use @kbd{q} to quit the mode, and customize the
 variable @code{idlwave-shell-automatic-electric-debug} if you prefer not
 to enter electric debug on errors or breakpoints@dots{} but you really
 should try it before you disable it!
+
+@item @strong{I get errors like @samp{Searching for program: no such
+file or directory, idl} when starting the shell.}
+
+IDLWAVE needs to know where IDL is to run it as a process.  By default,
+it attempts to invoke it as @samp{idl}, which presumes such an
+executable is on your search path.  You need to ensure @samp{idl} is on
+your @samp{$PATH}, or specify the full pathname to the idl program with
+@code{idlwave-shell-explicit-file-name}.  Note that you may need to set
+your path in two places when running Emacs as an Aqua application with
+MacOSX; see the next topic.
+
+@item @strong{IDLWAVE is disregarding my @samp{IDL_PATH} which I set
+under MacOSX}
+
+If you run Emacs directly as an Aqua application, rather than from the
+console shell, the environment is set not from your usual shell
+configuration files (e.g. @file{.cshrc}), but from the file
+@file{~/.MacOSX/environment.plist}.  Either include your path settings
+there, or start Emacs and IDLWAVE from the shell.
+
+@item @strong{I get errors like @samp{Symbol's function is void:
+overlayp} when trying to start the shell in XEmacs}
+
+You don't have the @samp{fsf-compat} package installed, which IDLWAVE
+needs to run under XEmacs.  Install it and, if necessary, insert
+@code{(require 'overlay)} in your @file{.emacs}.
 
 @item @strong{I'm getting errors like @samp{Symbol's value as variable is void:
 cl-builtin-gethash} on completion or routine info.}
@@ -4131,15 +4166,6 @@ Another solution: make sure @file{.idl} files load IDLWAVE instead of
 @lisp
 (setcdr (rassoc 'idl-mode auto-mode-alist) 'idlwave-mode)
 @end lisp
-
-@item @strong{IDLWAVE is disregarding my @samp{IDL_PATH} which I set
-under MacOSX}
-
-If you run Emacs directly as an Aqua application, rather than from the
-console shell, the environment is set not from your usual shell
-configuration files (e.g. @file{.cshrc}), but from the file
-@file{~/.MacOSX/environment.plist}.  Either include your path settings
-there, or start Emacs and IDLWAVE from the shell.
 
 @item @strong{The routine info for my local routines is out of date!}
 
