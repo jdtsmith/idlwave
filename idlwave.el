@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/13 14:53:33 $
+;; Date: $Date: 2001/12/13 20:27:10 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -588,6 +588,17 @@ When nil,  IDLWAVE only knows about the native methods and tags of a class,
 not about inherited ones."
   :group 'idlwave-routine-info
   :type 'boolean)
+
+(defcustom idlwave-keyword-class-inheritance '("^[gs]etproperty$" "^init$")
+  "List of regular expressions for class-driven keyword inheritance.
+Keyword inheritance is often tied to class inheritance by \"chaining\"
+up the class tree.  While it cannot be assumed that the presence of an
+_EXTRA or _REF_EXTRA symbol guarantees such chaining will occur, for
+certain methods this assumption is almost always true.  The methods
+for which to assume this can be set here."
+  :group 'idlwave-routine-info
+  :type '(repeat (regexp :tag "Match method:")))
+  
 
 (defcustom idlwave-completion-show-classes 1
   "*Number of classes to show when completing object methods and keywords.
@@ -6171,7 +6182,7 @@ through the entire file."
 
 (defun idlwave-all-class-inherits (class)
   "Return a list of all superclasses of CLASS (recursively expanded).
-The list is cashed in `idlwave-class-info' for faster access."
+The list is cached in `idlwave-class-info' for faster access."
   (cond
    ((not idlwave-support-inheritance) nil)
    ((eq class nil) nil)
@@ -6793,24 +6804,32 @@ keyword region, change to the appropriate Init method."
 	     (mapcar (lambda (k) (add-to-list 'keywords k))
 		     (nth 5 x))))
       (setq keywords (idlwave-uniquify keywords)))
-
-    ;; If we have inheritance, add all keywords from superclasses
-    ;; :-(  Taken out because JD says it does not work this way.
-;    (when (and (stringp class)
-;	       (or (assq (idlwave-sintern-keyword "_extra") keywords)
-;		   (assq (idlwave-sintern-keyword "_ref_extra") keywords))
-;	       (boundp 'super-classes))
-;      (loop for x in (idlwave-routines) do
-;	(and (nth 2 x)                           ; non-nil class
-;	     (or (eq (nth 2 x) class)            ; the right class
-;		 (memq (nth 2 x) super-classes)) ; an inherited class
-;	     (or (and (eq (nth 1 x) type)        ; default type
-;		      (eq (car x) name))         ; default name
-;		 (and (eq (nth 1 x) type1)       ; backup type
-;		      (eq (car x) name1)))       ; backup name
-;	     (mapcar (lambda (k) (add-to-list 'keywords k))
-;		     (nth 5 x))))
-;      (setq keywords (idlwave-uniquify keywords)))
+    
+    ;; If we have inheritance, add all keywords from superclasses, if
+    ;; the user indicated that method in
+    ;; `idlwave-keyword-class-inheritance'
+    (when (and 
+	   idlwave-keyword-class-inheritance
+	   (stringp class)
+	   (or (assq (idlwave-sintern-keyword "_extra") keywords)
+	       (assq (idlwave-sintern-keyword "_ref_extra") keywords))
+	   (boundp 'super-classes)
+	   ;; Check if one of the keyword-class regexps matches the name
+	   (let ((regexps idlwave-keyword-class-inheritance) re)
+	     (catch 'exit
+	       (while (setq re (pop regexps))
+		 (if (string-match re name) (throw 'exit t))))))
+      (loop for x in (idlwave-routines) do
+	    (and (nth 2 x)                           ; non-nil class
+		 (or (eq (nth 2 x) class)            ; the right class
+		     (memq (nth 2 x) super-classes)) ; an inherited class
+		 (or (and (eq (nth 1 x) type)        ; default type
+			  (eq (car x) name))         ; default name
+		     (and (eq (nth 1 x) type1)       ; backup type
+			  (eq (car x) name1)))       ; backup name
+		 (mapcar (lambda (k) (add-to-list 'keywords k))
+			 (nth 5 x))))
+      (setq keywords (idlwave-uniquify keywords)))
     
     ;; Return the final list
     keywords))
@@ -7294,7 +7313,7 @@ command can be used to detect possible name clashes during this process."
 	(if (memq routine done)
 	    (setq dtwins nil)
 	  (setq dtwins (idlwave-study-twins twins)))
-	;; Mark all twins as delt with
+	;; Mark all twins as dealt with
 	(setq done (append twins done))
 	(when (or (> (length dtwins) 1)
 		  (> (idlwave-count-eq 'lib (nth 2 (car dtwins))) 1)
