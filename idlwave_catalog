@@ -12,7 +12,7 @@
 # ".idlwave_catalog".  Any such "library catalogs" on the IDL path
 # will be automatically loaded into IDLWAVE.
 #
-# Usage: idlwave_catalog  [-l] [-v] [-d] [-s] [-f] [-h] libname
+# Usage: idlwave_catalog  [-l] [-v] [-d] [-s] [-f] [-x PATTERN] [-h] libname
 #        libname - Unique name of the catalog (4 or more alphanumeric
 #                  characters -- only 10 will be shown in routine info).
 #             -l - Scan local directory only, otherwise recursively
@@ -23,6 +23,7 @@
 #             -s - Be silent.
 #             -f - Force overwriting any catalogs found with a different
 #                  library name.
+#             -x - Skip directories matching the passed pattern
 #             -h - Print this usage.
 #
 # You can arrange to have this script run automatically to update
@@ -31,11 +32,11 @@
 # (without spaces).  E.g. "NasaLib".  A file named .idlwave_catalog
 # will be created in each directory with ".pro" routine files.
 #
-# $Id: idlwave_catalog,v 1.2 2003/07/18 18:59:41 jdsmith Exp $
+# $Id: idlwave_catalog,v 1.3 2003/12/04 18:45:19 jdsmith Exp $
 
 use Getopt::Std;
 $opt_l=$opt_s=$opt_f=$opt_v=$opt_d=$opt_h=0;
-getopt('');
+getopt('x');
 $opt_v=0 if $opt_s;
 
 usage() if $opt_h;
@@ -94,6 +95,11 @@ unless ($opt_l) {
 exit if $opt_d;  #Nothing more to do
 
 foreach $dir (keys %dirs) {
+  if ($opt_x and $dir=~/$opt_x/) {
+    print "Skipping $dir\n" if $opt_v;
+    next;
+  }
+
   print "Cataloging $dir\n" if $opt_v;
 
   if (exists $dirs{$dir}{cat} && $dirs{$dir}{cat} ne $libname) {
@@ -189,7 +195,7 @@ sub libname {
 
 sub usage {
   print <<EOF;
-Usage: idlwave_catalog  [-l] [-v] [-d] [-s] [-f] [-h] libname
+Usage: idlwave_catalog  [-l] [-v] [-d] [-s] [-f] [-h] [-x PATTERN] libname
        libname - Unique name of the catalog (4 or more alphanumeric
                  characters -- only 10 will be shown in routine info).
             -l - Scan local directory only, otherwise recursively
@@ -200,6 +206,7 @@ Usage: idlwave_catalog  [-l] [-v] [-d] [-s] [-f] [-h] libname
             -s - Be silent.
             -f - Force overwriting any catalogs found with a different
                  library name.
+            -x - Skip directories matching the passed pattern.
             -h - Print this usage.
 EOF
   exit;
