@@ -72,8 +72,9 @@ Emacs, execute `M-x byte-compile-file' followed by the name of the
 Lisp files).  You can ignore the warnings produced by the byte
 compiler.
 
-Copy the info file `idlwave' into the directory where Emacs info files 
-are kept and add an entry to the `dir' file.
+Copy the info files `idlwave' and `idlwave-[123]' into the directory
+where Emacs info files are kept and (optional) add an entry to the
+`dir' file.
 
 2b. INSTALLATION USING MAKE
 ===========================
