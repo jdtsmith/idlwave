@@ -4,6 +4,41 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
+Revision 4.13
+=============
+   - Security improvement for temporary files.
+   - New convenience routine for creating abbreviations.
+   - Much-improved indentation for multi-line comments in function and
+     procedure calls, structure definitions, etc.... no more lines
+     with "$" only required.
+   - Continued routine calls and definitions, structure and class
+     definitions, and assignment statements now line up on the first
+     non-blank character after the opening punctuation.  To save
+     space, this can be disabled for indentation shifts larger than a
+     configurable value, in which case IDLWAVE still attempts to keep
+     things neat.
+   - Bug fix: improper alignment when splitting strings fixed.
+   - Bug fix: keyword completion in continued function calls which are
+     themselves continued fixed. 
+   - Bug fix: keyword completion failed for class::Init in obj_new(),
+     if routine completion-case set to any other than 'preserve or
+     'capitalize.
+   - Several new abbreviations and updated easy abbrev customization.
+   - Procedures on lines with multiple statements (using `&') are now
+     treated correctly for routine info and help.
+   - Custom "examine" commands can be created easily using two new
+     macros, for binding to keys or mouse clicks.  
+   - Variable/expression print, help, and other examine commands now
+     work in the shell as well as the buffer.
+   - A new examine mouse binding pops-up a customizable list of
+     examine functions to apply to the expression selected.
+
+Revision 4.12
+=============
+   - New support for Speedbar.
+   - Bug fix in explicit class name completion/help/routine info:
+     a->b::c now completes correctly.
+
 Revision 4.11
 =============
    - New configureable class-driven keyword inheritance in Completion
@@ -20,7 +55,7 @@ Revision 4.11
 
 Revision 4.10
 =============
-   - New maintainer: J.D. Smith <jdsmith@astro.cornell.edu>
+   - New maintainer: J.D. Smith <jdsmith at as.arizona.edu>
    - Compatible with IDL v5.5's  new breakpoint listing
      format, along with the older format.
    - Updated routine info for new routines and new keywords to
