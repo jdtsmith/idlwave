@@ -71,6 +71,18 @@ Defaults to `browse-url-browser-function', which see."
   :group 'idlwave-online-help
   :type 'function)
 
+(defcustom idlwave-help-browser-generic-program browse-url-generic-program
+  "Program to run if using browse-url-generic-program."
+  :group 'idlwave-online-help
+  :type 'string)
+
+(defcustom idlwave-help-browser-generic-args 
+  (if (boundp 'browse-url-generic-args)
+      browse-url-generic-args "")
+  "Program args to use if using browse-url-generic-program."
+  :group 'idlwave-online-help
+  :type 'string)
+
 (defcustom idlwave-help-browser-is-local nil
   "Whether the browser will display locally in an Emacs window.
 Several browsers run and/or display inside Emacs windows, but most are
@@ -713,9 +725,8 @@ see if a link is set for it.  Try extra help functions if necessary."
   "Get html help on a given LINK."
   (let ((browse-url-browser-function idlwave-help-browser-function)
 	(help-loc (idlwave-html-help-location))
-	(browse-url-generic-program browse-url-generic-program)
-	(browse-url-generic-args (if (boundp 'browse-url-generic-args)
-				     browse-url-generic-args))
+	(browse-url-generic-program idlwave-help-browser-generic-program)
+	;(browse-url-generic-args idlwave-help-browser-generic-args)
 	full-link)
     
     (if (and (memq system-type '(ms-dos windows-nt))
