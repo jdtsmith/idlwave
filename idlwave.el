@@ -2,10 +2,10 @@
 ;; Copyright (c) 1999, 2000, 2001 Free Software Foundation
 
 ;; Author: Carsten Dominik <dominik@astro.uva.nl>
-;;      Chris Chase <chase@att.com>
-;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
+;;         Chris Chase <chase@att.com>
+;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/01/14 23:58:15 $
+;; Date: $Date: 2002/04/23 20:53:54 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -476,7 +476,7 @@ definition is displayed instead."
 
 (defface idlwave-help-link-face
   '((((class color)) (:foreground "Blue"))
-    (t (:bold t)))
+    (t (:weight bold)))
   "Face for highlighting links into IDLWAVE online help."
   :group 'idlwave-online-help)
 
@@ -723,7 +723,7 @@ with this font in order to remind the user that this arrow is special."
 
 (defcustom idlwave-function-completion-adds-paren t
   "*Non-nil means, completion automatically adds `(' after completed function.
-Nil means, don't add anything.
+nil means, don't add anything.
 A value of `2' means, also add the closing parenthesis and position cursor
 between the two."
   :group 'idlwave-completion
@@ -956,7 +956,7 @@ See help on `idlwave-action-and-binding' for examples.")
 ")
   "*A list (PATHNAME STRING) specifying the doc-header template to use for
 summarizing a file. If PATHNAME is non-nil then this file will be included.
-Otherwise STRING is used. If NIL, the file summary will be omitted.
+Otherwise STRING is used. If nil, the file summary will be omitted.
 For example you might set PATHNAME to the path for the
 lib_template.pro file included in the IDL distribution.")
 
@@ -1643,135 +1643,144 @@ Capitalize system variables - action only
 ;;; space is inserted (this is the space typed by the user to expanded
 ;;; the abbrev).
 ;;;
+(defvar idlwave-mode-abbrev-table nil
+  "Abbreviation table used for IDLWAVE mode")
+(define-abbrev-table 'idlwave-mode-abbrev-table ())
+
+(defun idlwave-define-abbrev (name expansion hook &optional table)
+  "Define-abbrev with backward compatibility."
+  (let ((abbrevs-changed nil)  ;; mask the current value to avoid save
+	(args (list (or table idlwave-mode-abbrev-table)
+		    (concat idlwave-abbrev-start-char name)
+		    expansion
+		    hook)))
+    (condition-case nil
+	(apply 'define-abbrev (append args '(0 t)))
+      (error (apply 'define-abbrev args)))))
 
 (condition-case nil
     (modify-syntax-entry (string-to-char idlwave-abbrev-start-char) 
 			 "w" idlwave-mode-syntax-table)
   (error nil))
 
-(defvar idlwave-mode-abbrev-table nil
-  "Abbreviation table used for IDLWAVE mode")
-(define-abbrev-table 'idlwave-mode-abbrev-table ())
-(let ((abbrevs-changed nil)          ;; mask the current value to avoid save
-      (tb idlwave-mode-abbrev-table)
-      (c idlwave-abbrev-start-char))
-  ;;
-  ;; Templates
-  ;;
-  (define-abbrev tb (concat c "c")   "" (idlwave-code-abbrev idlwave-case))
-  (define-abbrev tb (concat c "sw")  "" (idlwave-code-abbrev idlwave-switch))
-  (define-abbrev tb (concat c "f")   "" (idlwave-code-abbrev idlwave-for))
-  (define-abbrev tb (concat c "fu")  "" (idlwave-code-abbrev idlwave-function))
-  (define-abbrev tb (concat c "pr")  "" (idlwave-code-abbrev idlwave-procedure))
-  (define-abbrev tb (concat c "r")   "" (idlwave-code-abbrev idlwave-repeat))
-  (define-abbrev tb (concat c "w")   "" (idlwave-code-abbrev idlwave-while))
-  (define-abbrev tb (concat c "i")   "" (idlwave-code-abbrev idlwave-if))
-  (define-abbrev tb (concat c "elif") "" (idlwave-code-abbrev idlwave-elif))
-  ;;
-  ;; Keywords, system functions, conversion routines
-  ;;
-  (define-abbrev tb (concat c "b")  "begin"        (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb (concat c "co") "common"       (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb (concat c "cb") "byte()"       (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "cx") "fix()"        (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "cl") "long()"       (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "cf") "float()"      (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "cs") "string()"     (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "cc") "complex()"    (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "cd") "double()"     (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "e")  "else"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb (concat c "ec") "endcase"      'idlwave-show-begin)
-  (define-abbrev tb (concat c "es") "endswitch"    'idlwave-show-begin)
-  (define-abbrev tb (concat c "ee") "endelse"      'idlwave-show-begin)
-  (define-abbrev tb (concat c "ef") "endfor"       'idlwave-show-begin)
-  (define-abbrev tb (concat c "ei") "endif else if" 'idlwave-show-begin)
-  (define-abbrev tb (concat c "el") "endif else"   'idlwave-show-begin)
-  (define-abbrev tb (concat c "en") "endif"        'idlwave-show-begin)
-  (define-abbrev tb (concat c "er") "endrep"       'idlwave-show-begin)
-  (define-abbrev tb (concat c "ew") "endwhile"     'idlwave-show-begin)
-  (define-abbrev tb (concat c "g")  "goto,"        (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb (concat c "h")  "help,"        (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "k")  "keyword_set()" (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "n")  "n_elements()" (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "on") "on_error,"    (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "oi") "on_ioerror,"  (idlwave-keyword-abbrev 0 1))
-  (define-abbrev tb (concat c "ow") "openw,"       (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "or") "openr,"       (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "ou") "openu,"       (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "p")  "print,"       (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "pt") "plot,"        (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "re") "read,"        (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "rf") "readf,"       (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "ru") "readu,"       (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "rt") "return"       (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "sc") "strcompress()" (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "sn") "strlen()"     (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "sl") "strlowcase()" (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "su") "strupcase()"  (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "sm") "strmid()"     (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "sp") "strpos()"     (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "st") "strput()"     (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "sr") "strtrim()"    (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "t")  "then"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb (concat c "u")  "until"        (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb (concat c "wu") "writeu,"      (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "ine") "if n_elements() eq 0 then"
-    (idlwave-keyword-abbrev 11))
-  (define-abbrev tb (concat c "inn") "if n_elements() ne 0 then"
-    (idlwave-keyword-abbrev 11))
-  (define-abbrev tb (concat c "np") "n_params()"   (idlwave-keyword-abbrev 0))
-  (define-abbrev tb (concat c "s")  "size()"       (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "wi") "widget_info()" (idlwave-keyword-abbrev 1))
-  (define-abbrev tb (concat c "wc") "widget_control," (idlwave-keyword-abbrev 0))
+;;
+;; Templates
+;;
+(idlwave-define-abbrev "c"   "" (idlwave-code-abbrev idlwave-case))
+(idlwave-define-abbrev "sw"  "" (idlwave-code-abbrev idlwave-switch))
+(idlwave-define-abbrev "f"   "" (idlwave-code-abbrev idlwave-for))
+(idlwave-define-abbrev "fu"  "" (idlwave-code-abbrev idlwave-function))
+(idlwave-define-abbrev "pr"  "" (idlwave-code-abbrev idlwave-procedure))
+(idlwave-define-abbrev "r"   "" (idlwave-code-abbrev idlwave-repeat))
+(idlwave-define-abbrev "w"   "" (idlwave-code-abbrev idlwave-while))
+(idlwave-define-abbrev "i"   "" (idlwave-code-abbrev idlwave-if))
+(idlwave-define-abbrev "elif" "" (idlwave-code-abbrev idlwave-elif))
+;;
+;; Keywords, system functions, conversion routines
+;;
+(idlwave-define-abbrev "ap" "arg_present()" (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "b"  "begin"        (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "co" "common"       (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "cb" "byte()"       (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "cx" "fix()"        (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "cl" "long()"       (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "cf" "float()"      (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "cs" "string()"     (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "cc" "complex()"    (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "cd" "double()"     (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "e"  "else"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "ec" "endcase"      'idlwave-show-begin)
+(idlwave-define-abbrev "es" "endswitch"    'idlwave-show-begin)
+(idlwave-define-abbrev "ee" "endelse"      'idlwave-show-begin)
+(idlwave-define-abbrev "ef" "endfor"       'idlwave-show-begin)
+(idlwave-define-abbrev "ei" "endif else if" 'idlwave-show-begin)
+(idlwave-define-abbrev "el" "endif else"   'idlwave-show-begin)
+(idlwave-define-abbrev "en" "endif"        'idlwave-show-begin)
+(idlwave-define-abbrev "er" "endrep"       'idlwave-show-begin)
+(idlwave-define-abbrev "ew" "endwhile"     'idlwave-show-begin)
+(idlwave-define-abbrev "g"  "goto,"        (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "h"  "help,"        (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "k"  "keyword_set()" (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "n"  "n_elements()" (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "on" "on_error,"    (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "oi" "on_ioerror,"  (idlwave-keyword-abbrev 0 1))
+(idlwave-define-abbrev "ow" "openw,"       (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "or" "openr,"       (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "ou" "openu,"       (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "p"  "print,"       (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "pt" "plot,"        (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "re" "read,"        (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "rf" "readf,"       (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "ru" "readu,"       (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "rt" "return"       (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "sc" "strcompress()" (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "sn" "strlen()"     (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "sl" "strlowcase()" (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "su" "strupcase()"  (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "sm" "strmid()"     (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "sp" "strpos()"     (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "st" "strput()"     (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "sr" "strtrim()"    (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "t"  "then"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "u"  "until"        (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "wu" "writeu,"      (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "iap" "if arg_present()"     (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "ik" "if keyword_set() then" (idlwave-keyword-abbrev 6))
+(idlwave-define-abbrev "ine" "if n_elements() eq 0 then" (idlwave-keyword-abbrev 11))
+(idlwave-define-abbrev "inn" "if n_elements() ne 0 then" (idlwave-keyword-abbrev 11))
+(idlwave-define-abbrev "np" "n_params()"   (idlwave-keyword-abbrev 0))
+(idlwave-define-abbrev "s"  "size()"       (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "wi" "widget_info()" (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "wc" "widget_control," (idlwave-keyword-abbrev 0))
   
-  ;; This section is reserved words only. (From IDL user manual)
-  ;;
-  (define-abbrev tb "and"        "and"        (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "begin"      "begin"      (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "break"      "break"      (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "case"       "case"       (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "common"     "common"     (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "continue"   "continue"   (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "do"         "do"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "else"       "else"       (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "end"        "end"        'idlwave-show-begin-check)
-  (define-abbrev tb "endcase"    "endcase"    'idlwave-show-begin-check)
-  (define-abbrev tb "endelse"    "endelse"    'idlwave-show-begin-check)
-  (define-abbrev tb "endfor"     "endfor"     'idlwave-show-begin-check)
-  (define-abbrev tb "endif"      "endif"      'idlwave-show-begin-check)
-  (define-abbrev tb "endrep"     "endrep"     'idlwave-show-begin-check)
-  (define-abbrev tb "endswitch"  "endswitch"  'idlwave-show-begin-check)
-  (define-abbrev tb "endwhi"     "endwhi"     'idlwave-show-begin-check)
-  (define-abbrev tb "endwhile"   "endwhile"   'idlwave-show-begin-check)
-  (define-abbrev tb "eq"         "eq"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "for"        "for"        (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "function"   "function"   (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "ge"         "ge"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "goto"       "goto"       (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "gt"         "gt"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "if"         "if"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "le"         "le"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "lt"         "lt"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "mod"        "mod"        (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "ne"         "ne"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "not"        "not"        (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "of"         "of"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "on_ioerror" "on_ioerror" (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "or"         "or"         (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "pro"        "pro"        (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "repeat"     "repeat"     (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "switch"     "switch"     (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "then"       "then"       (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "until"      "until"      (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "while"      "while"      (idlwave-keyword-abbrev 0 t))
-  (define-abbrev tb "xor"        "xor"        (idlwave-keyword-abbrev 0 t)))
+;; This section is reserved words only. (From IDL user manual)
+;;
+(idlwave-define-abbrev "and"        "and"        (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "begin"      "begin"      (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "break"      "break"      (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "case"       "case"       (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "common"     "common"     (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "continue"   "continue"   (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "do"         "do"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "else"       "else"       (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "end"        "end"        'idlwave-show-begin-check)
+(idlwave-define-abbrev "endcase"    "endcase"    'idlwave-show-begin-check)
+(idlwave-define-abbrev "endelse"    "endelse"    'idlwave-show-begin-check)
+(idlwave-define-abbrev "endfor"     "endfor"     'idlwave-show-begin-check)
+(idlwave-define-abbrev "endif"      "endif"      'idlwave-show-begin-check)
+(idlwave-define-abbrev "endrep"     "endrep"     'idlwave-show-begin-check)
+(idlwave-define-abbrev "endswitch"  "endswitch"  'idlwave-show-begin-check)
+(idlwave-define-abbrev "endwhi"     "endwhi"     'idlwave-show-begin-check)
+(idlwave-define-abbrev "endwhile"   "endwhile"   'idlwave-show-begin-check)
+(idlwave-define-abbrev "eq"         "eq"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "for"        "for"        (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "function"   "function"   (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "ge"         "ge"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "goto"       "goto"       (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "gt"         "gt"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "if"         "if"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "le"         "le"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "lt"         "lt"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "mod"        "mod"        (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "ne"         "ne"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "not"        "not"        (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "of"         "of"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "on_ioerror" "on_ioerror" (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "or"         "or"         (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "pro"        "pro"        (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "repeat"     "repeat"     (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "switch"     "switch"     (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "then"       "then"       (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "until"      "until"      (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "while"      "while"      (idlwave-keyword-abbrev 0 t))
+(idlwave-define-abbrev "xor"        "xor"        (idlwave-keyword-abbrev 0 t))
 
 (defvar imenu-create-index-function)
 (defvar extract-index-name-function)
 (defvar prev-index-position-function)
 (defvar imenu-extract-index-name-function)
 (defvar imenu-prev-index-position-function)
-;; defined later - so just make the compiler shut up
+;; defined later - so just make the compiler hush
 (defvar idlwave-mode-menu)  
 (defvar idlwave-mode-debug-menu)
 
@@ -1952,10 +1961,12 @@ The main features of this mode are
        'idlwave-prev-index-position)
 
   ;; Make a local post-command-hook and add our hook to it
+  ;; NB: `make-local-hook' needed for older/alternative Emacs compatibility
   (make-local-hook 'post-command-hook)
   (add-hook 'post-command-hook 'idlwave-command-hook nil 'local)
 
   ;; Make local hooks for buffer updates
+  ;; NB: `make-local-hook' needed for older/alternative Emacs compatibility
   (make-local-hook 'kill-buffer-hook)
   (add-hook 'kill-buffer-hook 'idlwave-kill-buffer-update nil 'local)
   (make-local-hook 'after-save-hook)
@@ -2321,7 +2332,9 @@ non-nil."
                   ;; Split the string.
                   (progn (insert (setq beg (char-after beg)) " + "
                                  idlwave-continuation-char beg)
-                         (backward-char 1))
+                         (backward-char 1)
+			 (newline-and-indent)
+			 (forward-char 1))
                 ;; Do not split the string.
                 (beep)
                 (message "Warning: continuation inside string!!")
@@ -2329,8 +2342,8 @@ non-nil."
             ;; Not splitting a string.
 	    (if (not (member (char-before) '(?\  ?\t)))
 		(insert " "))
-            (insert idlwave-continuation-char))
-          (newline-and-indent))
+            (insert idlwave-continuation-char)
+	    (newline-and-indent)))
       (indent-new-comment-line))
     ;; Indent previous line
     (setq beg (- (point-max) (point)))
@@ -5634,9 +5647,9 @@ ARROW:  Location of the arrow"
       (idlwave-start-of-substatement 'pre)
       (setq string (buffer-substring (point) pos))
       (if (string-match 
-	   "\\`[ \t]*\\([a-zA-Z][a-zA-Z0-9$_]*\\)[ \t]*\\(,\\|\\'\\)" string)
-	  (setq pro (match-string 1 string)
-		pro-point (+ (point) (match-beginning 1)))
+	   "\\`\\(.*&\\)?[ \t]*\\([a-zA-Z][a-zA-Z0-9$_]*\\)[ \t]*\\(,\\|\\'\\)" string)
+	  (setq pro (match-string 2 string)
+		pro-point (+ (point) (match-beginning 2)))
 	(if (and (idlwave-skip-object)
 		 (setq string (buffer-substring (point) pos))
 		 (string-match 
@@ -7895,12 +7908,8 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
     (set-buffer "*Help*")
     (setq truncate-lines t)))
 
-;; Add .pro files to speedbar for support, catching errors
-(condition-case nil 
-    (progn
-      (require 'speedbar)
-      (speedbar-add-supported-extension ".pro"))
-  (error nil))
+;; Add .pro files to speedbar for support, if it's loaded
+(eval-after-load "speedbar" '(speedbar-add-supported-extension ".pro"))
 
 ;; Try to load online help, but catch any errors.
 (condition-case nil
