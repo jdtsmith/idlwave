@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/05/13 18:42:27 $
+;; Date: $Date: 2003/05/13 22:52:52 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -2344,7 +2344,7 @@ debug mode."
 		      (eq idlwave-shell-automatic-electric-debug t)
 		      (and 
 		       (eq idlwave-shell-automatic-electric-debug 'breakpoint)
-		       (eq idlwave-shell-current-state 'breakpoint)))
+		       (not (eq idlwave-shell-current-state 'error))))
 		     (not no-debug)
 		     (not idlwave-shell-suppress-electric-debug)
 		     (not idlwave-shell-electric-debug-mode))
