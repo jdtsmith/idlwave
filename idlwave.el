@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/10 16:28:51 $
+;; Date: $Date: 2001/12/13 14:53:33 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -2154,8 +2154,8 @@ Also checks if the correct end statement has been used."
     (idlwave-show-begin)))
 
 (defun idlwave-gtr-pad-hook (char) 
-  "Let the > symbol expand around -> if present.
-A new length is returned."
+  "Let the > symbol expand around -> if present.  The new token length
+is returned."  
   2)
 
 (defun idlwave-surround (&optional before after escape-chars length ec-hook)
@@ -2184,9 +2184,10 @@ return value."
   (when (and idlwave-surround-by-blank (not (idlwave-quoted)))
     (let* ((length (or length 1)) ; establish a default for LENGTH
 	   (prev-char (char-after (- (point) (1+ length)))))
-      (unless (and (memq prev-char escape-chars) (fboundp ec-hook) 
-		   (not (setq length 
-			      (save-excursion (funcall ec-hook prev-char)))))
+      (when (or (not (memq prev-char escape-chars))
+		(and (fboundp ec-hook) 
+		     (setq length 
+			   (save-excursion (funcall ec-hook prev-char)))))
 	(backward-char length)
 	(save-restriction
 	  (let ((here (point)))
