@@ -4,9 +4,9 @@
 # links (in two location, top and bottom), plus some other useful
 # links.
 #
-# (c)2003 J.D. Smith <jdsmith@as.arizona.edu>
+# (c)2004 J.D. Smith <jdsmith@as.arizona.edu>
 #
-# Version Supporting: IDLv5.6
+# Version Supporting: IDLv6.1
 #
 # Verify that the listing files funclisting.html, nav_procedures.html,
 # nav_functions.html, nav_objects.html all exist, or modify below as
@@ -22,9 +22,10 @@ die "No HTML files found.\n" unless @files;
 
 undef $/;
 my $contents=
+  '<a href="home.html">Home</a> | '.
   '<a href="funclisting.html">Categories</a> | '.
-  '<a href="idl_alph_class.html#ALPHABETICAL">Alphabetical</a> | '.
-  '<a href="idl_alph_class.html#OBJECTCLASS">Classes</a> | '.
+  '<a href="idl_alph.html">Alphabetical</a> | '.
+  '<a href="idl_obj_class.html">Classes</a> | '.
   '<a href="idl_con.html">All Contents</a> | ';
 
 
@@ -42,7 +43,7 @@ foreach $file (@files) {
       "<a href=\"$next\">[ &gt; ]</a>" .
       "</div>";
 
-    s|^\s*<body>|$&\n$links<hr>|m;
+    s|^\s*</head>|$&\n$links<hr>|m;
     s|^\s*</body>|<hr>$links\n$&|m;
 
     open FILE, ">$file" or do {warn "Can't write to $file... skipping"; next};
