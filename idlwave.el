@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2004/10/16 01:05:49 $
+;; Date: $Date: 2004/11/17 05:21:40 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -2101,8 +2101,8 @@ An END token must be preceded by whitespace."
 Also checks if the correct end statement has been used."
   ;; All end statements are reserved words
   ;; Re-indent end line
-  (insert-char ?\  1) ;; So indent, etc. work well
-  (backward-char 1)
+  ;;(insert-char ?\  1) ;; So indent, etc. work well
+  ;;(backward-char 1)
   (let* ((pos (point-marker))
 	 (last-abbrev-marker (copy-marker last-abbrev-location))
 	 (eol-pos (save-excursion (end-of-line) (point)))
@@ -2145,8 +2145,8 @@ Also checks if the correct end statement has been used."
 	    (beep)
 	    (message "Warning: Shouldn't this be \"%s\" instead of \"%s\"?" 
 		     end1 end)
-	    (sit-for 1)))))))
-  (delete-char 1))
+	    (sit-for 1))))))))
+  ;;(delete-char 1))
 
 (defun idlwave-block-master ()
   (let ((case-fold-search t))
@@ -4382,7 +4382,7 @@ will re-read the catalog."
 
 
 (defvar idlwave-load-rinfo-idle-timer)
-(defun idlwave-update-routine-info (&optional arg)
+(defun idlwave-update-routine-info (&optional arg no-concatenate)
   "Update the internal routine-info lists.
 These lists are used by `idlwave-routine-info' (\\[idlwave-routine-info])
 and by `idlwave-complete' (\\[idlwave-complete]) to provide information
@@ -4401,8 +4401,14 @@ for currently compiled routines.
 
 With prefix ARG, also reload the system and library lists.
 With two prefix ARG's, also rescans the chosen user catalog tree.
-With three prefix args, dispatch asynchronous process to do the update."
-  (interactive "P")
+With three prefix args, dispatch asynchronous process to do the update.
+
+If NO-CONCATENATE is non-nil, don't pre-concatenate the routine info
+lists, but instead wait for the shell query to complete and
+asynchronously finish updating routine info.  This is set
+automatically when called interactively.  When you need routine
+information updated immediately, leave NO-CONCATENATE nil."
+  (interactive "P\np")
   ;; Stop any idle processing
   (if (or (and (fboundp 'itimerp)
 	       (itimerp idlwave-load-rinfo-idle-timer))
@@ -4461,7 +4467,7 @@ With three prefix args, dispatch asynchronous process to do the update."
 	    (idlwave-scan-library-catalogs)))
 
 	(if (or (not ask-shell)
-		(not (interactive-p)))
+		(not no-concatenate))
 	    ;; 1. If we are not going to ask the shell, we need to do the
 	    ;;    concatenation now.
 	    ;; 2. When this function is called non-interactively, it
@@ -4626,8 +4632,7 @@ With three prefix args, dispatch asynchronous process to do the update."
   "Put the different sources for routine information together."
   ;; The sequence here is important because earlier definitions shadow 
   ;; later ones.  We assume that if things in the buffers are newer
-  ;; then in the shell of the system, it is meant to be different.
-
+  ;; then in the shell of the system, they are meant to be different.
   (setcdr idlwave-last-system-routine-info-cons-cell
 	  (append idlwave-buffer-routines
 		  idlwave-compiled-routines
@@ -5306,7 +5311,7 @@ end
      nil 'hide wait)
 ;    (message "SENDING SAVE") ; ????????????????????????
     (idlwave-shell-send-command
-     (format "save,'idlwave_routine_info','idlwave_print_info_entry',FILE='%s',/ROUTINES" 
+     (format "save,'idlwave_routine_info','idlwave_print_info_entry','idlwave_get_class_tags','idlwave_get_sysvars',FILE='%s',/ROUTINES" 
 	     (idlwave-shell-temp-file 'rinfo))
      nil 'hide wait))
 
@@ -5961,25 +5966,28 @@ ARROW:  Location of the arrow"
 	 (pro-point (or (nth 3 pro-entry) 0))
 	 (last-char (idlwave-last-valid-char))
          (case-fold-search t)
+	 (match-string (buffer-substring bos (point)))
 	 cw cw-mod cw-arrow cw-class cw-point)
     (if (< func-point pro-point) (setq func nil))
     (cond
      ((string-match "\\`[ \t]*\\(pro\\|function\\)[ \t]+[a-zA-Z0-9_]*\\'"
-                    (buffer-substring bos (point)))
+                    match-string)
       (setq cw 'class))
      ((string-match 
        "\\`[ \t]*\\([a-zA-Z][a-zA-Z0-9$_]*\\)?\\'" 
-       (buffer-substring (if (> pro-point 0) pro-point bos) (point)))
+       (if (> pro-point 0)
+	   (buffer-substring pro-point (point))
+	 match-string))
       (setq cw 'procedure cw-class pro-class cw-point pro-point
 	    cw-arrow pro-arrow))
      ((string-match "\\`[ \t]*\\(pro\\|function\\)\\>"
-		    (buffer-substring bos (point)))
+		    match-string)
       nil)
      ((string-match "OBJ_NEW([ \t]*['\"]\\([a-zA-Z0-9$_]*\\)?\\'"
-		    (buffer-substring bos (point)))
+		    match-string)
       (setq cw 'class))                    
      ((string-match "\\<inherits\\s-+\\([a-zA-Z0-9$_]*\\)?\\'"
-		    (buffer-substring bos (point)))
+		    match-string)
       (setq cw 'class))                    
      ((and func 
 	   (> func-point pro-point)
@@ -5999,10 +6007,10 @@ ARROW:  Location of the arrow"
      (t
       (setq cw 'function)
       (save-excursion
-	(if (re-search-backward "->[ \t]*\\(\\([$a-zA-Z0-9_]+\\)::\\)?[$a-zA-Z0-9_]*\\=" bos t)
+	(if (re-search-backward "->[ \t]*\\(\\$[ \t]*\\(;.*\\)?\n\\s-*\\)?\\(\\([$a-zA-Z0-9_]+\\)::\\)?[$a-zA-Z0-9_]*\\=" bos t)
 	    (setq cw-arrow (copy-marker (match-beginning 0))
-		  cw-class (if (match-end 2)
-			       (idlwave-sintern-class (match-string 2))
+		  cw-class (if (match-end 4)
+			       (idlwave-sintern-class (match-string 4))
 			     t))))))
     (list (list pro pro-point pro-class pro-arrow)
           (list func func-point func-class func-arrow)
@@ -6719,6 +6727,13 @@ If these don't exist, a letter in the string is automatically selected."
   "Regexp for skipping continued blank or comment-only lines in
 structures")
 
+(defvar idlwave-struct-tag-regexp
+  (concat "[{,]" ;leading comma/brace
+	  idlwave-struct-skip ; 4 groups
+	  "\\([a-zA-Z][a-zA-Z0-9_]*\\)" ;the tag itself, group 5
+	  "[ \t]*:") ; the final colon
+  "Regexp for structure tags.")
+
 (defun idlwave-struct-tags ()
   "Return a list of all tags in the structure defined at point.
 Point is expected just before the opening `{' of the struct definition."
@@ -6728,18 +6743,15 @@ Point is expected just before the opening `{' of the struct definition."
 	   (end (cdr borders))
 	   tags)
       (goto-char beg)
-      (while (re-search-forward 
-	      (concat "[{,]" ;leading comma/brace
-		      idlwave-struct-skip ; 4 groups
-		      "\\([a-zA-Z][a-zA-Z0-9_]*\\)" ;the tag itself, group 5
-		      "[ \t]*:")   ; the final colon
-	      end t)
-	;; Check if we are still on the top level of the structure.
-	(if (and (condition-case nil (progn (up-list -1) t) (error nil))
-		 (= (point) beg))
-	    (push (match-string-no-properties 5) tags))
-	(goto-char (match-end 0)))
-      (nreverse tags))))
+      (save-restriction
+	(narrow-to-region beg end)
+	(while (re-search-forward idlwave-struct-tag-regexp end t)
+	  ;; Check if we are still on the top level of the structure.
+	  (if (and (condition-case nil (progn (up-list -1) t) (error nil))
+		   (= (point) beg))
+	      (push (match-string-no-properties 5) tags))
+	  (goto-char (match-end 0))))
+	(nreverse tags))))
 
 (defun idlwave-find-struct-tag (tag)
   "Find a given TAG in the structure defined at point."
@@ -6760,22 +6772,24 @@ Point is expected just before the opening `{' of the struct definition."
 	   (case-fold-search t)
 	   names)
       (goto-char beg)
-      (while (re-search-forward 
-	      (concat "[{,]"  ;leading comma/brace
-		      idlwave-struct-skip ; 4 groups
-		      "inherits"    ; The INHERITS tag
-		      idlwave-struct-skip ; 4 more
-		      "\\([a-zA-Z][a-zA-Z0-9_]*\\)") ; The super-group, #9
-	      end t)
-	;; Check if we are still on the top level of the structure.
-	(if (and (condition-case nil (progn (up-list -1) t) (error nil))
-		 (= (point) beg))
-	    (push (match-string-no-properties 9) names))
-	(goto-char (match-end 0)))
+      (save-restriction
+	(narrow-to-region beg end)
+	(while (re-search-forward 
+		(concat "[{,]"  ;leading comma/brace
+			idlwave-struct-skip ; 4 groups
+			"inherits"    ; The INHERITS tag
+			idlwave-struct-skip ; 4 more
+			"\\([a-zA-Z][a-zA-Z0-9_]*\\)") ; The super-group, #9
+		end t)
+	  ;; Check if we are still on the top level of the structure.
+	  (if (and (condition-case nil (progn (up-list -1) t) (error nil))
+		   (= (point) beg))
+	      (push (match-string-no-properties 9) names))
+	  (goto-char (match-end 0))))
       (nreverse names))))
 
 (defun idlwave-in-structure ()
-  "Return t if point is inside an IDL structure."
+  "Return t if point is inside an IDL structure definition."
   (let ((beg (point)))
     (save-excursion
       (if (not (or (idlwave-in-comment) (idlwave-in-quote)))
@@ -6795,12 +6809,13 @@ Point is expected just before the opening `{' of the struct definition."
       (cons beg (point)))))
 
 (defun idlwave-find-structure-definition (&optional var name bound)
-  "Search forward for a structure definition.  
-If VAR is non-nil, search for a structure assigned to variable VAR.
-If NAME is non-nil, search for a named structure NAME.  If BOUND is an
-integer, limit the search.  If BOUND is the symbol `all', we search
-first back and then forward through the entire file.  If BOUND is the
-symbol `back' we search only backward."
+  "Search forward for a structure definition.  If VAR is non-nil,
+search for a structure assigned to variable VAR.  If NAME is non-nil,
+search for a named structure NAME, if a string, or a generic named
+structure otherwise.  If BOUND is an integer, limit the search.  If
+BOUND is the symbol `all', we search first back and then forward
+through the entire file.  If BOUND is the symbol `back' we search only
+backward."
   (let* ((ws "[ \t]*\\(\\$.*\n[ \t]*\\)*")
 	 (case-fold-search t)
 	 (lim (if (integerp bound) bound nil))
@@ -6809,36 +6824,53 @@ symbol `back' we search only backward."
 		  (concat "\\<" (regexp-quote (downcase var)) "\\>" ws)
 		"\\(\\)")
 	      "=" ws "\\({\\)"
-	      (if name (concat ws "\\<" (downcase name) "[^a-zA-Z0-9_$]") ""))))
+	      (if name 
+		  (if (stringp name)
+		      (concat ws "\\(\\<" (downcase name) "\\)[^a-zA-Z0-9_$]") 
+		    ;; Just a generic name
+		    (concat ws "\\<\\([a-zA-Z_0-9$]+\\)" ws ","))
+		""))))
     (if (or (and (or (eq bound 'all) (eq bound 'back))
 		 (re-search-backward re nil t))
 	    (and (not (eq bound 'back)) (re-search-forward re lim t)))
-	(goto-char (match-beginning 3)))))
+	(progn
+	  (goto-char (match-beginning 3))
+	  (match-string-no-properties 5)))))
 
-(defvar idlwave-class-info nil)
-(defvar idlwave-system-class-info nil)
+(defvar idlwave-class-info nil) 
+(defvar idlwave-system-class-info nil) ; Gathered from idlw-rinfo
+(defvar idlwave-class-reset nil) ; to reset buffer-local classes
+
 (add-hook 'idlwave-update-rinfo-hook
-	  (lambda () (setq idlwave-class-info nil)))
+	  (lambda () (setq idlwave-class-reset t)))
 (add-hook 'idlwave-after-load-rinfo-hook
 	  (lambda () (setq idlwave-class-info nil)))
 
 (defun idlwave-class-info (class)
   (let (list entry)
-    (unless idlwave-class-info
-      ;; Info is nil, put in the system stuff.
+    (if idlwave-class-info
+	(if idlwave-class-reset
+	    (setq 	    
+	     idlwave-class-reset nil
+	     idlwave-class-info ; Remove any visited in a buffer
+	     (delq nil (mapcar 
+			(lambda (x) 
+			  (let ((filebuf 
+				 (idlwave-class-file-or-buffer 
+				  (or (cdr (assq 'found-in x)) (car x)))))
+			    (if (cdr filebuf)
+				nil
+			      x)))
+			idlwave-class-info))))
+      ;; Info is nil, put in the system stuff to start.
       (setq idlwave-class-info idlwave-system-class-info)
       (setq list idlwave-class-info)
       (while (setq entry (pop list))
 	(idlwave-sintern-class-info entry)))
     (setq class (idlwave-sintern-class class))
-    (setq entry (assq class idlwave-class-info))
-    (unless entry  ;; Find the __define file, parse and include it
-      (setq entry (idlwave-find-class-info class))
-      (when entry
-	;; Sintern and cache the info
-	(idlwave-sintern-class-info entry)
-	(push entry idlwave-class-info)))
-    entry))
+    (or (assq class idlwave-class-info)
+	(progn (idlwave-scan-class-info class)
+	       (assq class idlwave-class-info)))))
 
 (defun idlwave-sintern-class-info (entry)
   "Sintern the class names in a class-info entry."
@@ -6849,28 +6881,50 @@ symbol `back' we search only backward."
 	(setcdr inherits (mapcar (lambda (x) (idlwave-sintern-class x 'set))
 				 (cdr inherits))))))
 
-(defun idlwave-find-class-definition (class)
-  (let ((case-fold-search t))
-    (if (re-search-forward
-	 (concat "^[ \t]*pro[ \t]+" (downcase class) "__define" "\\>") nil t)
-	;; FIXME: should we limit to end of pro here?
-	(idlwave-find-structure-definition nil class))))
+(defun idlwave-find-class-definition (class &optional all-hook alt-class)
+  "Find class structure definition(s)
+If ALL-HOOK is set, find all named structure definitions in a given
+class__define routine, on which ALL-HOOK will be run.  If ALT-CLASS is
+set, look for the name__define pro, and inside of it, for the ALT-CLASS
+class/struct definition"
+  (let ((case-fold-search t) end-lim list name)
+    (when (re-search-forward
+	   (concat "^[ \t]*pro[ \t]+" (downcase class) "__define" "\\>") nil t)
+      (if all-hook
+	  (progn
+	    ;; For everything there
+	    (setq end-lim (save-excursion (idlwave-end-of-subprogram) (point)))
+	    (while (setq name 
+			 (idlwave-find-structure-definition nil t end-lim))
+	      (funcall all-hook name)))
+	(idlwave-find-structure-definition nil (or alt-class class))))))
 
-(defun idlwave-find-class-info (class)
-  "Find the __define procedure for a class structure and return info entry."
+
+(defun idlwave-class-file-or-buffer (class)
+  "Find buffer visiting CLASS definition"
   (let* ((pro (concat (downcase class) "__define"))
-	 (class (idlwave-sintern-class class))
-	 (idlwave-auto-routine-info-updates nil)
 	 (file (idlwave-routine-source-file
 		(nth 3 (idlwave-rinfo-assoc pro 'pro nil
-					    (idlwave-routines)))))
-	 buf)
-    (if (or (not file)
-	    (not (file-regular-p file)))
-	nil ; Cannot get info
+					    (idlwave-routines))))))
+    (cons file (if file (idlwave-get-buffer-visiting file)))))
+
+
+(defun idlwave-scan-class-info (class)
+  "Scan all class and named structure info in the class__define pro"
+  (let* ((idlwave-auto-routine-info-updates nil)
+	 (filebuf (idlwave-class-file-or-buffer class))
+	 (file (car filebuf))
+	 (buf (cdr filebuf))
+	 (class (idlwave-sintern-class class)))
+    (if (or
+	 (not file)
+	 (and ;; neither a regular file nor a visited buffer
+	  (not buf)
+	  (not (file-regular-p file))))
+	nil ; Cannot find the file/buffer to get any info
       (save-excursion
-	(if (setq buf (idlwave-get-buffer-visiting file))
-	    (set-buffer buf)
+	(if buf (set-buffer buf)
+	  ;; Read the file in temporarily
 	  (set-buffer (get-buffer-create " *IDLWAVE-tmp*"))
 	  (erase-buffer)
 	  (unless (eq major-mode 'idlwave-mode)
@@ -6878,20 +6932,29 @@ symbol `back' we search only backward."
 	  (insert-file-contents file))
 	(save-excursion
 	  (goto-char 1)
-	  (if (idlwave-find-class-definition class)
-	      (list class
-		    (cons 'tags (idlwave-struct-tags))
-		    (cons 'inherits (idlwave-struct-inherits)))))))))
+	  (idlwave-find-class-definition class 
+	   ;; Scan all of the structures found there
+	   (lambda (name)
+	     (let* ((this-class (idlwave-sintern-class name))
+		    (entry 
+		     (list this-class
+			   (cons 'tags (idlwave-struct-tags))
+			   (cons 'inherits (idlwave-struct-inherits)))))
+	       (if (not (eq this-class class))
+		   (setq entry (nconc entry (list (cons 'found-in class)))))
+	       (idlwave-sintern-class-info entry)
+	       (push entry idlwave-class-info)))))))))
 
+(defun idlwave-class-found-in (class)
+  "Return the FOUND-IN property of the class."
+  (cdr (assq 'found-in (idlwave-class-info class))))
 (defun idlwave-class-tags (class)
   "Return the native tags in CLASS."
   (cdr (assq 'tags (idlwave-class-info class))))
 (defun idlwave-class-inherits (class)
   "Return the direct superclasses of CLASS."
   (cdr (assq 'inherits (idlwave-class-info class))))
-(defun idlwave-class-file (class)
-  "Return the HTML help file (if any) for CLASS."
-  (cdr (assq 'file (idlwave-class-info class))))
+
 
 (defun idlwave-all-class-tags (class)
   "Return a list of native and inherited tags in CLASS."
@@ -7132,7 +7195,7 @@ Gets set in `idlw-rinfo.el'.")
       link)))
 
 ;; Fake help in the source buffer for class structure tags.
-;; kwd and name are global-variables here.
+;; KWD AND NAME ARE GLOBAL-VARIABLES HERE.
 (defvar name) 
 (defvar kwd)
 (defvar idlwave-help-do-class-struct-tag nil)
@@ -7141,7 +7204,7 @@ Gets set in `idlw-rinfo.el'.")
    ((eq mode 'test) ; nothing gets fontified for class tags
     nil)
    ((eq mode 'set)
-    (let (class-with)
+    (let (class-with found-in)
       (when (setq class-with 
 		(idlwave-class-or-superclass-with-tag 
 		 idlwave-current-tags-class
@@ -7149,7 +7212,9 @@ Gets set in `idlw-rinfo.el'.")
 	(if (assq (idlwave-sintern-class class-with) 
 		  idlwave-system-class-info)
 	    (error "No help available for system class tags."))
-	(setq name (concat class-with "__define"))))
+	(if (setq found-in (idlwave-class-found-in class-with))
+	    (setq name (cons (concat found-in "__define") class-with))
+	  (setq name (concat class-with "__define")))))
     (setq kwd word
 	  idlwave-help-do-class-struct-tag t))
    (t (error "This should not happen"))))
