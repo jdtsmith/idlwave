@@ -189,7 +189,7 @@ alphadist:
 xemacsdistfile: $(XEMACSDISTFILES)
 	@if [ "X$(TAG)" = "X" ]; then echo "*** No tag ***"; exit 1; fi
 	cp -pf $(XEMACSDISTFILES) $(XEMACSDIR)/
-	perl -pi -e 's/^(AUTHOR_VERSION\s*=\s*)([0-9]\.[0-9.a-z]+)/$${1}$(TAG)/' $(XEMACSDIR)/Makefile
+	perl -pi -e 's/^((?:AUTHOR_)?VERSION\s*=\s*)([0-9]\.[0-9.a-z]+)/$${1}$(TAG)/' $(XEMACSDIR)/Makefile
 	perl -pi -e 's/\bVERSIONTAG\b/$(TAG)/' $(XEMACSDIR)/*
 	(cd $(XEMACSDIR); make bindist)
 
