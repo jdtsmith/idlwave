@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/13 20:27:10 $
+;; Date: $Date: 2001/12/17 04:51:54 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -147,7 +147,7 @@
       `(defvar ,var ,value ,doc))))
 
 (defgroup idlwave nil
-  "Major mode for editing IDL/WAVE CL .pro files"
+  "Major mode for editing IDL .pro files"
   :tag "IDLWAVE"
   :link '(url-link :tag "Home Page" 
 		   "http://idlwave.org")
@@ -630,21 +630,21 @@ class info listed.  See `idlwave-completion-show-classes'."
 				 (keyword-default . nil))
   "Association list governing specification of object classes for completion.
 
-When IDLWAVE is trying to complete items which belong to the object
-oriented part of IDL, it usually cannot determine the class of a given
-object from context.  In order to provide the user with a correct list
-of methods or keywords, it would have to determine the appropriate
-class.  IDLWAVE has two ways to deal with this problem.
+When IDLWAVE tries to complete object-oriented methods, it usually
+cannot determine the class of a given object from context.  In order
+to provide the user with a correct list of methods or keywords, it
+needs have to determine the appropriate class.  IDLWAVE has two ways
+to deal with this problem.
 
-1. One possibility is to combine the items of all available
-   classes for the purpose of completion.  So when completing a
-   method, all methods of all classes are available, and when
-   completing a keyword, all keywords allowed for this method in any
-   class will be possible completions.  This behavior is very much
-   like normal completion and is therefore the default.  It works much 
+1. One possibility is to combine the items of all available classes
+   which contain this method for the purpose of completion.  So when
+   completing a method, all methods of all known classes are
+   available, and when completing a keyword, all keywords allowed for
+   this method in any class are shown.  This behavior is very much
+   like normal completion and is therefore the default.  It works much
    better than one might think - only for the INIT, GETPROPERTY and
-   SETPROPERTY the keyword lists become uncomfortably long.
-   See also `idlwave-completion-show-classes'.
+   SETPROPERTY the keyword lists become uncomfortably long.  See also
+   `idlwave-completion-show-classes'.
 
 2. The second possibility is to ask the user on each occasion.  To
    make this less interruptive, IDLWAVE can store the class as a text
@@ -655,11 +655,12 @@ class.  IDLWAVE has two ways to deal with this problem.
    You will have to turn on the storage of the selected class
    explicitly with the variable `idlwave-store-inquired-class'.
 
-This variable allows to configure IDLWAVE's behavior during
-completion.  Its value is an alist, which should contain at least two
-elements: (method-default . VALUE) and (keyword-default . VALUE),
-where VALUE is either t or nil.  These specify if the class should be
-determined during method and keyword completion, respectively.
+This variable allows you to configure IDLWAVE's method and
+method-keyword completion behavior.  Its value is an alist, which
+should contain at least two elements: (method-default . VALUE) and
+(keyword-default . VALUE), where VALUE is either t or nil.  These
+specify if the class should be found during method and keyword
+completion, respectively.
 
 The alist may have additional entries specifying exceptions from the 
 keyword completion rule for specific methods, like INIT or
@@ -1785,10 +1786,10 @@ The main features of this mode are
    Like other Emacs programming modes, C-j inserts a newline and indents.
    TAB is used for explicit indentation of the current line.
 
-   To start a continuation line, use \\[idlwave-split-line].  This function can also
-   be used in the middle of a line to split the line at that point.
-   When used inside a long constant string, the string is split at
-   that point with the `+' concatenation operator.
+   To start a continuation line, use \\[idlwave-split-line].  This
+   function can also be used in the middle of a line to split the line
+   at that point.  When used inside a long constant string, the string
+   is split at that point with the `+' concatenation operator.
 
    Comments are indented as follows:
 
@@ -1798,24 +1799,28 @@ The main features of this mode are
 
    The indentation of comments starting in column 0 is never changed.
 
-   Use \\[idlwave-fill-paragraph] to refill a paragraph inside a comment.  The indentation
-   of the second line of the paragraph relative to the first will be
-   retained.  Use \\[idlwave-auto-fill-mode] to toggle auto-fill mode for these comments.
-   When the variable `idlwave-fill-comment-line-only' is nil, code
-   can also be auto-filled and auto-indented (not recommended).
+   Use \\[idlwave-fill-paragraph] to refill a paragraph inside a
+   comment.  The indentation of the second line of the paragraph
+   relative to the first will be retained.  Use
+   \\[idlwave-auto-fill-mode] to toggle auto-fill mode for these
+   comments.  When the variable `idlwave-fill-comment-line-only' is
+   nil, code can also be auto-filled and auto-indented (not
+   recommended).
 
    To convert pre-existing IDL code to your formatting style, mark the
-   entire buffer with \\[mark-whole-buffer] and execute \\[idlwave-expand-region-abbrevs].
-   Then mark the entire buffer again followed by \\[indent-region] (`indent-region').
+   entire buffer with \\[mark-whole-buffer] and execute
+   \\[idlwave-expand-region-abbrevs].  Then mark the entire buffer
+   again followed by \\[indent-region] (`indent-region').
 
 2. Routine Info
    ------------
-   IDLWAVE displays information about the calling sequence and the accepted
-   keyword parameters of a procedure or function with \\[idlwave-routine-info].
-   \\[idlwave-find-module] jumps to the source file of a module.
-   These commands know about system routines, all routines in idlwave-mode
-   buffers and (when the idlwave-shell is active) about all modules
-   currently compiled under this shell.  Use \\[idlwave-update-routine-info] to update this
+   IDLWAVE displays information about the calling sequence and the
+   accepted keyword parameters of a procedure or function with
+   \\[idlwave-routine-info].  \\[idlwave-find-module] jumps to the
+   source file of a module.  These commands know about system
+   routines, all routines in idlwave-mode buffers and (when the
+   idlwave-shell is active) about all modules currently compiled under
+   this shell.  Use \\[idlwave-update-routine-info] to update this
    information, which is also used for completion (see item 4).
 
 3. Online IDL Help
@@ -1874,10 +1879,10 @@ The main features of this mode are
 
 9. Documentation and Customization
    -------------------------------
-   Info documentation for this package is available.  Use \\[idlwave-info]
-   to display (complain to your sysadmin if that does not work).
-   For Postscript and HTML versions of the documentation, check IDLWAVE's
-   homepage at `http://idlwave.org'.
+   Info documentation for this package is available.  Use
+   \\[idlwave-info] to display (complain to your sysadmin if that does
+   not work).  For Postscript, PDF, and HTML versions of the
+   documentation, check IDLWAVE's homepage at `http://idlwave.org'.
    IDLWAVE has customize support - see the group `idlwave'.
 
 10.Keybindings
@@ -1923,7 +1928,8 @@ The main features of this mode are
   (set (make-local-variable idlwave-fill-function) 'idlwave-auto-fill)
   (setq comment-end "")
   (set (make-local-variable 'comment-multi-line) nil)
-  (set (make-local-variable 'paragraph-separate) "[ \t\f]*$\\|[ \t]*;+[ \t]*$")
+  (set (make-local-variable 'paragraph-separate) 
+       "[ \t\f]*$\\|[ \t]*;+[ \t]*$\\|;+[+=-_*]+$")
   (set (make-local-variable 'paragraph-start) "[ \t\f]\\|[ \t]*;+[ \t]")
   (set (make-local-variable 'paragraph-ignore-fill-prefix) nil)
   (set (make-local-variable 'parse-sexp-ignore-comments) nil)
@@ -4943,14 +4949,15 @@ at this point.
   it completes a keyword of the relevant function or procedure.
 - In the first arg of `OBJ_NEW', it completes a class name.
 
-When several completions are possible, a list will be displayed in the 
+When several completions are possible, a list will be displayed in the
 *Completions* buffer.  If this list is too long to fit into the
-window, scrolling can be achieved by repeatedly pressing \\[idlwave-complete].
+window, scrolling can be achieved by repeatedly pressing
+\\[idlwave-complete].
 
 The function also knows about object methods.  When it needs a class
 name, the action depends upon `idlwave-query-class', which see.  You
-can force IDLWAVE to ask you for a class name with a \\[universal-argument] prefix
-argument to this command.
+can force IDLWAVE to ask you for a class name with a
+\\[universal-argument] prefix argument to this command.
 
 See also the variables `idlwave-keyword-completion-adds-equal' and
 `idlwave-function-completion-adds-paren'.
@@ -5474,7 +5481,7 @@ The return value is a list with the following stuff:
 PRO-LIST       (PRO POINT CLASS ARROW)
 FUNC-LIST      (FUNC POINT CLASS ARROW)
 COMPLETE-WHAT  a symbol indicating what kind of completion makes sense here
-CW-LIST        Like PRO-LIST, for what can be copmpleted here.
+CW-LIST        Like PRO-LIST, for what can be completed here.
 LAST-CHAR      last relevant character before point (non-white non-comment,
                not part of current identifier or leading slash).
 
