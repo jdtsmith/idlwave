@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/07/18 18:57:45 $
+;; Date: $Date: 2003/07/31 15:51:13 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -7479,7 +7479,7 @@ appropriate Init method."
 (defun idlwave-fix-keywords (name type class keywords &optional super-classes)
   "Update a list of keywords.
 Translate OBJ_NEW, adding all super-class keywords, or all keywords
-from all classes if class equals `t'."
+from all classes if class equals t."
   (let ((case-fold-search t))
 
     ;; If this is the OBJ_NEW function, try to figure out the class and use
