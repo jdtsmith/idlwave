@@ -205,7 +205,7 @@ distfile: $(DISTFILES)
 	rm -rf idlwave-$(TAG)
 	mkdir idlwave-$(TAG)
 	cp -p $(DISTFILES) idlwave-$(TAG)/
-	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' idlwave-$(TAG)/*
+	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' idlwave-$(TAG)/* $(HELPDISTFILES)
 	tar czvf idlwave-$(TAG).tar.gz idlwave-$(TAG)
 	tar czvf idlwave-$(TAG)-help.tar.gz $(HELPDISTFILES)
 	rm -rf idlwave-$(TAG)
