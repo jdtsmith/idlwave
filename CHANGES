@@ -4,6 +4,22 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
+Revision 5.1
+=============
+   - Fixed handling of method calls and keywords when padding
+     operators with `idlwave-surround-by-blank'.
+   - Context (not just completion) help on sysvar tags.
+   - Prevent electric-debug mode from enabling when traversing the
+     calling stack, unless it's already enabled.
+   - Fixed bug accidentally binding ESC when using "Shift" among your
+     idlwave-shell-debug-modifiers.
+   - Improve continued assignment statement matching to allow
+     arbitrary left-hand side expressions.
+   - Added support for localizing doclib header sections (e.g. "nom"
+     instead of "name").
+   - Added links to top and bottom of each HTML help page, including a
+     custom-produced table of contents.
+
 Revision 5.0
 =============
    - Introduced Electric-Debug mode, for lightning fast stepping,

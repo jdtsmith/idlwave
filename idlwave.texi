@@ -1433,9 +1433,12 @@ The face for links to IDLWAVE online help.
 For routines which are not documented in an HTML manual (for example
 personal or library routines), the source code itself is used as help
 text.  If the requested information can be found in a (more or less)
-standard DocLib file header, IDLWAVE shows the header (scrolling down
-to a keyword, if appropriate).  Otherwise the routine definition
-statement (@code{pro}/@code{function}) is shown.
+standard DocLib file header, IDLWAVE shows the header (scrolling down to
+a keyword, if appropriate).  Otherwise the routine definition statement
+(@code{pro}/@code{function}) is shown.  The doclib header sections which
+are searched for include @samp{NAME} and @samp{KEYWORDS}.  Localization
+support can be added by customizing the @code{idlwave-help-doclib-name}
+and @code{idlwave-help-doclib-keyword} variables.
 
 @cindex Structure tags, in online help
 @cindex Class tags, in online help
@@ -1495,6 +1498,16 @@ Non-@code{nil} means fontify source code displayed as help.
 @defopt idlwave-help-source-try-header (@code{t})
 Non-@code{nil} means try to find help in routine header when
 displaying source file.
+@end defopt
+
+@defopt idlwave-help-doclib-name (@code{"name"})
+The heading word in doclib headers to locate the @emph{name} section.
+Can be a regexp, e.g. @code{"\\(name\\|nom\\)"}.
+@end defopt
+
+@defopt idlwave-help-doclib-keyword (@code{"KEYWORD"})
+The heading word in doclib headers to locate the @emph{keywords}
+section.  Can be a regexp.
 @end defopt
 
 
@@ -3142,7 +3155,7 @@ your own.
 In addition to configuring the functions available to the pop-up mouse
 command, you can easily create your own customized bindings to inspect
 expressions using the two convenience macros
-@code{idlwave-shell-inspect} and @code{idlwave-shell-mouse-inspect}.
+@code{idlwave-shell-examine} and @code{idlwave-shell-mouse-examine}.
 These create keyboard or mouse-based custom inspections of variables,
 sharing all the same properties of the built-in examine commands.
 Both functions take a single string argument sharing the syntax of the
@@ -3500,7 +3513,10 @@ Library catalogs are files named @file{.idlwave_catalog} stored in
 directories containing @code{.pro} routine files.  They are discovered
 on the IDL search path and loaded automatically when routine information
 is read.  Each catalog file documents the routines found in that
-directory --- one catalog per directory.
+directory --- one catalog per directory.  Every catalog has a library
+name associated with it (e.g. @emph{AstroLib}).  This name will be shown
+briefly when the catalog is found, and in the routine info of routines
+it documents.
 
 Many popular libraries of routines include such catalog files by
 default, and so will be automatically discovered.  Library catalogs are
@@ -4065,7 +4081,12 @@ message correctly.  Don't do that.
 Though IDLWAVE was not written with ENVI in mind, it works just fine
 with it, as long as you update the prompt it's looking for (@samp{IDL>
 } by default).  You can do this with the variable
-@code{idlwave-shell-prompt-pattern} (@pxref{Starting the Shell}).
+@code{idlwave-shell-prompt-pattern} (@pxref{Starting the Shell}), e.g.,
+in your @file{.emacs}:
+
+@lisp
+(setq idlwave-shell-prompt-pattern "^\\(ENVI\\|IDL\\)> ")
+@end lisp
 
 @item @strong{Attempts to set breakpoints fail: no breakpoint is
 indicated in the IDLWAVE buffer.}
@@ -4088,7 +4109,8 @@ installed.  Many Emacsen come with an older bundled copy of IDLWAVE
 (e.g. v4.7 for Emacs 21.x), which is likely what's being used instead.
 You need to make sure your Emacs @emph{load-path} contains the directory
 where IDLWAVE is installed (@file{/usr/local/share/emacs/site-lisp}, by
-default), by putting in your @file{.emacs}:
+default), @emph{before} Emacs' default search directories.  You can
+accomplish this by putting the following in your @file{.emacs}:
 
 @lisp
 (setq load-path (cons "/usr/local/share/emacs/site-lisp" load-path))
@@ -4118,6 +4140,27 @@ console shell, the environment is set not from your usual shell
 configuration files (e.g. @file{.cshrc}), but from the file
 @file{~/.MacOSX/environment.plist}.  Either include your path settings
 there, or start Emacs and IDLWAVE from the shell.
+
+@item @strong{The routine info for my local routines is out of date!}
+
+IDLWAVE collects routine info from various locations (@pxref{Routine
+Information Sources}).  Routines in files visited in a buffer or
+compiled in the shell should be up to date.  For other routines, the
+information is only as current as the most recent scan.  If you have a
+rapidly changing set of routines, and you'd like the latest routine
+information to be available for it, one powerful technique makes use of
+the library catalog tool, @samp{idlwave_catalog}.  Simply add a line to
+your @samp{cron} file (@samp{crontab -e} will let you edit this on some
+systems), like this:
+
+@example
+45 3 * * 1-5 (cd /path/to/myidllib; /path/to/idlwave_catalog MyLib)
+@end example
+
+@noindent where @samp{MyLib} is the name of your library.  This will
+rescan all @file{.pro} files at or below @file{/path/to/myidllib} every
+week night at 3:45am.  You can even scan site-wide libraries with this
+method, and the most recent information will be available to all users.
 
 @end itemize
 

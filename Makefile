@@ -72,7 +72,7 @@ LISPFILES  = idlwave.el idlw-help.el idlw-shell.el idlw-rinfo.el \
 	     idlw-toolbar.el idlw-complete-structtag.el idlw-roprompt.el 
 ELCFILES   = $(LISPFILES:.el=.elc)
 TEXIFILES  = idlwave.texi
-INFOFILES  = idlwave idlwave-1 idlwave-2 idlwave-3
+INFOFILES  = idlwave idlwave-1 idlwave-2 idlwave-3 idlwave-4
 RINFOFILES = idlw-rinfo.el
 HTMLHELPDIR  = idl_html_help
 DLDIR     = /var/www/html/idlwave/download
