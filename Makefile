@@ -100,44 +100,58 @@ EMACSDISTFILES= $(LISPFILES) $(TEXIFILES) ChangeLog
 
 DOWNGRADEFILES= README.downgrade idlw-rinfo.el idlw-help.el idlw-help.txt
 
+.PHONY: all
 all:	lisp
 
+.PHONY: install
 install: install-lisp
 
+.PHONY: install-all
 install-all: install-lisp install-info install-help
 
+.PHONY: lisp
 lisp:	$(LISPFILES)
 	$(ELC) $(LISPFILES)
 
+.PHONY: compile
 compile: $(LISPFILES)
 	$(ELC) $(LISPFILES)
 
+.PHONY: info
 info:	$(INFOFILES)
 
-
+.PHONY: dvi
 dvi:    idlwave.dvi
 
+.PHONY: view
 view:   
 	xdvi idlwave.dvi&
 
+.PHONY: ps
 ps:	idlwave.ps
 
+.PHONY: ps2
 ps2:	idlwave.ps
 	psnup -2 idlwave.ps>idlwave.ps2
 
+.PHONY: html
 html:	idlwave.html
 
+.PHONY: dvi
 pdf:    idlwave.pdf
 
+.PHONY: install-lisp
 install-lisp: 
 	if [ ! -d $(lispdir) ]; then $(MKDIR) $(lispdir); else true; fi ;
 	$(CP) $(LISPFILES) $(lispdir)
 	$(CP) $(ELCFILES)  $(lispdir)
 
+.PHONY: install-info
 install-info:
 	if [ ! -d $(infodir) ]; then $(MKDIR) $(infodir); else true; fi ;
 	$(CP) $(INFOFILES) $(infodir)
 
+.PHONY: install-help
 install-help: 
 	@[ -f  idlw-help.el -a -f idlw-help.txt ] || { echo "Help package missing. download from idlwave.org and install here."; exit 1; }
 	$(ELC) idlw-help.el
@@ -167,9 +181,7 @@ rinfo53:
 rinfo54:
 	./get_rinfo54 -txt -path pdf54 -idl idl_5.4
 
-rinfo55: $(RINFOFILES)
-
-$(RINFOFILES): get_rinfo
+rinfo55: 
 	./get_rinfo -fixup help55fixup.txt -txt -path pdf55 -idl idl_5.5
 
 dgkit:
