@@ -408,17 +408,20 @@ It collects and prints the diagnostics messages."
        ;; A class structure tag (self.BLAH) -- only in-text help available
        (classtag
 	(let ((tag (substring this-word (match-end 0)))
-	      class-with)
+	      class-with found-in)
 	  (when (setq class-with 
 		      (idlwave-class-or-superclass-with-tag
 		       (nth 2 (idlwave-current-routine))
 		       tag))
+	    (setq found-in (idlwave-class-found-in class-with))
 	    (if (assq (idlwave-sintern-class class-with) 
 		      idlwave-system-class-info)
 		(error "No help available for system class tags"))
 	    (setq idlwave-help-do-class-struct-tag t)
 	    (setq mod1 (list nil 
-			     (concat class-with "__define")
+			     (if found-in
+				 (cons (concat found-in "__define") class-with)
+			       (concat class-with "__define"))
 			     'pro
 			     nil ; no class.... it's a procedure!
 			     tag)))))
@@ -785,6 +788,8 @@ This function can be used as `idlwave-extra-help-function'."
   (let* ((class-struct-tag idlwave-help-do-class-struct-tag)
 	 (struct-tag idlwave-help-do-struct-tag)
 	 (case-fold-search t)
+	 (real-class (if (consp name) (cdr name)))
+	 (name (if (consp name) (car name) name))
 	 (class-only (and (stringp class) (not (stringp name))))
 	 file header-pos def-pos in-buf)
     (if class-only   ;Help with class?  Using "Init" as source.
@@ -826,7 +831,8 @@ This function can be used as `idlwave-extra-help-function'."
     (setq def-pos
 	  ;; Find the class structure tag if that's what we're after
 	  (cond 
-	   ;; Class structure tags: find the class definition
+	   ;; Class structure tags: find the class or named structure
+	   ;; definition
 	   (class-struct-tag
 	    (save-excursion 
 	      (setq class
@@ -834,7 +840,7 @@ This function can be used as `idlwave-extra-help-function'."
 			(substring name 0 (match-beginning 1))
 		      idlwave-current-tags-class))
 	      (and
-	       (idlwave-find-class-definition class)
+	       (idlwave-find-class-definition class nil real-class)
 	       (idlwave-find-struct-tag keyword))))
 	   
 	   ;; Generic structure tags: the structure definition
