@@ -1029,11 +1029,14 @@ plot,x,alog(x+5*sin(x) + 2),
 On positions 1,2 and 8, information about the @samp{plot} procedure will
 be shown.  On positions 3,4, and 7, the @samp{alog} function will be
 described, while positions 5 and 6 will investigate the @samp{sin}
-function.  When you ask for routine information about an object method,
-and the method exists in several classes, IDLWAVE queries for the class
-of the object, unless the class is already known through a text property
-on the @samp{->} operator (@pxref{Object Method Completion and Class
-Ambiguity}).
+function.  
+
+When you ask for routine information about an object method, and the
+method exists in several classes, IDLWAVE queries for the class of the
+object, unless the class is already known through a text property on the
+@samp{->} operator (@pxref{Object Method Completion and Class
+Ambiguity}), or by having been explicity included in the call
+(e.g. @code{a->myclass::Foo}).
 
 @cindex Calling sequences
 @cindex Keywords of a routine
@@ -1135,7 +1138,8 @@ window.
 @tab The @i{Classes} line is only included in the routine info window if
 the current class inherits from other classes.  You can click with the
 @emph{middle} mouse button to display routine info about the current
-method in other classes on the inheritance chain.
+method in other classes on the inheritance chain, if such a method
+exists there.
 @end multitable
 
 @defopt idlwave-resize-routine-help-window (@code{t})
@@ -1190,7 +1194,7 @@ For routines which are not documented in the IDL manual (for example
 your own routines), the source code is used as help text.  If the
 requested information can be found in a (more or less) standard DocLib
 file header, IDLWAVE shows the header (scrolling down to appropriate
-keywords, e.g.).  Otherwise the routine definition statement
+keywords).  Otherwise the routine definition statement
 (@code{pro}/@code{function}) is shown.
 
 @kindex M-?
