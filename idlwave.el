@@ -5,7 +5,7 @@
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/10/11 23:20:21 $
+;; Date: $Date: 2002/10/30 23:40:53 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -1413,7 +1413,7 @@ Normally a space.")
   "Character which is inserted as a last character on previous line by
    \\[idlwave-split-line] to begin a continuation line.  Normally $.")
 
-(defconst idlwave-mode-version " VERSIONTAG")
+(defconst idlwave-mode-version " 4.16")
 
 (defmacro idlwave-keyword-abbrev (&rest args)
   "Creates a function for abbrev hooks to call `idlwave-check-abbrev' with args."
@@ -1583,9 +1583,13 @@ Capitalize system variables - action only
       'idlwave-shell-save-and-run)
     (define-key idlwave-mode-map 
       (vector (append mods-noshift (list (if shift ?B ?b))))
-      'idlwave-shell-break-here)))
+      'idlwave-shell-break-here)
+    (define-key idlwave-mode-map 
+      (vector (append mods-noshift (list (if shift ?E ?e))))
+      'idlwave-shell-run-region)))
 (define-key idlwave-mode-map "\C-c\C-d\C-c" 'idlwave-shell-save-and-run)
 (define-key idlwave-mode-map "\C-c\C-d\C-b" 'idlwave-shell-break-here)
+(define-key idlwave-mode-map "\C-c\C-d\C-e" 'idlwave-shell-run-region)
 (define-key idlwave-mode-map "\C-c\C-f" 'idlwave-for)
 ;;  (define-key idlwave-mode-map "\C-c\C-f" 'idlwave-function)
 ;;  (define-key idlwave-mode-map "\C-c\C-p" 'idlwave-procedure)
@@ -1604,6 +1608,8 @@ Capitalize system variables - action only
   "Save and run buffer under the shell." t)
 (autoload 'idlwave-shell-break-here "idlw-shell"
   "Set breakpoint in current line." t)
+(autoload 'idlwave-shell-run-region "idlw-shell"
+  "Compile and run the region." t)
 (define-key idlwave-mode-map "\C-c\C-v"   'idlwave-find-module)
 (define-key idlwave-mode-map "\C-c?"      'idlwave-routine-info)
 (define-key idlwave-mode-map "\M-?"       'idlwave-context-help)
@@ -1781,7 +1787,7 @@ idlwave-mode-abbrev-table unless TABLE is non-nil."
 
 ;;;###autoload
 (defun idlwave-mode ()
-  "Major mode for editing IDL and WAVE CL .pro files.
+  "Major mode for editing IDL source files.
 
 The main features of this mode are
 
@@ -2113,7 +2119,7 @@ Also checks if the correct end statement has been used."
 	 (eol-pos (save-excursion (end-of-line) (point)))
 	 begin-pos end-pos end end1 )
     (if idlwave-reindent-end  (idlwave-indent-line))
-    
+    (setq last-abbrev-location (marker-position last-abbrev-marker))
     (when (and (idlwave-check-abbrev 0 t)
 	       idlwave-show-block)
       (save-excursion
@@ -3012,7 +3018,10 @@ Return value is the beginning of the match or (in case of failure) nil."
        (catch 'exit
 	 (while (funcall search-func key-re limit t)
 	   (if (not (idlwave-quoted))
-	       (throw 'exit (setq found (match-beginning 0))))))))
+	       (throw 'exit (setq found (match-beginning 0)))
+	     (if (or (and (> dir 0) (eobp))
+		     (and (< dir 0) (bobp)))
+		 (throw 'exit nil)))))))
     (if found
 	(progn
 	  (if (not nomark) (push-mark))
