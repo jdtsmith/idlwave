@@ -4,6 +4,57 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
+Revision 4.15
+=============
+   - Routine info for routines with multi-threading keywords is now
+     displayed correctly, and these keywords are linked in online
+     help.
+   - Fixed bug in Makefile causing trouble compiling when using older
+     versions of help.
+   - Filename completion in the shell works more cleanly without
+     corruption, and can now complete blank filenames in the local
+     directory (e.g. open,'[Tab]).
+   - Filename completion in the shell now works after "@" batch
+     commands.
+   - Better handling of obscure syntax errors.
+   - A special loadable module (`idlw-roprompt') allows Emacs 21 users
+     to make the "IDL>" prompt read-only.
+   - Bug fix: All tags are now found for tag completion on self, and
+     in other structures when the optional completion module
+     `complete-struct-tag' is used.
+   - Bug fix: alignment on the `=' of an assignment now permits a more
+     complicated LHS (e.g. a.(0)[1]=...).  
+   - Fixed bug when using multi-word abbreviations like "\ei": an
+     erroneous begin-end block matching error was being issued.
+   - Fixed system variable tag completion bug when using
+     idlw-complete-structtag for easy structure completion.
+   - Breakpoints are now temporarily disabled when using "Continue to
+     Here" and "Continue to End of Block", ensuring this always works
+     correctly.
+   - Added custom variable for controlling how much of the background
+     communication between buffer and shell is displayed
+     (`idlwave-shell-show-commands').  You can even turn on
+     'everything to get a peek behind the curtain.
+   - By default, object method and method keyword completions in the
+     shell now query the shell for the object class during the
+     completion.  E.g. "a=obj_new("idl_container") & a->[Tab]" will
+     automatically learn that "a" is an IDL_CONTAINER object and offer
+     the correct procedure methods.
+   - You can now set a conditional breakpoint with a simple prefix arg
+     to the breakpoint command (i.e. [C-u C-c C-d C-b]), which will
+     prompt you for the IDL expression.
+   - Fixed bug when completing procedure methods on multi-statement
+     lines.
+   - When completing class structure tags (self.[Tab]), or regular
+     structure (via idlw-complete-structtag) you can now right click
+     on the tags in the completion buffer to pull up their definition
+     in the help window.  Context help also works on class structure
+     tags.
+   - Class structure tags from superclasses are labelled with the
+     class in the *Completions* buffer.
+   - Bug fix for indenting continuation lines which contain "pro" or
+     "function" somewhere within their argument list.
+
 Revision 4.14
 =============
    - More sensible handling of multiple *Examine* buffer windows,

@@ -2,20 +2,34 @@ This is the README file for the IDLWAVE online help files.
 
 This distribution contains the following files:
 
-idlw-help.txt   An ASCII version of several IDL manuals
-idlw-help.el    A file with Lisp code and pointers to the topics
-                in `idlw-help.txt'.
+README.hlp          This file
+idlw-help.txt       An ASCII version of several IDL manuals
+idlw-help.el        A file with Lisp code and pointers to the topics
+                    in `idlw-help.txt'.
+idlw-help-topics.el Lispcode help topics produced by get_rinfo for
+                    building idlw-help.el
+help55fixup.txt     Fixup text for IDL v5.5 help
 
-Please install these two files anywhere on your system and tell
-IDLWAVE where to find them.  You can do this by adding the following
-line to to your Emacs configuration:
+Please install these these files on your system with 
+
+make help-install
+
+or 
+
+make install-all 
+
+if part of a single IDLWAVE installation.
+
+You should tell IDLWAVE where to find these files, if they're not in
+their default locations, by adding the following line to to your
+.emacs file:
 
    (setq idlwave-help-path "/path/to/idlwave/helpfiles/")
 
 Alternatively, set the environment variable IDLWAVE_HELP_DIRECTORY.
 
 Byte-compiling the file `idlw-help.el' will make online help even
-faster. 
+faster (automatically done by the make process).
 
 The IDL documentation is copyright by Research Systems, Inc.  This
 ASCII version can be distributed for the purpose of supporting the
@@ -23,4 +37,4 @@ Emacs IDLWAVE mode.  Please see the file `idlw-help.txt' for the
 original copyright notice by RSI.
 
 The code in `idlw-help.el' is distributed under the terms of the GNU
-General Public License.
+General Public License.  See the file COPYING for more information.

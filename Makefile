@@ -89,10 +89,10 @@ SHELL = /bin/sh
 
 DISTFILES= README INSTALL CHANGES ChangeLog COPYING Makefile\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES) lpath.el\
-	idltags get_rinfo helpcode help55fixup.txt tutorial.pro
+	idltags get_rinfo tutorial.pro
 
 WEBDISTFILES= idlwave.ps idlwave.pdf idlwave.html CHANGES
-HELPDISTFILES= README.hlp $(HELPFILES)
+HELPDISTFILES= README.hlp idlw-help-topics.el help55fixup.txt $(HELPFILES)
 
 XEMACSDISTFILES= README INSTALL CHANGES ChangeLog COPYING\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES)\
@@ -228,6 +228,7 @@ distfile: $(DISTFILES)
 	mkdir idlwave-help-$(TAG)
 	cp -p $(HELPDISTFILES) idlwave-help-$(TAG)/
 	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' idlwave-help-$(TAG)/*.el
+	perl -pi -e '{local $$/=$$/; open(TOPICS,"idlw-help-topics.el"); chomp($$created=<TOPICS>.<TOPICS>); undef $$/; $$topics=<TOPICS>;} s/^;;; INSERT-CREATED-BY-HERE/$$created/; s/^;;; INSERT-HELP-TOPICS-HERE/$$topics/;' idlwave-help-$(TAG)/*.el
 	tar czvf idlwave-$(TAG)-help.tar.gz -C idlwave-help-$(TAG) $(HELPDISTFILES)
 	rm -rf idlwave-help-$(TAG)
 
