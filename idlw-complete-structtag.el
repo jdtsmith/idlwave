@@ -3,7 +3,7 @@
 
 ;; Author: Carsten Dominik <dominik@astro.uva.nl>
 ;; Version: 1.0
-;; Date: $Date: 2001/12/05 20:04:09 $
+;; Date: $Date: 2002/06/14 19:07:37 $
 ;; Keywords: languages
 
 ;; Completion of structure tags is highly ambiguous since you never
@@ -20,6 +20,10 @@
 ;; This file is a completion plugin which implements this kind of
 ;; completion. It is also an example which shows how completion
 ;; plugins should be programmed.
+;;
+;; New versions of IDLWAVE, documentation, and more information
+;; available from:
+;;                 http://idlwave.org
 ;;
 ;; INSTALLATION
 ;; ============
