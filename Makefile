@@ -128,6 +128,10 @@ ifdef HELPFILEMAYBE
 HELPFILECODE  := $(shell echo $(HELPFILEMAYBE) | grep -q "\.gz$$" && echo "z" || echo "j")
 endif
 
+# XEMACS VERSION
+XEMACS-TAG := $(shell perl -ne 'if(/^VERSION\s+=\s+([0-9]\.[0-9]+)/) {print $$1; exit}' $(XEMACSDIR)/Makefile)
+
+
 .PHONY: helpdist
 helpdist: helpdistfile
 ifdef IDL
@@ -189,15 +193,15 @@ alphadist:
 xemacsdistfile: $(XEMACSDISTFILES)
 	@if [ "X$(TAG)" = "X" ]; then echo "*** No tag ***"; exit 1; fi
 	cp -pf $(XEMACSDISTFILES) $(XEMACSDIR)/
-	perl -pi -e 's/^((?:AUTHOR_)?VERSION\s*=\s*)([0-9]\.[0-9.a-z]+)/$${1}$(TAG)/' $(XEMACSDIR)/Makefile
-	perl -pi -e 's/\bVERSIONTAG\b/$(TAG)/' $(XEMACSDIR)/*
+	(cd $(XEMACSDIR); perl -pi -e 's/\bVERSIONTAG\b/$(TAG)/' $(XEMACSDISTFILES))
+	perl -pi -e 's/^(AUTHOR_VERSION\s*=\s*)([0-9]\.[0-9.a-z]+)/$${1}$(TAG)/' $(XEMACSDIR)/Makefile
 	(cd $(XEMACSDIR); make bindist)
 
 .PHONY: xemacsdist
 xemacsdist: 
 	make xemacsdistfile TAG=$(TAG)
-	cp -p xemacs-packages/idlwave-$(TAG)-pkg.tar.gz $(DLDIR)
-	(cd $(DLDIR); ln -sf idlwave-$(TAG)-pkg.tar.gz idlwave-xemacs.tar.gz)
+	cp -p xemacs-packages/idlwave-$(XEMACS-TAG)-pkg.tar.gz $(DLDIR)
+	(cd $(DLDIR); ln -sf idlwave-$(XEMACS-TAG)-pkg.tar.gz idlwave-xemacs.tar.gz)
 
 .PHONY: xemacsalphadist
 xemacsalphadist:
