@@ -884,7 +884,7 @@ Non-@code{nil} means use last match on line for
 @code{idlwave-indent-regexp}. 
 @end defopt
 
-@node Syntax Highlighting,  , Continuation Lines, Code Formatting
+@node Syntax Highlighting, Octals and Syntax Highlighting, Continuation Lines, Code Formatting
 @subsection Syntax Highlighting
 @cindex Syntax highlighting
 @cindex Highlighting of syntax
@@ -893,8 +893,9 @@ Non-@code{nil} means use last match on line for
 Highlighting of keywords, comments, strings etc. can be accomplished
 with @code{font-lock}.  If you are using @code{global-font-lock-mode}
 (in Emacs), or have @code{font-lock} turned on in any other buffer in
-XEmacs, it should also automatically work in IDLWAVE buffers.  If not,
-you can enforce it with the following line in your @file{.emacs}
+XEmacs, it should also automatically work in IDLWAVE buffers.  If you'd
+prefer invoking font-lock individually by mode, you can enforce it in
+@code{idlwave-mode} with the following line in your @file{.emacs}
 
 @lisp
 (add-hook 'idlwave-mode-hook 'turn-on-font-lock)
@@ -910,6 +911,36 @@ for highlighting using the variable
 Items which should be fontified on the default fontification level
 2. 
 @end defopt
+
+@node Octals and Syntax Highlighting,  , Syntax Highlighting, Code Formatting
+@subsection Octals and Syntax Highlighting
+@cindex Syntax highlighting, Octals
+@cindex Highlighting of syntax, Octals
+
+A rare syntax highlighting problem results from the extremely
+unfortunate notation for octal numbers in IDL: @code{"123}.  This
+unpaired quotation mark is very difficult to parse, given that it can be
+mixed on a single line with any number of strings.  Emacs will
+incorrectly identify this as a string, and the highlighting of following
+lines of code can be distorted, since the string is never terminated.
+
+One solution to this involves terminating the mistakenly identified
+string yourself by providing a closing quotation mark in a comment:
+
+@example
+  string("305B) + $ ;" <--- for font-lock
+   ' is an Angstrom.'
+@end example
+
+@noindent A far better solution is to abandon this notation for octals
+altogether, and use the more sensible alternative IDL provides:
+
+@example
+   string('305'OB) + ' is an Angstrom.'
+@end example
+
+@noindent This simultaneously solves the font-lock problem and is more
+consistent with the notation for hexadecimal numbers: @code{'123'X}.
 
 @node Routine Info, Online Help, Code Formatting, The IDLWAVE Major Mode
 @section Routine Info
@@ -1019,7 +1050,7 @@ has regarding the file: from a library catalog (@w{@code{[C--]}},
 @pxref{Library Catalog}), from the IDL Shell (@w{@code{[-S-]}}) or from
 an Emacs buffer (@w{@code{[--B]}}).  Combinations are possible (a
 compiled library routine visited in a buffer might read
-@w{@code{[CSB]}}.  If a file contains multiple definitions of the same
+@w{@code{[CSB]}}).  If a file contains multiple definitions of the same
 routine, the file name will be prefixed with @samp{(Nx)} where @samp{N}
 is the number of definitions.
 
@@ -1090,9 +1121,9 @@ online help to work, an ASCII version of the IDL documentation, which is
 not part of the standalone IDLWAVE distribution, is required.  The
 necessary help files can be downloaded from
 @uref{@value{IDLWAVE-HOMEPAGE}, the maintainers webpage}.  The text
-extracted from the PDF files is fine for normal text, but graphics and
-multiline equations will not be well formatted.  See also
-@ref{Documentation Scan}.
+extracted from the PDF files is fine for normal documentation
+paragraphs, but graphics and multiline equations will not be well
+formatted.  See also @ref{Documentation Scan}.
 
 @cindex Updated online help
 @cindex Online help, updates
@@ -1116,7 +1147,7 @@ keywords, e.g.).  Otherwise the routine definition statement
 In any IDL program (or, as with most IDLWAVE commands, in the IDL
 Shell), press @kbd{M-?} (@code{idlwave-context-help}), or click with
 @kbd{S-mouse-3} to access context sensitive online help.  The following
-locations are recognized as context:
+locations are recognized context for help:
 
 @cindex Context, for online help
 @multitable @columnfractions .25 .75
@@ -1168,7 +1199,7 @@ directly in the originating source file.
 @cindex Help application, keybindings
 @cindex Keybindings, in help application
 The help window is normally displayed in a separate frame.  The
-following commands can be used to navigate inside the help system.
+following commands can be used to navigate inside the help system:
 
 @multitable  @columnfractions .15 .85
 @item @kbd{@key{SPACE}}
@@ -1197,7 +1228,8 @@ methods and back.
 
 @sp 1
 @noindent When the help text is a source file, the following commands
-are also available.
+are also available:
+
 @multitable  @columnfractions .15 .85
 @item @kbd{h}
 @tab Jump to DocLib Header of the routine whose source is displayed
@@ -1249,7 +1281,7 @@ The face for links in IDLWAVE online help.
 Non-@code{nil} means, make all possible links in help window active.
 @end defopt
 
-@node Completion, Routine Source, Online Help, The IDLWAVE Major Mode
+@node Completion, Resolving Routines, Online Help, The IDLWAVE Major Mode
 @section Completion
 @cindex Completion
 @cindex Keyword completion
@@ -1270,7 +1302,7 @@ can be updated with @kbd{C-c C-i} (@code{idlwave-update-routine-info}).
 The completion function is context sensitive and figures out what to
 complete at point.  Here are example lines and what @kbd{M-@key{TAB}}
 would try to complete when the cursor is on the position marked with a
-@samp{_}.
+@samp{_}:
 
 @example
 plo_                    @r{Procedure}
@@ -1309,35 +1341,6 @@ item.  Items for which system online help (from the IDL manual) is
 available will be displayed in a different font.  For other items, the
 corresponding source code or DocLib header is available as help text.
 
-@cindex Case of completed words
-@cindex Mixed case completion
-The case of the completed words is determined by what is already in the
-buffer.  When the partial word being completed is all lower case, the
-completion will be lower case as well.  If at least one character is
-upper case, the string will be completed in upper case or mixed case.
-The default is to use upper case for procedures, functions and keywords,
-and mixed case for object class names and methods, similar to the
-conventions in the IDL manuals.  These defaults can be changed with the
-variable @code{idlwave-completion-case}.  For instance, to enable
-mixed-case completion for routines in addition to classes and methods,
-you need an entry such as @code{routine . preserve} in that variable.
-
-@defopt idlwave-completion-case
-Association list setting the case (UPPER/lower/Capitalized/MixedCase...)
-of completed words.
-@end defopt
-
-@defopt idlwave-completion-force-default-case (@code{nil})
-Non-@code{nil} means, completion will always honor the settings in
-@code{idlwave-completion-case}.  When nil (the default), lower case
-strings will be completed to lower case.
-@end defopt
-
-@defopt idlwave-complete-empty-string-as-lower-case (@code{nil})
-Non-@code{nil} means, the empty string is considered lower case for
-completion.
-@end defopt
-
 @defopt idlwave-keyword-completion-adds-equal (@code{t})
 Non-@code{nil} means, completion automatically adds @samp{=} after
 completed keywords.
@@ -1358,7 +1361,43 @@ completion.
 Non-nil means, highlight completions for which system help is available.
 @end defopt
 
-@subsubheading Object Method Completion and Class Ambiguity
+@node  Case of Completed Words, Object Method Completion and Class Ambiguity, Completion, Completion
+@subsection Case of Completed Words
+@cindex Case of completed words
+@cindex Mixed case completion
+The case of the completed words is determined by what is already in the
+buffer.  When the partial word being completed is all lower case, the
+completion will be lower case as well.  If at least one character is
+upper case, the string will be completed in upper case or mixed case.
+The default is to use upper case for procedures, functions and keywords,
+and mixed case for object class names and methods, similar to the
+conventions in the IDL manuals.  These defaults can be changed with the
+variable @code{idlwave-completion-case}.  For instance, to enable
+mixed-case completion for routines in addition to classes and methods,
+you need an entry such as @code{routine . preserve} in that variable.
+To enable total control over the case of completed items, independent of
+buffer context, set @code{idlwave-completion-force-default-case} to
+non-@code{nil}.
+
+@defopt idlwave-completion-case
+Association list setting the case (UPPER/lower/Capitalized/MixedCase...)
+of completed words.
+@end defopt
+
+@defopt idlwave-completion-force-default-case (@code{nil})
+Non-@code{nil} means, completion will always honor the settings in
+@code{idlwave-completion-case}.  When nil (the default), entirely lower
+case strings will always be completed to lower case, no matter what the
+settings in @code{idlwave-completion-case}.
+@end defopt
+
+@defopt idlwave-complete-empty-string-as-lower-case (@code{nil})
+Non-@code{nil} means, the empty string is considered lower case for
+completion.
+@end defopt
+
+@node  Object Method Completion and Class Ambiguity, , Case of Completed Words, Completion
+@subsection Object Method Completion and Class Ambiguity
 @cindex Object methods
 @cindex Class ambiguity
 @cindex @code{self} object, default class
@@ -1370,8 +1409,8 @@ available classes will be considered for keyword completion.  In the
 @file{*Completions*} buffer, the matching classes will be shown next to
 each item (see option @code{idlwave-completion-show-classes}).  As a
 special case, the class of an object called @samp{self} object is always
-the class of the current routine.  All classes it inherits from are
-considered as well where appropriate.
+taken to be the class of the current routine.  All classes it inherits
+from are considered as well where appropriate.
 
 @cindex Forcing class query.
 @cindex Class query, forcing
@@ -1388,9 +1427,6 @@ property in the object operator @samp{->}.  This is not enabled by
 default - the variable @code{idlwave-store-inquired-class} can be used
 to turn it on.
 
-@defopt idlwave-support-inheritance (@code{t})
-Non-@code{nil} means, consider inheritance during completion, online help etc.
-@end defopt
 
 @defopt idlwave-completion-show-classes (@code{1})
 Non-@code{nil} means, show classes in @file{*Completions*} buffer when
@@ -1414,6 +1450,45 @@ Non-@code{nil} means, store class of a method call as text property on
 Face to highlight object operator arrows @samp{->} which carry a class
 text property.
 @end defopt
+
+@node   Class and Keyword Inheritance,  , Object Method Completion and Class Ambiguity, Completion
+@subsection Class and Keyword Inheritance
+@cindex Inheritance, class
+@cindex Keyword inheritance
+@cindex Inheritance, keyword
+
+Inheritance affects the way given methods are called.  An object of a
+class inheriting methods from one or more superclasses can either
+override that method by re-defining a method of the same name, extend
+the method by calling the method(s) of its superclass(es) in it, or
+inherit the method directly by making no modifications.  IDLWAVE
+examines class definitions and records all inheritance information,
+which is displayed when appropriate (@pxref{Routine Info}), as long as
+variable @code{idlwave-support-inheritance} is non-@code{nil}.
+
+In many class methods, @emph{keyword} inheritance (@code{_EXTRA} and
+@code{_REF_EXTRA}) is used alongside class inheritance, e.g. in a
+@code{SetProperty} method, to allow a single call
+@code{obj->SetProperty} to set properties up the entire inheritance
+chain.  This is often referred to as @emph{chaining}, and is
+characterized by calls such as
+@code{self->MySuperClass::SetProperty,_EXTRA=e}.  The variable
+@code{idlwave-keyword-class-inheritance} can be used to configure which
+methods have keyword inheritance treated in a very simple way: if
+@code{_EXTRA} or @code{_REF_EXTRA} are detected among the keyword
+parameters, all keywords of superclass versions of the method being
+considered are included in completion.  By default, only @code{Init} and
+@code{(Get|Set)Property} are treated this way.
+
+@defopt idlwave-support-inheritance (@code{t})
+Non-@code{nil} means, consider inheritance during completion, online help etc.
+@end defopt
+
+@defopt idlwave-keyword-class-inheritance
+A list of regular expressions to match methods for which simple
+class-driven keyword inheritance will be used.
+@end defopt
+
 
 @node Routine Source, Resolving Routines, Completion, The IDLWAVE Major Mode
 
@@ -1626,8 +1701,8 @@ String abbreviations:
 @tab @code{writeu,}
 @end multitable
 
-You can easily add your own abbreviations with @code{define-abbrev} inserted
-your mode hook, e.g.:
+@noindent You can easily add your own abbreviations with
+@code{define-abbrev} in your mode hook:
 
 @lisp
 (add-hook 'idlwave-mode-hook
@@ -1637,14 +1712,14 @@ your mode hook, e.g.:
               (idlwave-keyword-abbrev 6))
 @end lisp
 
-Notice how the abbreviation start character is prepended to @emph{ik},
-and that the argument @emph{6} to @code{idlwave-keyword-abbrev}
-specifies how far back to move the point (to put between the
-parentheses).
+Notice how the start character is prepended to the abbreviation (here
+@emph{ik}), and the argument to @code{idlwave-keyword-abbrev} (here
+@emph{6}) specifies how far back to move the point (in this example, to
+put it between the parentheses).
 
 The abbreviations are expanded in upper or lower case, depending upon
 the variables @code{idlwave-abbrev-change-case} and (for reserved word
-templates) @code{idlwave-reserved-word-upcase}.
+templates) @code{idlwave-reserved-word-upcase} (@pxref{Case Changes}).
 
 @defopt idlwave-abbrev-start-char (@code{"\"})
 A single character string used to start abbreviations in abbrev
@@ -1656,7 +1731,7 @@ Non-@code{nil} means the abbrev hook can move point, e.g. to end up
 between the parenthesis of a function call.
 @end defopt
 
-@node Actions, Doc Header, Code Templates, The IDLWAVE Major Mode
+@node Actions, Doc Header, Abbreviations, The IDLWAVE Major Mode
 @section Actions
 @cindex Actions
 @cindex Coding standards, enforcing
@@ -1666,10 +1741,10 @@ while you write code in order to check the structure of the program or
 to enforce coding standards.  Most actions which have been implemented
 in IDLWAVE are turned off by default, assuming that the average user
 wants her code the way she writes it.  But if you are a lazy typist and
-want your code to adhere to certain standards, they can be
+want your code to adhere to certain standards, actions can be
 helpful.
 
-Action can be applied in three ways:
+Actions can be applied in three ways:
 
 @itemize @bullet
 @item
@@ -1685,12 +1760,12 @@ must be non-@code{nil}.
 @item
 @cindex Foreign code, adapting
 @cindex Actions, applied to foreign code
-Action can also be applied to a larger piece of code, e.g. in order to
-convert foreign code to your own style.  To do this, mark the relevant
-part of the code and execute @kbd{M-x expand-region-abbrevs}.  Useful
-marking commands are @kbd{C-x h} (the entire file) or @kbd{C-M-h} (the
-current subprogram). @xref{Code Indentation}, for information how to
-adjust the indentation of the code.
+Actions can also be applied to a larger piece of code, e.g. to convert
+foreign code to your own style.  To do this, mark the relevant part of
+the code and execute @kbd{M-x expand-region-abbrevs}.  Useful marking
+commands are @kbd{C-x h} (the entire file) or @kbd{C-M-h} (the current
+subprogram). @xref{Code Indentation}, for information how to adjust the
+indentation of the code.
 @end itemize
 
 @defopt idlwave-do-actions (@code{nil})
@@ -1715,13 +1790,13 @@ Non-@code{nil} means performs actions when indenting.
 Whenever you type an @code{END} statement, IDLWAVE finds the
 corresponding start of the block and the cursor blinks back to that
 location for a second.  If you have typed a specific @code{END}, like
-@code{ENDIF} or @code{ENDCASE}, you get a warning if that kind of END
+@code{ENDIF} or @code{ENDCASE}, you get a warning if that terminator
 does not match the type of block it terminates.
 
 Set the variable @code{idlwave-expand-generic-end} in order to have all
-generic @code{END} statements automatically expanded to a specific type.
-You can also type @kbd{C-c ]} to close the current block by inserting
-the appropriate @code{END} statement.
+generic @code{END} statements automatically expanded to the appropriate
+type.  You can also type @kbd{C-c ]} to close the current block by
+inserting the appropriate @code{END} statement.
 
 @defopt idlwave-show-block (@code{t})
 Non-@code{nil} means point blinks to block beginning for
@@ -1743,16 +1818,15 @@ Non-nil means re-indent line after END was typed.
 @cindex Space, around operators
 
 Some operators can be automatically surrounded by spaces.  This can
-happen when the operator is typed, or also later when the line is
-indented.  IDLWAVE contains this setting for the operators @samp{&},
-@samp{<}, @samp{>}, @samp{,}, @samp{=}, and @samp{->}@footnote{Operators
-longer than one character can only be padded during line indentation.},
-but the feature is turned off by default.  If you want to turn it on,
-customize the variables @code{idlwave-surround-by-blank} and
-@code{idlwave-do-actions}.  You can also define similar actions for
-other operators by using the function @code{idlwave-action-and-binding}
-in the mode hook.  For example, to enforce space padding of the @samp{+}
-and @samp{*} operators, try this in @file{.emacs}
+happen when the operator is typed, or later when the line is indented.
+IDLWAVE can pad the operators @samp{&}, @samp{<}, @samp{>}, @samp{,},
+@samp{=}, and @samp{->}, but this feature is turned off by default.  If
+you want to turn it on, customize the variables
+@code{idlwave-surround-by-blank} and @code{idlwave-do-actions}.  You can
+also define similar actions for other operators by using the function
+@code{idlwave-action-and-binding} in the mode hook.  For example, to
+enforce space padding of the @samp{+} and @samp{*} operators, try this
+in @file{.emacs}
 
 @lisp
 (add-hook 'idlwave-mode-hook
@@ -1799,7 +1873,9 @@ your @file{.emacs} file:
 @end lisp
 
 For more information, see the documentation string for the function
-@code{idlwave-action-and-binding}.
+@code{idlwave-action-and-binding}.  For information on controlling the
+case of routines, keywords, classes, and methods as they are completed, see
+@ref{Completion}.
 
 @defopt idlwave-abbrev-change-case (@code{nil})
 Non-@code{nil} means all abbrevs will be forced to either upper or lower
@@ -1867,10 +1943,15 @@ Regexp matching the start of a document library header.
 
 IDLWAVE supports both @file{Imenu} and @file{Func-menu}, two packages
 which make it easy to jump to the definitions of functions and
-procedures in the current file.
+procedures in the current file.  To bind @file{Imenu} to a mouse-press,
+use in your @file{.emacs}:
+
+@lisp
+(define-key global-map [S-down-mouse-3] 'imenu)
+@end lisp
 
 Several commands allow to move quickly through the structure of an IDL
-program.  These are
+program.  These are:
 
 @multitable @columnfractions .15 .85
 @item @kbd{C-M-a}
@@ -1917,19 +1998,6 @@ Normal hook.  Executed when @file{idlwave.el} is loaded.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 @node The IDLWAVE Shell, Installation, The IDLWAVE Major Mode, Top
 @chapter The IDLWAVE Shell
 @cindex IDLWAVE shell
@@ -1941,14 +2009,16 @@ Normal hook.  Executed when @file{idlwave.el} is loaded.
 @cindex MacOS
 @cindex Unix
 
-The IDLWAVE shell is an Emacs major mode which allows to run the IDL
-program as an inferior process of Emacs.  It can be used to work with
-IDL interactively, to compile and run IDL programs in Emacs buffers and
-to debug these programs.  The IDLWAVE shell uses @file{comint}, an Emacs
-packages which handles the communication with the IDL program.
-Unfortunately IDL for Windows and MacOS does not allow the interaction
-with Emacs@footnote{Please inform the maintainer if you come up with a way
-to make the IDLWAVE shell work on these systems.} - so the IDLWAVE shell
+The IDLWAVE shell is an Emacs major mode which permits running the IDL
+program as an inferior process of Emacs, and works closely with the
+IDLWAVE major mode in buffers.  It can be used to work with IDL
+interactively, to compile and run IDL programs in Emacs buffers and to
+debug these programs.  The IDLWAVE shell is built upon @file{comint}, an
+Emacs packages which handles the communication with the IDL program.
+Unfortunately IDL for Windows and MacOS do not have command-prompt
+versions and thus do not allow the interaction with
+Emacs@footnote{Please inform the maintainer if you come up with a way to
+make the IDLWAVE shell work on these systems.} - so the IDLWAVE shell
 currently only works under Unix.
 
 @menu
@@ -2060,7 +2130,7 @@ history just like in an X terminal@footnote{This is different from
 normal Emacs/Comint behavior, but more like an xterm.  If you prefer the
 default comint functionality, check the variable
 @code{idlwave-shell-arrows-do-history}.}.  The history is preserved
-between emacs sessions.  Here is a list of commonly used commands.
+between emacs sessions.  Here is a list of commonly used commands:
 
 @multitable @columnfractions .12 .88
 @item @key{UP}
@@ -2191,7 +2261,7 @@ The debugging keybindings are by default on the prefix key @kbd{C-c
 C-d}, so for example setting a breakpoint is done with @kbd{C-c C-d
 C-b}, compiling a source file with @kbd{C-c C-d C-c}.  If you find this
 too much work you can choose a combination of modifier keys which is not
-used by other commands.  For example, if you write in @file{.emacs}
+used by other commands.  For example, if you write in @file{.emacs}:
 
 @lisp
 (setq idlwave-shell-debug-modifiers '(control shift))
@@ -2456,7 +2526,7 @@ You can also download IDLWAVE and install it yourself from
 @uref{@value{IDLWAVE-HOMEPAGE}, the maintainers webpage}.  Follow the
 instructions in the INSTALL file.
 
-@node Installing Online Help, Upgrading from idl.el  , Installing IDLWAVE, Installation
+@node Installing Online Help, Upgrading from idl.el, Installing IDLWAVE, Installation
 @section Installing Online Help
 @cindex Installing online help
 @cindex Online Help, Installation
@@ -2726,8 +2796,8 @@ path, just like in IDL}:
 (setq idlwave-system-directory "c:/RSI/IDL54/")
 @end lisp
 
-Under UNIX, these values will be automatically inferred from an IDLWAVE
-shell.
+@noindent Under UNIX, these values will be automatically inferred from
+an IDLWAVE shell.
 
 The command @kbd{M-x idlwave-create-libinfo-file} can then be used to
 scan library files.  It brings up a widget in which you can select some
