@@ -9,12 +9,12 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 5.4
-@set EDITION 5.4
+@set VERSION 5.5
+@set EDITION 5.5
 @set IDLVERSION 6.1
 @set NSYSROUTINES 1850
 @set NSYSKEYWORDS 7685
-@set DATE October, 2004
+@set DATE November, 2004
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set AUTHOR-EMAIL jdsmith@@as.arizona.edu
 @set MAINTAINER J.D. Smith
