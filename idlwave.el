@@ -5,7 +5,7 @@
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/10/30 23:40:53 $
+;; Date: $Date: 2003/01/06 22:45:44 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -145,6 +145,7 @@
 ;;; Code:
 
 (eval-when-compile (require 'cl))
+(require 'idlw-help)
 
 ;; For XEmacs
 (unless (fboundp 'line-beginning-position)
@@ -173,6 +174,7 @@
   :link '(custom-manual "(idlwave)Top")
   :prefix "idlwave"
   :group 'languages)
+
 
 ;;; Variables for indentation behavior ---------------------------------------
 
@@ -315,7 +317,6 @@ the comment is not preceded by whitespace it is unchanged."
 ;; Comments not matching any of the above will be indented as a
 ;; right-margin comment, i.e., to a minimum of `comment-column'.
 
-
 ;;; Routine Info and Completion ---------------------------------------
 
 (defgroup idlwave-routine-info nil
@@ -435,91 +436,6 @@ chars are allowed."
   :type '(repeat
 	  (cons regexp string)))
 
-(defgroup idlwave-online-help nil
-  "Online Help options for IDLWAVE mode."
-  :group 'idlwave)
-
-(defcustom idlwave-help-directory ""
-  "The directory where idlw-help.txt and idlw-help.el are stored."
-  :group 'idlwave-online-help
-  :type 'file)
-
-(defcustom idlwave-help-use-dedicated-frame t
-  "*Non-nil means, use a separate frame for Online Help if possible."
-  :group 'idlwave-online-help
-  :type 'boolean)
-
-(defcustom idlwave-help-frame-parameters
-  '((height . 20) (unsplittable . t))
-  "The frame parameters for the special Online Help frame.
-See also `idlwave-help-use-dedicated-frame'.
-If you do not set the frame width here, the value specified in
-`idlw-help.el' will be used."
-  :group 'idlwave-online-help
-  :type '(repeat
-	  (cons symbol sexp)))
-
-(defcustom idlwave-max-popup-menu-items 20
-  "Maximum number of items per pane in popup menus.
-Currently only used for class selection during completion help."
-  :group 'idlwave-online-help
-  :type 'integer)
-
-(defcustom idlwave-extra-help-function 'idlwave-help-with-source
-  "The function to call for online help if the normal help fails.
-Online help works only for system routines which are described in the
-IDL manuals.  A function may be specified to access help from other sources.
-
-The function must accept four arguments: NAME, TYPE, CLASS, KEYWORD.
-The Help buffer is current when this function is called, and the help
-text should be loaded into this buffer.  If help is found, the function
-should return the buffer position which should be used as `window-start'
-in the help window.  Also, the variable `idlwave-help-mode-line-indicator'
-should be set to a useful string, which will be displayed in the mode line
-of the help window.  If should also set the variable `idlwave-min-frame-width'
-to a positive integer.  IDLWAVE will ensure that the help frame is at
-least that many columns wide.
-Failure to find help should be indicated by throwing an error.
-
-When this variable is non-nil, IDLWAVE will allow the mouse-3 help click
-for every routine and keyword, even though the item may not be highlighted
-in blue (indicating the availability of system documentation).
-
-The default value for this function is `idlwave-help-with-source' which
-loads the routine source file into the help buffer.  If you try to write
-a different function which accesses a special help file or so, it is
-probably a good idea to still call this function as a fallback."
-  :group 'idlwave-online-help
-  :type 'symbol)
-
-(defcustom idlwave-help-fontify-source-code nil
-  "*Non-nil means, fontify source code displayed as help like normal code."
-  :group 'idlwave-online-help
-  :type 'boolean)
-
-(defcustom idlwave-help-source-try-header t
-  "*Non-nil means, try to find help in routine header when displaying source.
-Routines which are not documented in the system manual use their source as
-help text.  When this variable is non-nil, we try to find a description of
-the help item in the first routine doclib header above the routine definition.
-If the variable is nil, or if we cannot find/parse the header, the routine
-definition is displayed instead."
-  :group 'idlwave-online-help
-  :type 'boolean)
-
-(defface idlwave-help-link-face
-  '((((class color)) (:foreground "Blue"))
-    (t (:weight bold)))
-  "Face for highlighting links into IDLWAVE online help."
-  :group 'idlwave-online-help)
-
-(defcustom idlwave-help-activate-links-aggressively t
-  "*Non-nil means, make all possible links in help active.
-This just activates all words which are also a help topic - some links may
-be misleading."
-  :group 'idlwave-online-help
-  :type 'boolean)
-  
 
 (defgroup idlwave-completion nil
   "Completion options for IDLWAVE mode."
@@ -1413,7 +1329,7 @@ Normally a space.")
   "Character which is inserted as a last character on previous line by
    \\[idlwave-split-line] to begin a continuation line.  Normally $.")
 
-(defconst idlwave-mode-version " 4.16")
+(defconst idlwave-mode-version " VERSIONTAG")
 
 (defmacro idlwave-keyword-abbrev (&rest args)
   "Creates a function for abbrev hooks to call `idlwave-check-abbrev' with args."
@@ -1974,6 +1890,13 @@ The main features of this mode are
   (add-hook 'after-save-hook 'idlwave-save-buffer-update nil 'local)
   (add-hook 'after-save-hook 'idlwave-revoke-license-to-kill nil 'local)
 
+  ;; Try to load online help, but catch any errors.
+  (condition-case nil
+      ;; Load the system topics, if available, warning the user if no
+      ;; help package found.
+      (idlwave-help-require-system-text 'warn)
+    (error nil))
+  
   ;; Update the routine info with info about current buffer?
   (idlwave-new-buffer-update)
 
@@ -1981,9 +1904,8 @@ The main features of this mode are
   (run-hooks 'idlwave-mode-hook))
 
 ;;
-;;  Done with start up and initialization code.
-;;  The remaining routines are the code formatting functions.
-;;
+;; Code Formatting ----------------------------------------------------
+;; 
 
 (defun idlwave-push-mark (&rest rest)
   "Push mark for compatibility with Emacs 18/19."
@@ -2075,7 +1997,7 @@ Returns point if comment found and nil otherwise."
 (defvar zmacs-regions)
 (defvar mark-active)
 (defun idlwave-region-active-p ()
-  "Is transien-mark-mode on an the region active?
+  "Is transient-mark-mode on and the region active?
 Works on both Emacs and XEmacs."
   (if (featurep 'xemacs)
       (and zmacs-regions (region-active-p))
@@ -2684,15 +2606,14 @@ See `idlwave-surround'. "
                   (idlwave-start-of-substatement t)
                   (idlwave-statement-type))))
 
-        (cond ((or (and (equal (car (car st)) 'assign)
-			(equal (cdr st) (point)))
+        (cond ((or (not (memq (car (car st)) '(pdef call)))
 		   (eq t idlwave-pad-keyword))
-	       ;; An assignment statement or keywor and we need padding
+	       ;; An assignment statement or keyword and we need padding
 	       (idlwave-surround before after))
 	      ((null idlwave-pad-keyword)
 	       ;; Spaces should be removed at a keyword
 	       (idlwave-surround 0 0))
-	      (t)))))	       
+	      (t)))))
 
 (defun idlwave-indent-and-action (&optional arg)
   "Call `idlwave-indent-line' and do expand actions.
@@ -2707,6 +2628,9 @@ With prefix ARG non-nil, indent the entire sub-statement."
 	       ;;Expand the END abbreviation, just as RET or Space would have.
 	       (if abbrev-mode (expand-abbrev)
 		 (idlwave-show-begin)))))
+  (when (and (not arg) current-prefix-arg)
+    (setq arg current-prefix-arg)
+    (setq current-prefix-arg nil))
   (if arg 
       (idlwave-indent-statement)
     (idlwave-indent-line t)))
@@ -2875,16 +2799,18 @@ location of the open paren"
       ;; Line up with next word unless this is a closing paren.
       (cons open
 	    (cond
-	     ;; This is a closed paren - line up under open paren.
-	     (close-exp
-	      (current-column))
-	     ;; Empty (or just comment) - just line up next to paren
+	     ;; Empty (or just comment) - just revert to basic indent
 	     ((progn
 		;; Skip paren
 		(forward-char 1)
 		(looking-at "[ \t$]*\\(;.*\\)?$"))
+	      nil)
+
+	     ;; This is a closed paren - line up under open paren.
+	     (close-exp
 	      (current-column))
-	     ;; Line up with first word after blank space
+
+	     ;; Line up with first word after any blank space
 	     ((progn
 		(skip-chars-forward " \t")
 		(current-column))))))))
@@ -2921,25 +2847,22 @@ statement if this statement is a continuation of the previous line."
 	       ;; A continued Procedure call or definition
 	       ((progn
 		  (idlwave-look-at "^[ \t]*\\(pro\\|function\\)") ;skip over
-		  (looking-at "[ \t]*\\([a-zA-Z0-9$_]+[ \t]*->[ \t]*\\)?[a-zA-Z][:a-zA-Z0-9$_]*[ \t]*\\(,\\)[ \t]*"))
+		  (looking-at "[ \t]*\\([a-zA-Z0-9.$_]+[ \t]*->[ \t]*\\)?[a-zA-Z][:a-zA-Z0-9$_]*[ \t]*\\(,\\)[ \t]*"))
 		(goto-char (match-end 0))
-		;; Comment only, or blank line with "$"?  Align with ,
+
+		;; Comment only, or blank line with "$"?  Basic indent.
 		(if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))
-		    (goto-char (match-end 2)))
-		(current-column))
+		    nil
+		  (current-column)))
 
 	       ;; Continued assignment (with =), 
 	       ((looking-at "[ \t]*[][().a-zA-Z0-9$_]+[ \t]*\\(=\\)[ \t]*")
 		(goto-char (match-end 0))
-		;; Comment only?  Align with =
+		;; Comment only?  Revert to using basic indent
 		(if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))
-		    (progn 
-		      (goto-char (match-end 1))
-		      (if idlwave-surround-by-blank 
-			  (1+ (current-column))
-			(current-column)))
+		    nil
 		  (current-column))))))
-	   (fancy-nonparen-indent-allowed
+	   (fancy-nonparen-indent-allowed ;is it permitted?
  	    (and fancy-nonparen-indent
 		 (< (- fancy-nonparen-indent basic-indent)
 		    idlwave-max-extra-continuation-indent)))
@@ -2948,7 +2871,7 @@ statement if this statement is a continuation of the previous line."
 	    (idlwave-calculate-paren-indent beg-reg end-reg close-exp))
 	   (fancy-paren-open (car fancy-paren-indent-cons))
 	   (fancy-paren-indent (cdr fancy-paren-indent-cons))
-	   (fancy-paren-indent-allowed
+	   (fancy-paren-indent-allowed   ; is it permitted
 	    (and fancy-paren-indent
 		 (or idlwave-indent-to-open-paren ;; override
 		     (< (- fancy-paren-indent basic-indent)
@@ -2960,12 +2883,12 @@ statement if this statement is a continuation of the previous line."
 	(or else-indent cur-indent))
 
        ;; an allowed parenthesis-indent
-       (fancy-paren-indent-allowed 
+       ((and fancy-paren-indent fancy-paren-indent-allowed)
 	fancy-paren-indent)
 
        ;; a disallowed paren indent nested inside one or more other
        ;; parens: indent relative to the first allowed enclosing paren
-       ;; set, if any... if it's actually a greater indent, just use
+       ;; set, if any... if it's actually a larger indent, just use
        ;; the fancy-paren-indent anyway.
        ((and fancy-paren-indent
 	     (not fancy-paren-indent-allowed)
@@ -2993,7 +2916,7 @@ statement if this statement is a continuation of the previous line."
 	(+ fancy-nonparen-indent idlwave-continuation-indent))
 
        ;; an allowed nonparen-only indent
-       (fancy-nonparen-indent-allowed
+       ((and fancy-nonparen-indent fancy-nonparen-indent-allowed)
 	fancy-nonparen-indent)
 
        ;; everything else
@@ -3949,11 +3872,13 @@ blank lines."
       ;; skip blank lines
       (skip-chars-forward " \t\n")
       (if (looking-at (concat "[ \t]*\\(" comment-start "+\\)"))
-          (comment-region beg end
-                          (- (length (buffer-substring
-                                      (match-beginning 1)
-                                      (match-end 1)))))
-        (comment-region beg end)))))
+	  (if (fboundp 'uncomment-region)
+	      (uncomment-region beg end)
+	    (comment-region beg end
+			    (- (length (buffer-substring
+					(match-beginning 1)
+					(match-end 1))))))
+	(comment-region beg end)))))
 
 
 ;; ----------------------------------------------------------------------------
@@ -4325,7 +4250,7 @@ With three prefix args, dispatch asynchronous process to do the update."
 	    ;;    causes the concatenation *delayed*, so not in time for
 	    ;;    the current command.  Therefore, we do a concatenation
 	    ;;    now, even though the shell might do it again.
-	    (idlwave-concatenate-rinfo-lists nil t))
+	    (idlwave-concatenate-rinfo-lists nil 'run-hooks))
       
 	(when ask-shell
 	  ;; Ask the shell about the routines it knows.
@@ -4353,8 +4278,6 @@ With three prefix args, dispatch asynchronous process to do the update."
 		   idlwave-init-rinfo-when-idle-after
 		   nil 'idlwave-load-rinfo-next-step)))
 	(error nil))))
-
-
 
 (defun idlwave-load-rinfo-next-step ()
   (let ((inhibit-quit t)
@@ -4502,7 +4425,7 @@ With three prefix args, dispatch asynchronous process to do the update."
   (idlwave-update-current-buffer-info 'find-file))
 
 (defun idlwave-update-current-buffer-info (why)
-  "Undate idlwave-routines for current buffer.  Can run from after-save-hook."
+  "Update idlwave-routines for current buffer.  Can run from after-save-hook."
   (when (and (eq major-mode 'idlwave-mode)
 	     (or (eq t idlwave-auto-routine-info-updates)
 		 (memq why idlwave-auto-routine-info-updates))
@@ -6239,6 +6162,92 @@ sort the list before displaying"
        idlwave-before-completion-wconf
        (set-window-configuration idlwave-before-completion-wconf)))
 
+(defun idlwave-one-key-select (sym prompt delay)
+  "Make the user select an element from the alist in the variable SYM.
+The keys of the alist are expected to be strings.  The function returns the
+car of the selected association.
+To do this, PROMPT is displayed and and the user must hit a letter key to
+select an entry.  If the user does not reply within DELAY seconds, a help
+window with the options is displayed automatically.
+The key which is associated with each option is generated automatically.
+First, the strings are checked for preselected keys, like in \"[P]rint\".
+If these don't exist, a letter in the string is automatically selected."
+  (let* ((alist (symbol-value sym))
+         (temp-buffer-show-hook '(fit-window-to-buffer))
+         keys-alist char)
+    ;; First check the cache
+    (if (and (eq (symbol-value sym) (get sym :one-key-alist-last)))
+        (setq keys-alist (get sym :one-key-alist-cache))
+      ;; Need to make new list
+      (setq keys-alist (idlwave-make-one-key-alist alist))
+      (put sym :one-key-alist-cache keys-alist)
+      (put sym :one-key-alist-last alist))
+    ;; Display prompt and wait for quick reply
+    (message "%s[%s]" prompt
+             (mapconcat (lambda(x) (char-to-string (car x)))
+                        keys-alist ""))
+    (if (sit-for delay)
+        ;; No quick reply: Show help
+        (save-window-excursion
+          (with-output-to-temp-buffer "*Completions*"
+            (mapcar (lambda(x)
+                      (princ (nth 1 x))
+                      (princ "\n"))
+                    keys-alist))            
+          (setq char (read-char)))
+      (setq char (read-char)))
+    (message nil)
+    ;; Return the selected result
+    (nth 2 (assoc char keys-alist))))
+
+(defun idlwave-make-one-key-alist (alist)
+  "Make an alist for single key selection."
+  (let ((l alist) keys-alist name start char help
+        (cnt 0)
+        (case-fold-search nil))
+    (while l
+      (setq name (car (car l))
+            l (cdr l))
+      (catch 'exit
+        ;; First check if the configuration predetermined a key
+        (if (string-match "\\[\\(.\\)\\]" name)
+            (progn
+              (setq char (string-to-char (downcase (match-string 1 name)))
+                    help (format "%c:  %s" char name)
+                    keys-alist (cons (list char help name) keys-alist))
+              (throw 'exit t)))
+        ;; Then check for capital letters
+        (setq start 0)
+        (while (string-match "[A-Z]" name start)
+          (setq start (match-end 0)
+                char (string-to-char (downcase (match-string 0 name))))
+          (if (not (assoc char keys-alist))
+              (progn
+                (setq help (format "%c:  %s" char
+                                   (replace-match
+                                    (concat "[" (match-string 0 name) "]")
+                                          t t name))
+                      keys-alist (cons (list char help name) keys-alist))
+                (throw 'exit t))))
+        ;; Now check for lowercase letters
+        (setq start 0)
+        (while (string-match "[a-z]" name start)
+          (setq start (match-end 0)
+                char (string-to-char (match-string 0 name)))
+          (if (not (assoc char keys-alist))
+              (progn
+                (setq help (format "%c:  %s" char
+                                   (replace-match
+                                    (concat "[" (match-string 0 name) "]")
+                                    t t name))
+                      keys-alist (cons (list char help name) keys-alist))
+                (throw 'exit t))))
+        ;; Bummer, nothing found!  Use a stupid number
+        (setq char (string-to-char (int-to-string (setq cnt (1+ cnt))))
+              help (format "%c:  %s" char name)
+              keys-alist (cons (list char help name) keys-alist))))
+    (nreverse keys-alist)))
+
 (defun idlwave-set-local (var value &optional buffer)
   "Set the buffer-local value of VAR in BUFFER to VALUE."
   (save-excursion
@@ -6324,13 +6333,18 @@ sort the list before displaying"
 ;;----------------------------------------------------------------------
 
 ;;; ------------------------------------------------------------------------
-;;; Sturucture parsing code, and code to manage class info
+;;; Stucture parsing code, and code to manage class info
 
 ;;
 ;; - Go again over the documentation how to write a completion
 ;;   plugin.  It is in self.el, but currently still very bad.
 ;;   This could be in a separate file in the distribution, or 
 ;;   in an appendix for the manual.  
+
+(defvar idlwave-struct-skip
+  "[ \t]*\\(\\$.*\n\\(^[ \t]*\\(\\$[ \t]*\\)?\\(;.*\\)?\n\\)*\\)?[ \t]*"
+  "Regexp for skipping continued blank or comment-only lines in
+structures")
 
 (defun idlwave-struct-tags ()
   "Return a list of all tags in the structure defined at point.
@@ -6341,11 +6355,16 @@ Point is expected just before the opening `{' of the struct definition."
 	   (end (cdr borders))
 	   tags)
       (goto-char beg)
-      (while (re-search-forward "[{,][ \t]*\\(\\$.*\n\\(^[ \t]*\\(\\$[ \t]*\\)?\\(;.*\\)?\n\\)*[ \t]*\\)?\\([a-zA-Z][a-zA-Z0-9_]*\\)[ \t]*:" end t)
+      (while (re-search-forward 
+	      (concat "[{,]" ;leading comma/brace
+		      idlwave-struct-skip ; 4 groups
+		      "\\([a-zA-Z][a-zA-Z0-9_]*\\)" ;the tag itself, group 5
+		      "[ \t]*:")   ; the final colon
+	      end t)
 	;; Check if we are still on the top level of the structure.
 	(if (and (condition-case nil (progn (up-list -1) t) (error nil))
 		 (= (point) beg))
-	    (push (match-string 5) tags))
+	    (push (match-string-no-properties 5) tags))
 	(goto-char (match-end 0)))
       (nreverse tags))))
 
@@ -6368,11 +6387,17 @@ Point is expected just before the opening `{' of the struct definition."
 	   (case-fold-search t)
 	   names)
       (goto-char beg)
-      (while (re-search-forward "[{,][ \t]*\\(\\$.*\n[ \t]*\\)?inherits[ \t]*\\(\\$.*\n[ \t]*\\)?\\([a-zA-Z][a-zA-Z0-9_]*\\)" end t)
+      (while (re-search-forward 
+	      (concat "[{,]"  ;leading comma/brace
+		      idlwave-struct-skip ; 4 groups
+		      "inherits"    ; The INHERITS tag
+		      idlwave-struct-skip ; 4 more
+		      "\\([a-zA-Z][a-zA-Z0-9_]*\\)") ; The super-group, #9
+	      end t)
 	;; Check if we are still on the top level of the structure.
 	(if (and (condition-case nil (progn (up-list -1) t) (error nil))
 		 (= (point) beg))
-	    (push (match-string 3) names))
+	    (push (match-string-no-properties 9) names))
 	(goto-char (match-end 0)))
       (nreverse names))))
 
@@ -6710,7 +6735,8 @@ associated TAG, if any."
 
 (defun idlwave-sysvars-reset ()
   (if (and (fboundp 'idlwave-shell-is-running)
-	   (idlwave-shell-is-running))
+	   (idlwave-shell-is-running)
+	   idlwave-idlwave_routine_info-compiled)
       (idlwave-shell-send-command "idlwave_get_sysvars"
 				  'idlwave-process-sysvars 'hide)))
 
@@ -6825,62 +6851,23 @@ visits the source file, finding help in the header (if
 `idlwave-help-source-try-header' is non-nil) or the routine definition
 itself."
   (interactive "P")
-  (idlwave-require-online-help)
+;  (idlwave-require-online-help)
   (idlwave-do-context-help arg))
 
 (defun idlwave-mouse-completion-help (ev)
   "Display online help about the completion at point."
   (interactive "eP")
-  (idlwave-require-online-help)
+;  (idlwave-require-online-help)
   ;; Restore last-command for next command, to make scrolling of completions
   ;; work.
   (setq this-command last-command)
   (idlwave-do-mouse-completion-help ev))
 
-(defvar idlwave-help-is-loaded nil
-  "Is online help avaiable?")
-;; The following variables will be defined by `idlw-help.el'.
-(defvar idlwave-help-frame-width nil)
-(defvar idlwave-help-file nil)
-(defvar idlwave-help-topics nil)
-
-(defun idlwave-help-directory ()
-  "Return the help directory, or nil if that is not known."
-  (or (and (stringp idlwave-help-directory)
-	   (> (length idlwave-help-directory) 0)
-	   idlwave-help-directory)
-      (getenv "IDLWAVE_HELP_DIRECTORY")))
-
-(defun idlwave-require-online-help ()
-  (if idlwave-help-is-loaded
-      t  ;; everything is OK.
-    (let* ((dir (or (idlwave-help-directory)
-		    (error "Online Help not installed (help directory unknown) - download at idlwave.org")))
-	   (lfile1 (expand-file-name "idlw-help.elc" dir))
-	   (lfile2 (expand-file-name "idlw-help.el" dir))
-	   (hfile (expand-file-name "idlw-help.txt" dir)))
-      (if (or (and (file-regular-p lfile1) (load-file lfile1))
-	      (and (file-regular-p lfile2) (load-file lfile2)))
-	  (progn 
-	    (if (and idlwave-help-frame-parameters
-		     (not (assoc 'width idlwave-help-frame-parameters)))
-		(push (cons 'width idlwave-help-frame-width)
-		      idlwave-help-frame-parameters))
-	    (or idlwave-help-topics
-		(error "File `%s' in help dir `%s' does not define `idlwave-help-topics'" 
-			 "idlw-help.el" dir)))
-	(error "No such file `%s' in help dir `%s'" "idlw-help.el" dir))
-      (if (file-regular-p hfile)
-	  (setq idlwave-help-is-loaded t
-		idlwave-help-file hfile)
-	(error "No such file `%s' in dir `%s'" "idlw-help.txt" dir)))))
-
 (defun idlwave-routine-info (&optional arg external)
-  "Display a routines calling sequence and list of keywords.
-When point is on the name a function or procedure, or in the argument
-list of a function or procedure, this command displays a help buffer
-with the information.  When called with prefix arg, enforce class
-query.
+  "Display a routines calling sequence and list of keywords.  When
+point is on the name a function or procedure, or in the argument list
+of a function or procedure, this command displays a help buffer with
+the information.  When called with prefix arg, enforce class query.
 
 When point is on an object operator `->', display the class stored in
 this arrow, if any (see `idlwave-store-inquired-class').  With a
@@ -7060,8 +7047,8 @@ Used by `idlwave-routine-info' and `idlwave-find-module'."
       ;; This is a function or procedure definition statement
       ;; We return the defined routine as module.
       (list
-       (idlwave-sintern-routine-or-method (match-string 4)
-					  (match-string 2))
+       (idlwave-sintern-routine-or-method (match-string-no-properties 4)
+					  (match-string-no-properties 2))
        (if (equal (downcase (match-string 1)) "pro") 'pro 'fun)
        (idlwave-sintern-class (match-string 3)))
 
@@ -7289,10 +7276,9 @@ If we do not know about MODULE, just return KEYWORD literally."
 	 (all dtwins)
 	 (system (idlwave-rinfo-assq
 		  name type class idlwave-system-routines))
-	 (have-sysdoc (and system (idlwave-help-directory)))
+	 (have-sysdoc (and system idlwave-help-topics))
 	 ;; (source (nth 3 entry))
-	 (have-olh (and (or system idlwave-extra-help-function)
-			(idlwave-help-directory)))
+	 (have-olh (or system idlwave-extra-help-function))
 	 (calling-seq (nth 4 entry))
 	 (keywords (nth 5 entry))
 	 (olh (nth 6 entry))
@@ -7305,9 +7291,7 @@ If we do not know about MODULE, just return KEYWORD literally."
 	      "Button2/3: Online Help"
 	    nil))
 	 (help-echo-src
-	  (if (idlwave-help-directory)
-	      "Button2: Pop to source and back.             Button3: Source in Help window."
-	    "Button2: Pop to source and back."))
+	  "Button2: Pop to source and back.             Button3: Source in Help window.")
 	 (help-echo-class
 	  "Button2: Display info about same method in superclass")
 	 (col 0)
@@ -7529,16 +7513,16 @@ was pressed."
 	    type (idlwave-sintern-class word) 
 	    initial-class))
 	  ((eq id 'usage)
-	   (idlwave-require-online-help)
+;	   (idlwave-require-online-help)
 	   (idlwave-online-help nil name type class))
 	  ((eq id 'source)
-	   (if (and right (idlwave-help-directory))
+	   (if right
 	       (let ((idlwave-extra-help-function 'idlwave-help-with-source)
 		     (idlwave-help-source-try-header nil)
 		     ;; Fake idlwave-routines, to make help find the right entry
 		     (idlwave-routines
 		      (list (list (nth 1 data) (nth 2 data) (nth 3 data) source ""))))
-		 (idlwave-require-online-help)
+;		 (idlwave-require-online-help)
 		 (idlwave-help-get-special-help name type class nil))
 	     (setq idlwave-popup-source (not idlwave-popup-source))
 	     (if idlwave-popup-source
@@ -7555,7 +7539,7 @@ was pressed."
 	  ((eq id 'keyword)
 	   (if right
 	       (progn
-		 (idlwave-require-online-help)
+;		 (idlwave-require-online-help)
 		 (idlwave-online-help nil name type class keyword))
 	     (idlwave-rinfo-insert-keyword keyword buf shift))))))
 
@@ -8080,7 +8064,7 @@ Assumes that point is at the beginning of the unit as found by
       ["9 Class Name"  idlwave-complete-class t]))
     ("Routine Info"
      ["Show Routine Info" idlwave-routine-info t]
-     ["Online Context Help" idlwave-context-help (idlwave-help-directory)]
+     ["Online Context Help" idlwave-context-help t]
      "--"
      ["Find Routine Source" idlwave-find-module t]
      ["Resolve Routine" idlwave-resolve (featurep 'idlw-shell)]
@@ -8255,11 +8239,6 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 
 ;; Add .pro files to speedbar for support, if it's loaded
 (eval-after-load "speedbar" '(speedbar-add-supported-extension ".pro"))
-
-;; Try to load online help, but catch any errors.
-(condition-case nil
-    (idlwave-require-online-help)
-  (error nil))
 
 ;; Set an idle timer to load the routine info.
 ;; Will only work on systems which support this.
