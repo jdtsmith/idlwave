@@ -55,6 +55,9 @@ there yourself, if you prefer).
 
 N.B. Windows users do not need the help package to use online help.
 
+Setting up the package
+---------------------------------------------------------------------------
+
 Add the following to .emacs or to a site equivalent:
 
   ;; This is only necessary if the default install directory is not on

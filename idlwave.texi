@@ -9,12 +9,12 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 5.2
-@set EDITION 5.2
+@set VERSION 5.3
+@set EDITION 5.3
 @set IDLVERSION 6.0
 @set NSYSROUTINES 1713
 @set NSYSKEYWORDS 7258
-@set DATE November, 2003
+@set DATE June, 2004
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set AUTHOR-EMAIL jdsmith@@as.arizona.edu
 @set MAINTAINER J.D. Smith
@@ -30,7 +30,7 @@ Emacs, and interacting with an IDL shell run as a subprocess.
 This is edition @value{EDITION} of the IDLWAVE User Manual for IDLWAVE
 @value{VERSION}
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 Free Software
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Free Software
 Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
@@ -61,7 +61,7 @@ license to the document, as described in section 6 of the license.
 This is edition @value{EDITION} of the @cite{IDLWAVE User Manual} for
 IDLWAVE version @value{VERSION}, @value{DATE}.
 @sp 2
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 Free Software
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Free Software
 Foundation, Inc.
 @sp 2
 @cindex Copyright, of IDLWAVE
@@ -338,6 +338,8 @@ at point.
 @tab Update IDLWAVE's knowledge about functions and procedures.
 @item @kbd{C-c C-v}
 @tab Visit the source code of a procedure/function.
+@item @kbd{C-u C-c C-v}
+@tab Visit the source code of a procedure/function in this buffer.
 @item @kbd{C-c C-h}
 @tab Insert a standard documentation header.
 @item @kbd{C-c @key{RET}}
@@ -1828,7 +1830,9 @@ for a module name, offering the same default as
 @code{idlwave-routine-info} would have used, taken from nearby buffer
 contents.  In the minibuffer, specify a complete routine name (including
 any class part).  IDLWAVE will display the source file in another
-window, positioned at the routine in question.
+window, positioned at the routine in question.  You can also visit a
+routine in the current buffer, with completion, by using a single prefix
+(@kbd{C-u C-c C-v}).
 
 @cindex Buffers, killing
 @cindex Killing autoloaded buffers
@@ -3186,10 +3190,10 @@ and @key{f11} will show the contents of a nearby structure.  As you can
 see, the possibilities are only marginally finite.
 
 @defopt idlwave-shell-examine-alist
-An alist of examine commands in which the keys name the command and are
-displayed in the selection pop-up, and the values are custom IDL examine
-command strings to send, after all instances of @code{___} are replaced
-by the indicated expression.
+An alist of examine commands in which the keys name the command and
+are displayed in the selection pop-up, and the values are custom IDL
+examine command strings to send, after all instances of @code{___}
+(three underscores) are replaced by the indicated expression.
 @end defopt
 
 
@@ -3282,37 +3286,39 @@ with patches, ideas, bug reports and suggestions.
 
 @itemize @minus
 @item
-Ulrik Dickow <dickow@@nbi.dk>
+Ulrik Dickow <dickow__at__nbi.dk>
 @item
-Eric E. Dors <edors@@lanl.gov>
+Eric E. Dors <edors__at__lanl.gov>
 @item
-Stein Vidar H. Haugan <s.v.h.haugan@@astro.uio.no>
+Stein Vidar H. Haugan <s.v.h.haugan__at__astro.uio.no>
 @item
-David Huenemoerder <dph@@space.mit.edu>
+David Huenemoerder <dph__at__space.mit.edu>
 @item
-Kevin Ivory <Kevin.Ivory@@linmpi.mpg.de>
+Kevin Ivory <Kevin.Ivory__at__linmpi.mpg.de>
 @item
-Dick Jackson <dick@@d-jackson.com>
+Dick Jackson <dick__at__d-jackson.com>
 @item
-Xuyong Liu <liu@@stsci.edu>
+Xuyong Liu <liu__at__stsci.edu>
 @item
-Simon Marshall <Simon.Marshall@@esrin.esa.it>
+Simon Marshall <Simon.Marshall__at__esrin.esa.it>
 @item
-Craig Markwardt <craigm@@cow.physics.wisc.edu>
+Craig Markwardt <craigm__at__cow.physics.wisc.edu>
 @item
-Laurent Mugnier <mugnier@@onera.fr>
+Laurent Mugnier <mugnier__at__onera.fr>
 @item
-Lubos Pochman <lubos@@rsinc.com>
+Lubos Pochman <lubos__at__rsinc.com>
 @item
-Bob Portmann <portmann@@al.noaa.gov>
+Bob Portmann <portmann__at__al.noaa.gov>
 @item
-Patrick M. Ryan <pat@@jaameri.gsfc.nasa.gov>
+Patrick M. Ryan <pat__at__jaameri.gsfc.nasa.gov>
 @item
-Marty Ryba <ryba@@ll.mit.edu>
+Marty Ryba <ryba__at__ll.mit.edu>
 @item
-Phil Williams <williams@@irc.chmcc.org>
+Phil Williams <williams__at__irc.chmcc.org>
 @item
-Phil Sterne <sterne@@dublin.llnl.gov>
+Phil Sterne <sterne__at__dublin.llnl.gov>
+@item
+Paul Sorenson <aardvark62__at__msn.com>
 @end itemize
 
 @noindent
@@ -3522,19 +3528,18 @@ name associated with it (e.g. @emph{AstroLib}).  This name will be shown
 briefly when the catalog is found, and in the routine info of routines
 it documents.
 
-Many popular libraries of routines include such catalog files by
-default, and so will be automatically discovered.  Library catalogs are
-scanned externally to Emacs using a tool provided with IDLWAVE.  Each
-can be re-scanned independently, depending on how often it changes.
+Many popular libraries of routines are shipped with IDLWAVE catalog
+files by default, and so will be automatically discovered.  Library
+catalogs are scanned externally to Emacs using a tool provided with
+IDLWAVE.  Each catalog can be re-scanned independently of any other.
 Catalogs can easily be made available system-wide with a common source
 repository, providing uniform routine information, and lifting the
 burden of scanning from the user (who may not even know they're using a
-scanned catalog).  Since each catalog is independent of the others, they
-can be re-scanned automatically to gather updates, e.g. in a @file{cron}
-job.  Scanning is much faster than with the built-in user catalog
-method.  One minor disadvantage: the entire IDL search path is scanned
-for catalog files every time IDLWAVE starts up, which might be slow over
-a network.
+scanned catalog).  Since all catalogs are independent, they can be
+re-scanned automatically to gather updates, e.g. in a @file{cron} job.
+Scanning is much faster than with the built-in user catalog method.  One
+minor disadvantage: the entire IDL search path is scanned for catalog
+files every time IDLWAVE starts up, which might be slow over a network.
 
 A Perl tool to create library catalogs is distributed with IDLWAVE:
 @code{idlwave_catalog}.  It can be called quite simply:
@@ -3544,7 +3549,7 @@ idlwave_catalog MyLib
 
 @noindent This would scan all directories recursively beneath the current and
 populate them with @file{.idlwave_catalog} files, tagging the routines
-found with the name ``MyLib''.  The full usage information:
+found with the name library ``MyLib''.  The full usage information:
 
 @example
 Usage: idlwave_catalog  [-l] [-v] [-d] [-s] [-f] [-h] libname
@@ -3635,7 +3640,7 @@ arguments @w{@kbd{C-u C-u C-u C-c C-i}}, updating will be done with a
 background job@footnote{Unix systems only, I think.}.  You can continue
 to work, and the library catalog will be re-read when it is ready.  If
 you find you need to update the user catalog often, you should consider
-building a library catalog for these routines instead (@pxref{Library
+building a library catalog for your routines instead (@pxref{Library
 Catalogs}).
 
 @defopt idlwave-special-lib-alist
@@ -3653,18 +3658,19 @@ labeling in routine-info display.
 @cindex Application, testing for shadowing
 @cindex Buffer, testing for shadowing
 
-IDLWAVE can compile a list of routines which are defined in several
-different files.  Since one definition will hide (shadow) the others
+IDLWAVE can compile a list of routines which are (re-)defined in more
+than one file.  Since one definition will hide (shadow) the others
 depending on which file is compiled first, such multiple definitions are
 called "load-path shadows".  IDLWAVE has several routines to scan for
 load path shadows.  The output is placed into the special buffer
 @file{*Shadows*}.  The format of the output is identical to the source
 section of the routine info buffer (@pxref{Routine Info}).  The
-different definitions of a routine are listed in the sequence of
-@emph{likelihood of use}.  So the first entry will be most likely the
-one you'll get if an unsuspecting command uses that routine.  Before
-listing shadows, you should make sure that routine info is up-to-date by
-pressing @kbd{C-c C-i}.  Here are the different routines:
+different definitions of a routine are ordered by @emph{likelihood of
+use}.  So the first entry will be most likely the one you'll get if an
+unsuspecting command uses that routine.  Before listing shadows, you
+should make sure that routine info is up-to-date by pressing @kbd{C-c
+C-i}.  Here are the different routines (also available in the Menu
+@samp{IDLWAVE->Routine Info}):
 
 @table @asis
 @item @kbd{M-x idlwave-list-buffer-load-path-shadows}
@@ -3710,10 +3716,13 @@ on the load path is routine info display (@pxref{Routine Info}).
 @cindex Perl program, to create @file{idlw-rinfo.el}
 
 IDLWAVE derives its knowledge about system routines from the IDL
-manuals.  The file @file{idlw-rinfo.el} contains the routine
-information for the IDL system routines, and links to relevant
-sections of the HTML documentation.  The Online Help feature of
-IDLWAVE requires HTML versions of the IDL manuals to be available.
+manuals.  The file @file{idlw-rinfo.el} contains the routine information
+for the IDL system routines, and links to relevant sections of the HTML
+documentation.  The Online Help feature of IDLWAVE requires HTML
+versions of the IDL manuals to be available; the HTML documentation is
+not distributed with IDLWAVE by default, but must be downloaded
+separately from the @uref{@value{IDLWAVE-HOMEPAGE}, the maintainers
+webpage}.
 
 The HTML files and related images can be produced from the
 @file{idl.chm} HTMLHelp file distributed with IDL using the free
@@ -3748,14 +3757,13 @@ platforms).  Newer versions of Emacs provide a browser-function choice
 @code{browse-url-gnome-moz} which uses the Gnome-configured browser.
 
 Note that the HTML files decompiled from RSI Microsoft Help sources
-contain specific references to the @samp{Symbol} font, which by
-default is not permitted in normal encodings (it's technically
-illegal).  Though it only impacts a few symbols, you can trick
-Mozilla-based browsers into recognizing @samp{Symbol} by following the
-directions @uref{http://hutchinson.belmont.ma.us/tth/Xfonts.html,
-here}.  With this fix in place, HTML help pages look almost identical
-to their PDF equivalents, and can be bookmarked, browsed as history,
-searched, etc.
+contain specific references to the @samp{Symbol} font, which by default
+is not permitted in normal encodings (it's technically illegal).  Though
+it only impacts a few symbols, you can trick Mozilla-based browsers into
+recognizing @samp{Symbol} by following the directions
+@uref{http://hutchinson.belmont.ma.us/tth/Xfonts.html, here}.  With this
+fix in place, HTML help pages look almost identical to their PDF
+equivalents (yet can be bookmarked, browsed as history, searched, etc.).
 
 @noindent Individual platform recommendations:
 
@@ -4039,31 +4047,34 @@ help can skip the browser and use the HTMLHelp functionality directly.
 Although IDLWAVE usually installs and works without difficulty, a few
 common problems and their solutions are documented below.
 
-@itemize @bullet
+@enumerate
 
 @item @strong{Whenever an IDL error occurs or a breakpoint is hit, I get
 errors or strange behavior when I try to type anything into some of my
 IDLWAVE buffers.}
 
-This is a @emph{feature}, not an error.  You're in @emph{Electric Debug
-Mode} (@pxref{Electric Debug Mode}).  You should see @code{*Debugging*}
-in the mode-line.  The buffer is read-only and all debugging and
-examination commands are available as single keystrokes: @kbd{C-?} lists
-these shortcuts.  Use @kbd{q} to quit the mode, and customize the
-variable @code{idlwave-shell-automatic-electric-debug} if you prefer not
-to enter electric debug on errors or breakpoints@dots{} but you really
-should try it before you disable it!
+This is a @emph{feature}, not an error.  You're in @emph{Electric
+Debug Mode} (@pxref{Electric Debug Mode}).  You should see
+@code{*Debugging*} in the mode-line.  The buffer is read-only and all
+debugging and examination commands are available as single keystrokes;
+@kbd{C-?} lists these shortcuts.  Use @kbd{q} to quit the mode, and
+customize the variable @code{idlwave-shell-automatic-electric-debug}
+if you prefer not to enter electric debug on breakpoints@dots{} but
+you really should try it before you disable it!  You can also
+customize this variable to enter debug mode when errors are
+encountered too.  
 
 @item @strong{I get errors like @samp{Searching for program: no such
-file or directory, idl} when starting the shell.}
+file or directory, idl} when attempting to start the IDL shell.}
 
-IDLWAVE needs to know where IDL is to run it as a process.  By default,
-it attempts to invoke it as @samp{idl}, which presumes such an
-executable is on your search path.  You need to ensure @samp{idl} is on
-your @samp{$PATH}, or specify the full pathname to the idl program with
-@code{idlwave-shell-explicit-file-name}.  Note that you may need to set
-your path in two places when running Emacs as an Aqua application with
-MacOSX; see the next topic.
+IDLWAVE needs to know where IDL is in order to run it as a process.
+By default, it attempts to invoke it simply as @samp{idl}, which
+presumes such an executable is on your search path.  You need to
+ensure @samp{idl} is on your @samp{$PATH}, or specify the full
+pathname to the idl program with the variable
+@code{idlwave-shell-explicit-file-name}.  Note that you may need to
+set your shell search path in two places when running Emacs as an Aqua
+application with MacOSX; see the next topic.
 
 @item @strong{IDLWAVE is disregarding my @samp{IDL_PATH} which I set
 under MacOSX}
@@ -4188,7 +4199,26 @@ rescan all @file{.pro} files at or below @file{/path/to/myidllib} every
 week night at 3:45am.  You can even scan site-wide libraries with this
 method, and the most recent information will be available to all users.
 
-@end itemize
+@item @strong{All the Greek-font characters in the HTML help are
+displayed as Latin characters!}
+
+Unfortunately, the HTMLHelp files RSI provides attempt to switch to
+@samp{Symbol} font to display Greek characters, which is not really an
+permitted method for doing this in HTML.  There is a "workaround" for
+many browsers: @xref{HTML Help Browser Tips}.
+
+@item @strong{In the shell, my long commands are truncated at 256 characters!}
+
+This actually happens when running IDL in an XTerm as well.  There are
+a couple of work arounds: @code{define_key,/control,'^d'} (e.g. in
+your @file{$IDL_STARTUP} file) will disable the @samp{EOF} character
+and give you a 512 character limit.  You won't be able to use
+@key{C-d} to quit the shell, however.  Another possibility is
+@code{!EDIT_INPUT=0}, which gives you an @emph{infinite} limit (OK, a
+memory-bounded limit), but disables the processing of background
+widget events (those with @code{/NO_BLOCK} passed to @code{XManager}).
+
+@end enumerate
 
 @node Index,  , Troubleshooting, Top
 @unnumbered Index
