@@ -5,7 +5,7 @@
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/05/22 00:34:39 $
+;; Date: $Date: 2002/06/14 19:05:30 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -26,10 +26,10 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-
-;; This mode is for IDL version 4 or later.  It should work on Emacs
-;; or XEmacs version 19 or later.
-
+;;
+;; This mode is for IDL version 5 or later.  It should work on
+;; Emacs>20.3 or XEmacs>20.4.
+;;
 ;; Runs IDL as an inferior process of Emacs, much like the emacs
 ;; `shell' or `telnet' commands.  Provides command history and
 ;; searching.  Provides debugging commands available in buffers
@@ -38,7 +38,11 @@
 ;; visual line pointer for current execution line, etc.
 ;;
 ;; Documentation should be available online with `M-x idlwave-info'.
-
+;;
+;; New versions of IDLWAVE, documentation, and more information
+;; available from:
+;;                 http://idlwave.org
+;;
 ;; INSTALLATION:
 ;; =============
 ;; 
@@ -70,7 +74,7 @@
 ;;
 ;; I don't plan on implementing directory tracking by watching the IDL
 ;; commands entered at the prompt, since too often an IDL procedure
-;; will change the current directory. If you want the the idl process
+;; will change the current directory. If you want the idl process
 ;; buffer to match the IDL current working just execute `M-x
 ;; idlwave-shell-resync-dirs' (bound to "\C-c\C-d\C-w" by default.)
 ;;
@@ -88,7 +92,6 @@
 ;; `M-x idlwave-customize'.
 ;;
 ;;--------------------------------------------------------------------------
-;;
 ;;
 
 ;;; Code:
@@ -2419,8 +2422,6 @@ idlw-shell-examine-alist from which to select the help command text."
        examine-hook 
        (if idlwave-shell-separate-examine-output 'hide)))))
 
-(defvar idlwave-shell-examine-window nil
-  "Variable to hold the last used examine window.")
 (defvar idlwave-shell-examine-window-alist nil
   "Variable to hold the win/height pairs for all *Examine* windows.")
 
@@ -2496,8 +2497,7 @@ idlw-shell-examine-alist from which to select the help command text."
 		(if (setq elt (assoc win idlwave-shell-examine-window-alist))
 		    (setcdr elt (window-height))
 		  (add-to-list 'idlwave-shell-examine-window-alist 
-			       (cons win (window-height)))))
-	      (setq idlwave-shell-examine-window win)))))
+			       (cons win (window-height)))))))))
       ;; Recenter for maximum output, after widened
       (save-selected-window
 	(select-window win)
@@ -2511,10 +2511,7 @@ idlw-shell-examine-alist from which to select the help command text."
 
 (defun idlwave-shell-examine-display-quit ()
   (interactive)
-  (let ((win (if (window-live-p idlwave-shell-examine-window)
-		 idlwave-shell-examine-window
-	       (get-buffer-window "*Examine*" 'visible))))
-    (setq idlwave-shell-examine-window nil)
+  (let ((win (selected-window)))
     (if (one-window-p)
 	(delete-frame (window-frame win))
       (delete-window win))))
