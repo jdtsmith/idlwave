@@ -123,13 +123,13 @@ install-info:
 
 
 # HELP 
-HELPFILEMAYBE := $(shell ls -1 idlwave-*help.tar.* | head -1)
+HELPFILEMAYBE := $(shell ls -1 idlwave-*help.tar.* 2>/dev/null | head -1 )
 ifdef HELPFILEMAYBE
 HELPFILECODE  := $(shell echo $(HELPFILEMAYBE) | grep -q "\.gz$$" && echo "z" || echo "j")
 endif
 
 # XEMACS VERSION
-XEMACS-TAG := $(shell perl -ne 'if(/^VERSION\s+=\s+([0-9]\.[0-9]+)/) {print $$1; exit}' $(XEMACSDIR)/Makefile)
+XEMACS-TAG := $(shell [ -f  $(XEMACSDIR)/Makefile ] &&  perl -ne 'if(/^VERSION\s+=\s+([0-9]\.[0-9]+)/) {print $$1; exit}' $(XEMACSDIR)/Makefile)
 
 
 .PHONY: helpdist
