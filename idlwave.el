@@ -5,7 +5,7 @@
 ;;      Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@alum.mit.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2001/12/06 18:18:27 $
+;; Date: $Date: 2001/12/07 00:09:32 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -2154,7 +2154,8 @@ Also checks if the correct end statement has been used."
     (idlwave-show-begin)))
 
 (defun idlwave-gtr-pad-hook (char) 
-  "Let the > symbol expand around -> if present."
+  "Let the > symbol expand around -> if present.
+The variable `length' is dynamically scoped from `idlwave-surround'"
   (setq length 2))
 
 (defun idlwave-surround (&optional before after escape-chars length ec-hook)
@@ -2176,10 +2177,11 @@ The function does nothing if any of the following conditions is true:
   the '->' operator.  In this case, ESCAPE-CHARS would be '(?-).
 
 If a function is passed in EC-HOOK, and an ESCAPE-CHARS match occurs,
-it will be called with a single argument: the preceding character.
-The idlwave-surround will run as usual if EC-HOOK returns non-nil.
-EC-HOOK should not move the point, and can change the let-bound
-`length' variable to change the length of the token to be padded."
+the named function will be called with a single argument of the
+preceeding character.  Then idlwave-surround will run as usual if
+EC-HOOK returns non-nil.  EC-HOOK should not move the point, and can
+change the let-bound `length' variable to change the length of the
+token to be padded."
   (when (and idlwave-surround-by-blank (not (idlwave-quoted)))
     (let* ((length (or length 1)) ; establish a default for LENGTH
 	   (prev-char (char-after (- (point) (1+ length))))
