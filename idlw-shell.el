@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2003/11/11 22:44:22 $
+;; Date: $Date: 2004/06/28 04:17:42 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -1037,9 +1037,11 @@ IDL has currently stepped.")
   ;; Run the hooks.
   (run-hooks 'idlwave-shell-mode-hook)
   (idlwave-shell-send-command idlwave-shell-initial-commands nil 'hide)
-  ;; Define a system variable which knows the version of IDLWAVE
+  ;; Turn off IDL's ^d interpreting, and define a system
+  ;; variable which knows the version of IDLWAVE
   (idlwave-shell-send-command 
-   (format "defsysv,'!idlwave_version','%s',1" idlwave-mode-version)
+   (format "defsysv,'!idlwave_version','%s',1" 
+	   idlwave-mode-version)
    nil 'hide)
   ;; Get the paths if they weren't read in from file
   (if (and (not idlwave-path-alist)
@@ -2095,6 +2097,8 @@ Change the default directory for the process buffer to concur."
 	(setq idlwave-shell-get-object-class 
 	      (match-string 1 idlwave-shell-command-output)))))
 
+(defvar idlwave-sint-sysvars nil)
+(idlwave-new-sintern-type 'execcomm)
 
 (defun idlwave-shell-complete (&optional arg)
   "Do completion in the idlwave-shell buffer.
@@ -2102,15 +2106,24 @@ Calls `idlwave-shell-complete-filename' after some executive commands or
 in strings.  Otherwise, calls `idlwave-complete' to complete modules and
 keywords."
   (interactive "P")
-  (let (cmd)
+  (let (exec-cmd)
     (cond
-     ((setq cmd (idlwave-shell-executive-command))
+     ((and 
+       (setq exec-cmd (idlwave-shell-executive-command))
+       (cdr exec-cmd)
+       (member (upcase (cdr exec-cmd))
+	       '(".R" ".RU" ".RUN" ".RN" ".RNE" ".RNEW"
+		 ".COM" ".COMP" ".COMPI" ".COMPIL" ".COMPILE")))
       ;; We are in a command line with an executive command
-      (if (member (upcase cmd)
-		  '(".R" ".RU" ".RUN" ".RN" ".RNE" ".RNEW"
-		    ".COM" ".COMP" ".COMPI" ".COMPIL" ".COMPILE"))
-	  ;; This command expects file names
-	  (idlwave-shell-complete-filename)))
+      (idlwave-shell-complete-filename))
+
+     ((car-safe exec-cmd)
+      (setq idlwave-completion-help-info 
+	    '(idlwave-shell-complete-execcomm-help))
+      (idlwave-complete-in-buffer 'execcomm 'execcomm
+				  idlwave-executive-commands-alist nil
+				  "Select an executive command"
+				  "system variable"))
 
      ((idlwave-shell-batch-command)
       (idlwave-shell-complete-filename))
@@ -2129,6 +2142,17 @@ keywords."
       ;; Default completion of modules and keywords
       (idlwave-complete arg)))))
 
+;; Get rid of opaque dynamic variable passing of link?
+(defun idlwave-shell-complete-execcomm-help (mode word)
+  (let ((word (or (nth 1 idlwave-completion-help-info) word))
+	(entry (assoc-ignore-case word idlwave-executive-commands-alist)))
+    (cond
+     ((eq mode 'test)
+      (and (stringp word) entry (cdr entry)))
+     ((eq mode 'set)
+      (if entry (setq link (cdr entry)))) ;; setting dynamic variable!!!
+     (t (error "This should not happen")))))
+
 (defun idlwave-shell-complete-filename (&optional arg)
   "Complete a file name at point if after a file name.
 We assume that we are after a file name when completing one of the
@@ -2142,8 +2166,9 @@ args of an executive .run, .rnew or .compile."
   "Return the name of the current executive command, if any."
   (save-excursion
     (idlwave-beginning-of-statement)
-    (if (looking-at "[ \t]*\\([.][^ \t\n\r]+\\)")
-	(match-string 1))))
+    (cons (looking-at "[ \t]*\\.")
+	  (if (looking-at "[ \t]*[.]\\([^ \t\n\r]+\\)[ \t]")
+	      (match-string 1)))))
 
 (defun idlwave-shell-filename-string ()
   "Return t if in a string and after what could be a file name."
@@ -2168,7 +2193,6 @@ args of an executive .run, .rnew or .compile."
   (save-excursion
     (idlwave-beginning-of-statement)
     (looking-at "\\$")))
-
 
 ;; Debugging Commands ------------------------------------------------------
 
