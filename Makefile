@@ -96,7 +96,7 @@ HELPDISTFILES= README.hlp idlw-help-topics.el help55fixup.txt $(HELPFILES)
 
 XEMACSDISTFILES= README INSTALL CHANGES ChangeLog COPYING\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES)\
-	idltags get_rinfo helpcode help55fixup.txt tutorial.pro
+	idltags get_rinfo help55fixup.txt tutorial.pro
 
 EMACSDISTFILES= $(LISPFILES) $(TEXIFILES) ChangeLog
 
