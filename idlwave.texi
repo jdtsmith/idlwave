@@ -420,9 +420,9 @@ end
 The indentation probably looks funny, since it's different from the
 settings you use, so use the @key{TAB} key in each line to automatically
 line it up (or more quickly @emph{select} the entire buffer with
-@kbd{C-x h} followed by @kbd{C-M-\}).  Notice how different syntactical
-elements are highlighted in different colors, if you have set up support
-for font-lock.
+@kbd{C-x h}, and indent the whole region with @kbd{C-M-\}).  Notice how
+different syntactical elements are highlighted in different colors, if
+you have set up support for font-lock.
 
 Let's check out two particular editing features of IDLWAVE.  Place the
 cursor after the @code{end} statement of the @code{for} loop and press
@@ -650,7 +650,7 @@ All this information is written to the file @file{.idlcat} in your home
 directory and will from now one be automatically loaded whenever you use
 IDLWAVE.  You may find it necessary to rebuild the catalog on occasion
 as your local libraries change.  Try to use routine info (@kbd{C-c ?})
-or completion (@kbd{M-<TAB>}) while on any routine or partial routine
+or completion (@kbd{M-@key{TAB}}) while on any routine or partial routine
 name you know to be located in the library.  E.g., if you have scanned
 the IDL-Astro library:
 
@@ -895,7 +895,7 @@ with @code{font-lock}.  If you are using @code{global-font-lock-mode}
 (in Emacs), or have @code{font-lock} turned on in any other buffer in
 XEmacs, it should also automatically work in IDLWAVE buffers.  If you'd
 prefer invoking font-lock individually by mode, you can enforce it in
-@code{idlwave-mode} with the following line in your @file{.emacs}
+@code{idlwave-mode} with the following line in your @file{.emacs}:
 
 @lisp
 (add-hook 'idlwave-mode-hook 'turn-on-font-lock)
@@ -954,16 +954,19 @@ consistent with the notation for hexadecimal numbers: @code{'123'X}.
 IDL comes bundled with more than one thousand procedures, functions and
 object methods, and large libraries typically contain hundreds or even
 thousands more.  This large set makes it difficult to remember the
-calling sequence and keywords of a specific command, but IDLWAVE can
-help.  It contains a list of all builtin routines, with calling
-sequences and keywords@footnote{This list was created by scanning the
-IDL manual and might contain (very few) errors.  Please report any
-detected errors to the maintainer, so that they can be fixed.}.  It also
-scans Emacs buffers and library files for routine definitions, and
-queries the IDLWAVE-Shell for routines currently compiled in the shell.
-This information is updated automatically, and so should usually be
-current.  To force a global update and refresh the routine information,
-use @kbd{C-c C-i} (@code{idlwave-update-routine-info}).
+calling sequence and keywords for all the commands you use, but IDLWAVE
+can help.  It builds up routine information from a wide variety of
+sources, and in fact knows far more about the routines on your system
+than IDL itself does.  It maintains a list of all built-in routines,
+with calling sequences and keywords@footnote{This list was created by
+scanning the IDL manual and might contain (very few) errors.  Please
+report any detected errors to the maintainer, so that they can be
+fixed.}.  It also scans Emacs buffers and library files for routine
+definitions, and queries the IDLWAVE-Shell for information about
+routines currently compiled in the shell.  This information is updated
+automatically, and so should usually be current.  To force a global
+update and refresh the routine information, use @kbd{C-c C-i}
+(@code{idlwave-update-routine-info}).
 
 @kindex C-c ?
 To display the information about a routine, press @kbd{C-c ?}, which
@@ -1295,9 +1298,11 @@ Non-@code{nil} means, make all possible links in help window active.
 @kindex C-c C-i
 IDLWAVE offers completion for class names, routine names, keywords,
 system variables, class structure tags and file names.  As in many
-programming modes, completion is bound to @kbd{M-@key{TAB}}.  Completion
-uses the same internal information as routine info, so when necessary it
-can be updated with @kbd{C-c C-i} (@code{idlwave-update-routine-info}).
+programming modes, completion is bound to @kbd{M-@key{TAB}} (or
+@kbd{@key{TAB}} in the IDLWAVE Shell -- see @pxref{Using the Shell}).
+Completion uses the same internal information as routine info, so when
+necessary it can be updated with @kbd{C-c C-i}
+(@code{idlwave-update-routine-info}).
 
 The completion function is context sensitive and figures out what to
 complete at point.  Here are example lines and what @kbd{M-@key{TAB}}
@@ -1396,7 +1401,7 @@ Non-@code{nil} means, the empty string is considered lower case for
 completion.
 @end defopt
 
-@node  Object Method Completion and Class Ambiguity, , Case of Completed Words, Completion
+@node  Object Method Completion and Class Ambiguity, Class and Keyword Inheritance, Case of Completed Words, Completion
 @subsection Object Method Completion and Class Ambiguity
 @cindex Object methods
 @cindex Class ambiguity
@@ -1451,7 +1456,7 @@ Face to highlight object operator arrows @samp{->} which carry a class
 text property.
 @end defopt
 
-@node   Class and Keyword Inheritance,  , Object Method Completion and Class Ambiguity, Completion
+@node   Class and Keyword Inheritance, Structure Tag Completion, Object Method Completion and Class Ambiguity, Completion
 @subsection Class and Keyword Inheritance
 @cindex Inheritance, class
 @cindex Keyword inheritance
@@ -1489,6 +1494,33 @@ A list of regular expressions to match methods for which simple
 class-driven keyword inheritance will be used.
 @end defopt
 
+@node    Structure Tag Completion,  , Class and Keyword Inheritance, Completion
+@subsection Structure Tag Completion
+@cindex Completion, structure tag
+@cindex Structure tag completion
+
+In many programs, especially those involving widgets, large structures
+are used to communicate among routines (e.g. the @samp{state}
+structure).  It would clearly be very convenient to be able to complete
+structure tags, in the same way instance variables of the @samp{self}
+object can be (see @pxref{Object Method Completion and Class
+Ambiguity}).  Add-in code for doing just this is available in the form
+of a loadable completion module: @file{idlw-complete-structtag.el}.
+Structure tag completion is highly ambiguous, so
+@code{idlw-complete-structtag} makes an unusual and specific assumption:
+the same variable name is used for the structure throughout the program.
+So, if you consistently refer to the same structure with the same
+variable name (e.g. @samp{state}), structure tags are read from its
+definition, and are used for completion.
+
+Structure tag completion is not enabled by default.  To enable it,
+simply add the following to your @file{.emacs}:
+
+@lisp
+   (add-hook 'idlwave-load-hook 
+             (lambda () (require 'idlw-complete-structtag)))
+@end lisp
+
 
 @node Routine Source, Resolving Routines, Completion, The IDLWAVE Major Mode
 
@@ -1497,13 +1529,14 @@ class-driven keyword inheritance will be used.
 @cindex Module source file
 @cindex Source file, of a routine
 @kindex C-c C-v
-Apart from clicking on a @i{Source:} line in the routine info window,
-there is also another way to find the source file of a routine.  The
+In addition to clicking on a @i{Source:} line in the routine info
+window, there is another way to find the source file of a routine.  The
 command @kbd{C-c C-v} (@code{idlwave-find-module}) asks for a module
 name, offering the same default as @code{idlwave-routine-info} would
-have used from nearby contents.  In the minibuffer, specify a complete
-routine name (including any class part).  IDLWAVE will display the
-source file in another window, positioned at the routine in question.
+have used, taken from nearby buffer contents.  In the minibuffer,
+specify a complete routine name (including any class part).  IDLWAVE
+will display the source file in another window, positioned at the
+routine in question.
 
 @cindex Buffers, killing
 @cindex Killing autoloaded buffers
@@ -2456,19 +2489,19 @@ It is very convenient to click with the mouse on expressions to retrieve
 their value.  Use @kbd{S-mouse-2} to print an expression and
 @kbd{C-S-mouse-2} to get help on an expression.  I.e. you need to hold
 down @key{SHIFT} and @key{CONTROL} while clicking with the middle mouse
-button.  If you simply click, the expression will be selected in the same
-way as described above.  But you can also drag the mouse in order to
-define the expression.
+button.  If you simply click, the expression will be selected in the
+same way as described above.  But you can also drag the mouse in order
+to highlight a specific expression or sub-expression to be printed.
 
 @cindex Printing expressions, on calling stack
 @cindex Restrictions for expression printing
-Printing of expressions also works on higher levels of the calling
-stack.  This means that you can examine the values of variables and
-expressions inside the routine which called the current routine etc.
-@xref{Walking the Calling Stack}, for information on how to step back to
-higher levels on the calling stack.  Commands which print values of
-variables and expressions will then use the values of variables in the
-calling routine.  The following restrictions apply for all levels except
+The same expression printing commands also works for variables at higher
+levels of the calling stack.  For instance, if you're stopped at a
+breakpoint, you can examine the values of variables and expressions
+inside the calling routine, and its calling routine, etc.  Simply step
+up the stack, and print variables as you see them (see @pxref{Walking
+the Calling Stack}), for information on stepping back through the
+calling stack.  The following restrictions apply for all levels except
 the current:
 
 @itemize @bullet
