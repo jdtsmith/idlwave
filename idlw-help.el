@@ -148,6 +148,21 @@ definition is displayed instead."
   :group 'idlwave-online-help
   :type 'boolean)
 
+
+(defcustom idlwave-help-doclib-name "name"
+  "*A regexp for the heading word to search for in doclib headers
+which specifies the `name' section.  Can be used for localization
+support."
+  :group 'idlwave-online-help
+  :type 'string)
+
+(defcustom idlwave-help-doclib-keyword "KEYWORD"
+  "*A regexp for the heading word to search for in doclib headers
+which specifies the `keywords' section.  Can be used for localization
+support."
+  :group 'idlwave-online-help
+  :type 'string)
+
 (defface idlwave-help-link-face
   '((((class color)) (:foreground "Blue"))
     (t (:weight bold)))
@@ -331,12 +346,22 @@ It collects and prints the diagnostics messages."
             (st-ass (setq mod1 (list (cdr st-ass))))
 
 	    ;; A system variable -- only system help
-	    ((string-match "\\`!\\([a-zA-Z0-9_]+\\)" this-word)
+	    ((string-match 
+	      "\\`!\\([a-zA-Z0-9_]+\\)\\(\.\\([A-Za-z0-9_]+\\)\\)?" 
+	      this-word)
 	     (let* ((word  (match-string-no-properties 1 this-word))
 		    (entry (assq (idlwave-sintern-sysvar word)
 			       idlwave-system-variables-alist))
+		    (tag (match-string-no-properties 3 this-word))
+		    (tag-target (if tag
+				  (cdr
+				   (assq (idlwave-sintern-sysvartag tag)
+					 (cdr (assq 'tags entry))))))
 		    (link (nth 1 (assq 'link entry))))
-	       (setq mod1 link)))
+	       (if tag-target
+		   (setq link (idlwave-substitute-link-target link 
+							      tag-target)))
+	       (setq mod1 (list link))))
 			  
 	    ;; An executive command -- only system help
 	    ((string-match "^\\.[A-Z]+" this-word)
@@ -850,26 +875,26 @@ KEYWORD is ignored. Returns the point of match if successful, nil otherwise."
 (defun idlwave-help-find-in-doc-header (name type class keyword
 					     &optional exact)
   "Find the requested help in the doc-header above point.
-First checks if there is a doc-lib header which describes the correct routine.
-Then tries to find the KEYWORDS section and the KEYWORD, if given.
-Returns the point which should be window start of the help window.
-If EXACT is non-nil, the full help position must be found - down to the
-keyword requested.  This setting is for context help, if the exact
-spot is needed.
+
+First checks if there is a doc-lib header which describes the correct
+routine.  Then tries to find the KEYWORDS section and the KEYWORD, if
+given.  Returns the point which should be window start of the help
+window.  If EXACT is non-nil, the full help position must be found -
+down to the keyword requested.  This setting is for context help, if
+the exact spot is needed.
+
 If EXACT is nil, the position of the header is returned if it
 describes the correct routine - even if the keyword description cannot
-be found.
-TYPE is ignored.
+be found.  TYPE is ignored.
 
 This function expects a more or less standard routine header.  In
 particlar it looks for the `NAME:' tag, either with a colon, or alone
 on a line.  Then `NAME:' must be followed by the routine name on the
-same or the next line.  
-When KEYWORD is non-nil, looks first for a `KEYWORDS' section.  It is
-amazing how inconsisten this is through some IDL libraries I have
-seen.  We settle for a line containing an upper case \"KEYWORD\"
-string.  If this line is not fould we search for the keyword anyway to
-increase the hit-rate
+same or the next line.  When KEYWORD is non-nil, looks first for a
+`KEYWORDS' section.  It is amazing how inconsisten this is through
+some IDL libraries I have seen.  We settle for a line containing an
+upper case \"KEYWORD\" string.  If this line is not fould we search
+for the keyword anyway to increase the hit-rate
 
 When one of these sections exists we check for a line starting with any of
 
@@ -895,7 +920,9 @@ If there is a match, we assume it is the keyword description."
 	 
 	 ;; NAME tag plus the routine name.  The new version is from JD.
 	 (name-re (concat 
-		   "\\(^;+\\*?[ \t]*name\\([ \t]*:\\|[ \t]*$\\)[ \t]*\\(\n;+[ \t]*\\)*"
+		   "\\(^;+\\*?[ \t]*"
+		   idlwave-help-doclib-name
+		   "\\([ \t]*:\\|[ \t]*$\\)[ \t]*\\(\n;+[ \t]*\\)*"
 		   rname
 		   "\\|"
 		   "^;+[ \t]*"
@@ -907,12 +934,14 @@ If there is a match, we assume it is the keyword description."
 			    "\\(^;+.*\n\\)*"
 			    "\\(" name-re "\\)"))
 	 ;; A keywords section
-	 (kwds-re "^;+[ \t]+KEYWORD PARAMETERS:[ \t]*$")    ; hard
-	 (kwds-re2 (concat		                    ; forgiving
-		    "^;+\\*?[ \t]*"
-		    "\\([-A-Z_ ]*KEYWORD[-A-Z_ ]*\\)"
-		    "\\(:\\|[ \t]*\n\\)"))
-	 ;; The keyword description line.
+	 (kwds-re (concat		                    ; forgiving
+		   "^;+\\*?[ \t]*"
+		   "\\([-A-Z_ ]*"
+		   idlwave-help-doclib-keyword
+		   "[-A-Z_ ]*\\)"
+		   "\\(:\\|[ \t]*\n\\)"))
+
+	 ;; The individual keyword description line.
 	 (kwd-re (if keyword                                ; hard (well...)
 		     (concat
 		      "^;+[ \t]+"
@@ -940,8 +969,7 @@ If there is a match, we assume it is the keyword description."
 		      ;; Try to find a keyword section, but don't force it.
 		      (goto-char name-pos)
 		      (if (let ((case-fold-search nil))
-			    (or (re-search-forward kwds-re dend t)
-				(re-search-forward kwds-re2 dend t)))
+			    (re-search-forward kwds-re dend t))
 			  (setq kwds-pos (match-beginning 0)))
 		      ;; Find the keyword description
 		      (if (or (let ((case-fold-search nil))
@@ -1065,7 +1093,8 @@ Useful when source code is displayed as help.  See the option
       
 (defun idlwave-help-error (name type class keyword)
   (error "Can't find help on %s%s %s"
-	 (idlwave-make-full-name class name)
+	 (or (and (or class name) (idlwave-make-full-name class name))
+	     "<unknown>")
 	 (if keyword (format ", keyword %s" (upcase keyword)) "")
 	 (if idlwave-html-help-location
 	     ""
