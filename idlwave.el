@@ -5,7 +5,7 @@
 ;;         Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2002/09/13 22:12:03 $
+;; Date: $Date: 2002/10/11 23:20:21 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -145,6 +145,12 @@
 ;;; Code:
 
 (eval-when-compile (require 'cl))
+
+;; For XEmacs
+(unless (fboundp 'line-beginning-position)
+  (defalias 'line-beginning-position 'point-at-bol))
+(unless (fboundp 'line-end-position)
+  (defalias 'line-end-position 'point-at-eol))
 
 (eval-and-compile
   ;; Kludge to allow `defcustom' for Emacs 19.
@@ -383,16 +389,16 @@ t means to show all source files."
   :type 'integer)
 
 (defcustom idlwave-library-path nil
-  "Library path for Windows and MacOS.  Not needed under Unix.
-When selecting the directories to scan for IDL library routine info,
-IDLWAVE can under UNIX query the shell for the exact search path.
-However, under Windows and MacOS, the IDLWAVE shell does not work.  In this
-case, this variable specifies the path where IDLWAVE can find library files.
-The shell will only be asked when this variable is nil.
-The value is a list of directories.  A directory preceeded by a `+' will
-be searched recursively.  If you set this variable on a UNIX system, the shell
-will not be asked.
-See also `idlwave-system-directory'."
+  "Library path for Windows and MacOS.  Not needed under Unix.  When
+selecting the directories to scan for IDL library routine info,
+IDLWAVE can, under UNIX, query the shell for the exact search path.
+However, under Windows and MacOS, the IDLWAVE shell does not work.  In
+this case, this variable specifies the path where IDLWAVE can find
+library files.  The shell will only be asked when this variable is
+nil.  The value is a list of directories.  A directory preceeded by a
+`+' will be searched recursively.  If you set this variable on a UNIX
+system, the shell will not be asked.  See also
+`idlwave-system-directory'."
   :group 'idlwave-routine-info
   :type '(repeat (directory)))
 
@@ -1565,8 +1571,6 @@ Capitalize system variables - action only
 (define-key idlwave-mode-map "\C-c\C-m" 'idlwave-doc-modification)
 (define-key idlwave-mode-map "\C-c\C-c" 'idlwave-case)
 (define-key idlwave-mode-map "\C-c\C-d" 'idlwave-debug-map)
-(define-key idlwave-mode-map "\C-c\C-d\C-c" 'idlwave-shell-save-and-run)
-(define-key idlwave-mode-map "\C-c\C-d\C-b" 'idlwave-shell-break-here)
 (when (and (boundp 'idlwave-shell-debug-modifiers)
 	 (listp idlwave-shell-debug-modifiers)
 	 (not (equal idlwave-shell-debug-modifiers '())))
@@ -1580,6 +1584,8 @@ Capitalize system variables - action only
     (define-key idlwave-mode-map 
       (vector (append mods-noshift (list (if shift ?B ?b))))
       'idlwave-shell-break-here)))
+(define-key idlwave-mode-map "\C-c\C-d\C-c" 'idlwave-shell-save-and-run)
+(define-key idlwave-mode-map "\C-c\C-d\C-b" 'idlwave-shell-break-here)
 (define-key idlwave-mode-map "\C-c\C-f" 'idlwave-for)
 ;;  (define-key idlwave-mode-map "\C-c\C-f" 'idlwave-function)
 ;;  (define-key idlwave-mode-map "\C-c\C-p" 'idlwave-procedure)
@@ -1937,7 +1943,7 @@ The main features of this mode are
       (add-to-list 'tag-table-alist '("\\.pro$" . "IDLTAGS")))
   
   ;; Font-lock additions - originally Phil Williams, then Ulrik Dickow
-  ;; Following line is for Emacs - XEmacs uses the corresponding porperty
+  ;; Following line is for Emacs - XEmacs uses the corresponding property
   ;; on the `idlwave-mode' symbol.
   (set (make-local-variable 'font-lock-defaults) idlwave-font-lock-defaults)
 
@@ -2886,14 +2892,18 @@ statement if this statement is a continuation of the previous line."
            (case-fold-search t)
            (end-reg (progn (beginning-of-line) (point)))
            (close-exp (progn (skip-chars-forward " \t") (looking-at "\\s)")))
-;           (beg-reg (progn (idlwave-previous-statement) (point)))
-           (beg-reg (progn ;; Use substatement indent unless it's this line
-		      (idlwave-start-of-substatement 'pre) 
-		      (if (eq (line-beginning-position) end-reg)
-			  (idlwave-previous-statement))
-		      (point)))
+	   (beg-last-statement (save-excursion (idlwave-previous-statement)
+					       (point)))
+           (beg-reg (progn (idlwave-start-of-substatement 'pre) 
+			   (if (eq (line-beginning-position) end-reg)
+			       (goto-char beg-last-statement)
+			     (point))))
 	   (cur-indent (idlwave-current-indent))
 	   (else-cont (and (goto-char end-reg) (looking-at "[ \t]*else")))
+	   (else-indent 
+	    (when else-cont
+	      (idlwave-find-key "\\<if\\>" -1 'nomark beg-last-statement)
+	      (current-column)))
 	   (basic-indent 	   ;; The basic, non-fancy indent
 	    (+ cur-indent idlwave-continuation-indent))
 	   (fancy-nonparen-indent  ;; A smarter indent for routine/assignments
@@ -2939,9 +2949,9 @@ statement if this statement is a continuation of the previous line."
 			idlwave-max-extra-continuation-indent))))
 	    fancy-enclosing-paren-indent)
       (cond 
-       ;; else continuations are always standard
+       ;; else continuations are always tied to their "if" line
        (else-cont 
-	cur-indent)
+	(or else-indent cur-indent))
 
        ;; an allowed parenthesis-indent
        (fancy-paren-indent-allowed 
@@ -5024,7 +5034,7 @@ end
 
 (defvar idlwave-shell-temp-pro-file)
 (defvar idlwave-shell-temp-rinfo-save-file)
-(defun idlwave-shell-update-routine-info (&optional quiet run-hooks preempt)
+(defun idlwave-shell-update-routine-info (&optional quiet run-hooks wait)
   "Query the shell for routine_info of compiled modules and update the lists."
   ;; Save and compile the procedure.  The compiled procedure is then
   ;; saved into an IDL SAVE file, to allow for fast RESTORE.
@@ -5041,12 +5051,12 @@ end
       (save-buffer 0))
     (idlwave-shell-send-command 
      (concat ".run " idlwave-shell-temp-pro-file)
-     nil 'hide)
+     nil 'hide wait)
 ;    (message "SENDING SAVE") ; ????????????????????????
     (idlwave-shell-send-command
      (format "save,'idlwave_routine_info','idlwave_print_info_entry',FILE='%s',/ROUTINES" 
 	     (idlwave-shell-temp-file 'rinfo))
-     nil 'hide))
+     nil 'hide wait))
 
   ;; Restore and execute the procedure, analyze the output
 ;  (message "SENDING RESTORE & EXECUTE") ; ????????????????????????
@@ -5056,7 +5066,7 @@ end
    `(progn
       (idlwave-shell-routine-info-filter)
       (idlwave-concatenate-rinfo-lists ,quiet ,run-hooks))
-   'hide preempt))
+   'hide wait))
 
 ;; ---------------------------------------------------------------------------
 ;;
@@ -6535,7 +6545,7 @@ The list is cached in `idlwave-class-info' for faster access."
 	(case-fold-search t))
     (if (save-excursion
 	  ;; Check if the context is right
-	  (skip-chars-backward "[a-zA-Z0-9._$]")
+	  (skip-chars-backward "a-zA-Z0-9._$")
 	  (and (< (point) (- pos 4))
 	       (looking-at "self\\.")))
 	(let* ((class-selector (nth 2 (idlwave-current-routine)))
@@ -6613,7 +6623,7 @@ Gets set in `idlw-rinfo.el'.")
 	   t)  ; return t to skip other completions
 	  ((save-excursion
 	     ;; Check if the context is right for sysvar tag
-	     (skip-chars-backward "[a-zA-Z0-9_$.]")
+	     (skip-chars-backward "a-zA-Z0-9_$.")
 	     (and (equal (char-before) ?!)
 		  (looking-at "\\([a-zA-Z][a-zA-Z0-9_$]*\\)\\.")
 		  (<= (match-end 0) pos)))
