@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2004/10/13 20:24:15 $
+;; Date: $Date: 2004/10/15 20:35:08 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -523,10 +523,29 @@ lines which have a breakpoint.  See also `idlwave-shell-mark-breakpoints'."
     (defface idlwave-shell-bp-face
       '((((class color)) (:foreground "Black" :background "Pink"))
 	(t (:underline t)))
-      "Face for highlighting lines-with-breakpoints."
+      "Face for highlighting lines with breakpoints."
       :group 'idlwave-shell-highlighting-and-faces)
   ;; Just copy the underline face to be on the safe side.
   (copy-face 'underline 'idlwave-shell-bp-face))
+
+(defcustom idlwave-shell-disabled-breakpoint-face 
+  'idlwave-shell-disabled-bp-face
+  "*The face for disabled breakpoint lines in the source code.
+Allows you to choose the font, color and other properties for
+lines which have a breakpoint.  See also `idlwave-shell-mark-breakpoints'."
+  :group 'idlwave-shell-highlighting-and-faces
+  :type 'symbol)
+
+(if idlwave-shell-have-new-custom
+    ;; We have the new customize - use it to define a customizable face
+    (defface idlwave-shell-disabled-bp-face
+      '((((class color)) (:foreground "Black" :background "gray"))
+	(t (:underline t)))
+      "Face for highlighting lines with breakpoints."
+      :group 'idlwave-shell-highlighting-and-faces)
+  ;; Just copy the underline face to be on the safe side.
+  (copy-face 'underline 'idlwave-shell-disabled-bp-face))
+
 
 (defcustom idlwave-shell-expression-face 'secondary-selection
   "*The face for `idlwave-shell-expression-overlay'.
@@ -3586,15 +3605,18 @@ only for glyphs)"
   (let ((ov (make-overlay 1 1))
 	(use-glyph (and (memq idlwave-shell-mark-breakpoints '(t glyph))
 			idlwave-shell-bp-glyph))
-	(type (or type 'bp)))
+	(type (or type 'bp))
+	(face (if disabled 
+		  idlwave-shell-disabled-breakpoint-face
+		idlwave-shell-breakpoint-face)))
     (if (featurep 'xemacs)
 	;; This is XEmacs
 	(progn
 	  (cond 
 	   ;; tty's cannot display glyphs
 	   ((eq (console-type) 'tty)
-	    (set-extent-property ov 'face idlwave-shell-breakpoint-face))
-	   
+	    (set-extent-property ov 'face face))
+	    
 	   ;; use the glyph
 	   (use-glyph
 	    (let ((glyph (cdr (assq type idlwave-shell-bp-glyph))))
@@ -3604,7 +3626,7 @@ only for glyphs)"
 
 	   ;; use the face
 	   (idlwave-shell-mark-breakpoints
-	    (set-extent-property ov 'face idlwave-shell-breakpoint-face))
+	    (set-extent-property ov 'face face))
 
 	   ;; no marking
 	   (t nil))
@@ -3626,11 +3648,11 @@ only for glyphs)"
 				     image-props)))
 	      (overlay-put ov 'before-string string))
 	  ;; just the face
-	  (overlay-put ov 'face idlwave-shell-breakpoint-face)))
+	  (overlay-put ov 'face face)))
 
        ;; use a face
        (idlwave-shell-mark-breakpoints
-	(overlay-put ov 'face idlwave-shell-breakpoint-face))
+	(overlay-put ov 'face face))
 
        ;; No marking
        (t nil)))
