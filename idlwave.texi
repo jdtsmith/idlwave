@@ -9,12 +9,12 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 4.15
-@set EDITION 4.15
+@set VERSION 4.16
+@set EDITION 4.16
 @set IDLVERSION 5.5
 @set NSYSROUTINES 1324
 @set NSYSKEYWORDS 6129
-@set DATE September 2002
+@set DATE October 2002
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set AUTHOR-EMAIL dominik@@astro.uva.nl
 @set MAINTAINER J.D. Smith
@@ -2494,14 +2494,18 @@ for separating the output of @emph{examine} commands @xref{Examining
 Variables}.
 
 @defopt idlwave-shell-show-commands (@code{'(run misc breakpoint)})
-A list of command types to echo in the shell when sent.  Possible values
-are @code{run} for @code{.run}, @code{.compile} and other run commands,
-@code{misc} for lesser used commands like @code{window}, @code{retall},
-etc., @code{breakpoint} for breakpoint setting and clearing commands,
-and @code{debug} for other debug, stepping, and continue commands.  In
-addition, if the variable is set to the single symbol @code{'everything},
-all the copious shell input is displayed (which is probably only useful
-for debugging purposes).
+A list of command types to echo in the shell when sent.  Possible
+values are @code{run} for @code{.run}, @code{.compile} and other run
+commands, @code{misc} for lesser used commands like @code{window},
+@code{retall}, etc., @code{breakpoint} for breakpoint setting and
+clearing commands, and @code{debug} for other debug, stepping, and
+continue commands.  In addition, if the variable is set to the single
+symbol @code{'everything}, all the copious shell input is displayed
+(which is probably only useful for debugging purposes).  N.B. For
+hidden commands which produce output by side-effect, that output
+remains hidden (e.g., stepping through a @code{print} command).  As a
+special case, any error message in the output will be displayed
+(e.g., stepping to an error).
 @end defopt
 
 @node Debugging IDL Programs, Examining Variables, Commands Sent to the Shell, The IDLWAVE Shell

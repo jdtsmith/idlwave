@@ -249,6 +249,7 @@ xemacsdistfile: $(XEMACSDISTFILES)
 	cp -pf $(XEMACSDISTFILES) $(XEMACSDIR)/
 	perl -pi -e 's/^((?:AUTHOR_)?VERSION\s*=\s*)([0-9]\.[0-9.a-z]+)/$${1}$(TAG)/' $(XEMACSDIR)/Makefile
 	perl -pi -e 's/\sVERSIONTAG\b/ $(TAG)/' $(XEMACSDIR)/*
+	perl -pi -e 's/:version [0-9]\.[0-9]+[a-z]*/:version $(TAG)/' $(XEMACSDIR)/_pkg.el
 	(cd $(XEMACSDIR); make bindist)
 
 .PHONY: xemacsdist

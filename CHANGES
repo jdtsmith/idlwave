@@ -1,8 +1,33 @@
-This is the CHANGES file of the IDLWAVE distribution, version VERSIONTAG 
+This is the CHANGES file of the IDLWAVE distribution, version 4.16 
 
 The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
+
+Revision 4.16
+=============
+   - Fixed XEmacs error when indenting continuation lines.
+   - Fixed case-bug when simultaneously upcasing and expanding generic
+     END statements (i.e. when using `idlwave-reserved-word-upcase'
+     with 'idlwave-expand-generic-end').
+   - Improved Debug Menu when running the Shell, including the super
+     examination pop-up commands as menu items (for both expression at
+     point, and region).
+   - Highlighted stop-line is cleared when retall'ing.
+   - Better continuation of single statement if..then..else
+     continuation lines.
+   - Fixed broken drag-to-examine functionality on the newest XEmacs
+     versions.
+   - Debugging commands (breakpoints, stepping, etc.) now work in
+     $MAIN$ level routines.
+   - Fixed a rare error when stepping code yourself (e.g., with
+     ".step").
+   - When not showing shell output ( e.g., for stepping commands; see
+     `idlwave-shell-show-commands'), any errors in the output will
+     still be displayed.
+   - An occassional hang when finding keys (e.g. when showing a
+     routine definition block for the last routine in a file) was
+     fixed.
 
 Revision 4.15
 =============
