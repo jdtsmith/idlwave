@@ -1,12 +1,13 @@
 ;; idlwave.el --- IDL editing mode for GNU Emacs
-;; Copyright (c) 1999, 2000, 2001, 2002, 2003, 2004 Free Software Foundation
+;; Copyright (c) 1999, 2000, 2001, 2002, 2003, 2004, 2005 
+;;    Free Software Foundation
 
 ;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
 ;;          Carsten Dominik <dominik@astro.uva.nl>
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2004/11/17 05:58:27 $
+;; Date: $Date: 2005/05/06 21:49:50 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -27,6 +28,11 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
+
+;; IDLWAVE enables feature-rich development and interaction with IDL,
+;; the Interactive Data Language, produced by Research Systems, Inc.
+;; It provides a compelling, full-featured alternative to the IDLDE
+;; development environment bundled with IDL.
 
 ;; In the remotely distant past, based on pascal.el, though bears
 ;; little resemblance to it now.
@@ -111,7 +117,7 @@
 ;;   IDLWAVE support for the IDL-derived PV-WAVE CL language of Visual
 ;;   Numerics, Inc. is growing less and less complete as the two
 ;;   languages grow increasingly apart.  The mode probably shouldn't
-;;   even have "WAVE" in it's title, but it's catchy, and was required
+;;   even have "WAVE" in its title, but it's catchy, and was required
 ;;   to avoid conflict with the CORBA idl.el mode.  Caveat WAVEor.
 ;;
 ;;   Moving the point backwards in conjunction with abbrev expansion
@@ -158,6 +164,11 @@
   (defalias 'line-end-position 'point-at-eol))
 (unless (fboundp 'char-valid-p)
   (defalias 'char-valid-p 'characterp))
+
+(if (not (fboundp 'cancel-timer))
+    (condition-case nil
+	(require 'timer)
+      (error nil)))
 
 (eval-and-compile
   ;; Kludge to allow `defcustom' for Emacs 19.
@@ -585,7 +596,7 @@ for which to assume this can be set here."
 (defcustom idlwave-completion-show-classes 1
   "*Number of classes to show when completing object methods and keywords.
 When completing methods or keywords for an object with unknown class,
-the *Completions* buffer will show the legal classes for each completion
+the *Completions* buffer will show the valid classes for each completion
 like this:
 
 MyMethod <Class1,Class2,Class3>
@@ -1484,12 +1495,13 @@ Capitalize system variables - action only
       ;; Add action
       (let* ((table (if select 'idlwave-indent-action-table
                       'idlwave-indent-expand-table))
-             (cell (assoc key (eval table))))
+	     (table-key (regexp-quote key))
+             (cell (assoc table-key (eval table))))
         (if cell
             ;; Replace action command
             (setcdr cell cmd)
           ;; New action
-          (set table (append (eval table) (list (cons key cmd)))))))
+          (set table (append (eval table) (list (cons table-key cmd)))))))
   ;; Make key binding for action
   (if (or (and (null select) (= (length key) 1))
           (equal select 'noaction)
@@ -1516,7 +1528,7 @@ Capitalize system variables - action only
 (define-key idlwave-mode-map "\C-c{"    'idlwave-beginning-of-block)
 (define-key idlwave-mode-map "\C-c}"    'idlwave-end-of-block)
 (define-key idlwave-mode-map "\C-c]"    'idlwave-close-block)
-(define-key idlwave-mode-map "\M-\C-h"  'idlwave-mark-subprogram)
+(define-key idlwave-mode-map [(meta control h)] 'idlwave-mark-subprogram)
 (define-key idlwave-mode-map "\M-\C-n"  'idlwave-forward-block)
 (define-key idlwave-mode-map "\M-\C-p"  'idlwave-backward-block)
 (define-key idlwave-mode-map "\M-\C-d"  'idlwave-down-block)
@@ -1575,6 +1587,7 @@ Capitalize system variables - action only
 (autoload 'idlwave-shell-run-region "idlw-shell"
   "Compile and run the region." t)
 (define-key idlwave-mode-map "\C-c\C-v"   'idlwave-find-module)
+(define-key idlwave-mode-map "\C-c\C-t"   'idlwave-find-module-this-file)
 (define-key idlwave-mode-map "\C-c?"      'idlwave-routine-info)
 (define-key idlwave-mode-map "\M-?"       'idlwave-context-help)
 (define-key idlwave-mode-map [(control meta ?\?)] 'idlwave-online-help)
@@ -1702,7 +1715,9 @@ idlwave-mode-abbrev-table unless TABLE is non-nil."
 (idlwave-define-abbrev "s"  "size()"       (idlwave-keyword-abbrev 1))
 (idlwave-define-abbrev "wi" "widget_info()" (idlwave-keyword-abbrev 1))
 (idlwave-define-abbrev "wc" "widget_control," (idlwave-keyword-abbrev 0))
-  
+(idlwave-define-abbrev "pv" "ptr_valid()" (idlwave-keyword-abbrev 1))
+(idlwave-define-abbrev "ipv" "if ptr_valid() then" (idlwave-keyword-abbrev 6))
+
 ;; This section is reserved words only. (From IDL user manual)
 ;;
 (idlwave-define-abbrev "and"        "and"       (idlwave-keyword-abbrev 0 t) t)
@@ -2572,7 +2587,9 @@ If not in a statement just moves to end of line. Returns position."
   (let ((save-point (point)))
     (when (re-search-forward ".*&" lim t)
       (goto-char (match-end 0))
-      (if (idlwave-quoted) (goto-char save-point)))
+      (if (idlwave-quoted) 
+	  (goto-char save-point)
+	(if (eq (char-after (- (point) 2)) ?&) (goto-char save-point))))
     (point)))
 
 (defun idlwave-skip-label-or-case ()
@@ -5336,7 +5353,7 @@ end
 
 (defun idlwave-complete (&optional arg module class)
   "Complete a function, procedure or keyword name at point.
-This function is smart and figures out what can be legally completed
+This function is smart and figures out what can be completed
 at this point.
 - At the beginning of a statement it completes procedure names.
 - In the middle of a statement it completes function names.
@@ -5586,7 +5603,7 @@ other completions will be tried.")
 		      (symbolp what)
 		      (assoc (symbol-name what) what-list))
 		 what)
-		(t (error "Illegal WHAT"))))
+		(t (error "Invalid WHAT"))))
 	 (nil-list '(nil nil nil nil))
 	 (class-list (list nil nil (or class t) nil)))
 
@@ -5655,7 +5672,7 @@ other completions will be tried.")
      ((eq what 'class)
       (list nil-list nil-list 'class nil-list nil))
      
-     (t (error "Illegal value for WHAT")))))
+     (t (error "Invalid value for WHAT")))))
 
 (defun idlwave-completing-read (&rest args)
   ;; Completing read, case insensitive
@@ -6153,7 +6170,7 @@ This function is not general, can only be used for completion stuff."
 	 ((memq (preceding-char) '(?\; ?\$)) (throw 'exit nil))
 	 ((eq (preceding-char) ?\n)
 	  (beginning-of-line 0)
-	  (if (looking-at "\\([^;\n]*\\)\\$[ \t]*\\(;[^\n]*\\)?\n")
+	  (if (looking-at "\\([^\n]*\\)\\$[ \t]*\\(;[^\n]*\\)?\n")
 	      ;; continuation line
 	      (goto-char (match-end 1))
 	    (throw 'exit nil)))
@@ -7460,6 +7477,10 @@ With ARG, enforce query for the class of object methods."
 	     '(idlwave-update-routine-info)
 	     nil t))))))
 
+(defun idlwave-find-module-this-file ()
+  (interactive)
+  (idlwave-find-module '(4)))
+
 (defun idlwave-find-module (&optional arg)
   "Find the source code of an IDL module.
 Works for modules for which IDLWAVE has routine info available.  The
@@ -7727,7 +7748,7 @@ from all classes if class equals t."
     keywords))
 
 (defun idlwave-expand-keyword (keyword module)
-  "Expand KEYWORD to one of the legal keyword parameters of MODULE.
+  "Expand KEYWORD to one of the valid keyword parameters of MODULE.
 KEYWORD may be an exact match or an abbreviation of a keyword.
 If the match is exact, KEYWORD itself is returned, even if there may be other
 keywords of which KEYWORD is an abbreviation.  This is necessary because some
@@ -7925,7 +7946,7 @@ If we do not know about MODULE, just return KEYWORD literally."
 		     "\n          Source information truncated to %d entries."
 		     idlwave-rinfo-max-source-lines))
 	    (setq all nil)))
-	(beginning-of-buffer)
+	(goto-char (point-min))
 	(setq buffer-read-only t))
       (display-buffer "*Help*")
       (if (and (setq win (get-buffer-window "*Help*"))
@@ -8825,4 +8846,5 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 
 (provide 'idlwave)
 
+;; arch-tag: f77f3b0c-c37c-424f-a328-0886fd42b6fb
 ;;; idlwave.el ends here
