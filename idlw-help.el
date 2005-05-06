@@ -41,7 +41,13 @@
 
 
 ;;; Code:
-(require 'browse-url)
+(defvar idlwave-help-browse-url-available nil
+  "Whether browse-url is available")
+
+(setq idlwave-help-browse-url-available
+      (condition-case nil
+	  (require 'browse-url)
+	(error nil)))
 
 (defgroup idlwave-online-help nil
   "Online Help options for IDLWAVE mode."
@@ -740,6 +746,9 @@ see if a link is set for it.  Try extra help functions if necessary."
 	;(browse-url-generic-args idlwave-help-browser-generic-args)
 	full-link)
     
+    (unless idlwave-help-browse-url-available
+      (error "browse-url is not available -- install it to use HTML help."))
+
     (if (and (memq system-type '(ms-dos windows-nt))
 	     idlwave-help-use-hh)
 	(progn
@@ -1174,4 +1183,5 @@ Useful when source code is displayed as help.  See the option
 (provide 'idlw-help)
 (provide 'idlwave-help)
 
+;; arch-tag: d27b5505-59de-497f-ba3f-f199fd4fb911
 ;;; idlw-help.el ends here
