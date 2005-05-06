@@ -5,7 +5,9 @@ IDLWAVE has been developed and tested on Emacs >20.4 and XEmacs >21.1.
 If you are using XEmacs 21, you might want to install the XEmacs
 plugin package for idlwave which is available via the usual package
 management process.  You can then skip items (1)--(3) of this guide
-and continue directly with item (4).
+and continue directly with item (4).  For XEmacs, you will also need
+to install the fsf-compat package which is often, but not always,
+bundled with the XEmacs distribution.
 
 If you are using Emacs 21, IDLWAVE is installed with Emacs.  You could
 then skip items (1)--(3) of this guide and continue directly with item
