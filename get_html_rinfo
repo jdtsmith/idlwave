@@ -80,11 +80,12 @@
 #
 # 1. UPDATE: Manual sections
 #    -----------------------
-#    Each Routine description has many sections.  The liast can be
-#    corrected when necessary.  Right now, the Syntax and Keywords
-#    sections are being parsed.  This relies explicitly on the HTML
-#    "heading" syntax, which should be verified to continue to be
-#    operational.
+#    Each Routine description has many sections, only a few of which
+#    are of interest for routine scanning.  The list can be corrected
+#    when necessary.  Right now, the Syntax and Keywords sections are
+#    being parsed.  This relies explicitly on the HTML "heading"
+#    syntax upon which the HTML files are split into sections.  This
+#    syntax should be verified to continue to be operational.
 #
 # 2. UPDATE: Special matchers
 #    ------------------------
@@ -159,11 +160,11 @@
 #                  {"add_kwds"} # (Array) of refs to:
 #                             \-> [needs, # needs or has keywords
 #                                  name,  # routine to link to
-#                                  type,  # type of routien to link to
+#                                  type,  # type of routine to link to
 #                                  class, # class of routine to link to
-#                                  \@nokeys,# ref to key list to exlude
-#                                  special, # Use name's special kwds
-#                                  get_set] # Use name's get or set kwds
+#                                  \@nokeys,# ref to key list to exclude
+#                                  special, # Use routine's special kwds
+#                                  get_set] # Use routine's get or set kwds
 #                  {"has_special_section_kwds"}   # Has special kwds to link
 #                  {"needs_special_section_kwds"} # Needs special kwds linked
 #                  {"extra"} # Hash of extra routines with kwds to link to
@@ -172,8 +173,8 @@
 #                                {"special"} # Special sec. linked to (if any)
 #
 # The data which actually make it into the rinfo file include class,
-# type, routine,"kwds" with links, and the "extra" file and kwds with
-# links.  Everything else is for internal linking.
+# type, routine,"kwds" with links, and the "extra" file and their kwds
+# with links.  Everything else is for internal linking.
 #
 #============================================================================
 # This file is free software; you can redistribute it and/or modify
@@ -1421,27 +1422,30 @@ sub try_specials {
 
 # UPDATE: Special matchers
 # ------------------------
+#
 # The BEGIN block sets the array which contains special matchers.  The
 # hash keys are just strings identifying the matcher.  The values are
 # anonymous subroutines which work on the global variable $syntax
-# which contains the full syntax entry.  To fix a problem, the matcher
-# may change the $syntax variable.
-# The return value of a matcher must be 0, 1, or 2
-# 0: The matcher did not match the entry.
-# 1: The matcher matched, and further matchers should be tried.
-# 2: The matcher did match and no further matchers should be tried.
+# which contains the full syntax entry of the file currently being
+# scanned.  To fix a problem, the matcher may change the $syntax
+# variable.  The return value of a matcher must be 0, 1, or 2; 0: The
+# matcher did not match the entry.  1: The matcher matched, and
+# further matchers should be tried.  2: The matcher did match and no
+# further matchers should be tried.
 
-# Matching should mean that the matcher found the entry it was supposed to
-# find.  When the entry is successfully changed, the matcher should also set
-# the variable $act.  As typos get fixed by RSI, some matchers will still
-# match but not act - a sign that they can be removed from the %specials list.
+# Matching should mean that the matcher actually found the entry it
+# was supposed to find.  When the entry is successfully changed, the
+# matcher should also set the variable $act.  As typos get fixed by
+# RSI, some matchers will still match but not act - a sign that they
+# can be removed from the %specials list.
 
-# Matchers of buggy entries should also push onto the @complaints array
-# an explanation why the matched entry is buggy.  The result can later
-# be mailed to RSI to make them fix the problem.
+# Matchers of buggy entries should also push onto the @complaints
+# array an explanation why the matched entry is buggy.  The result can
+# later be mailed to RSI to encourage them to fix the problem.
 
-# Some entries describe actually several routines, for example PRINT/PRINTF.
-# The matcher must then place entries into the @enter array for each routine.
+# Some entries describe actually several routines, for example
+# PRINT/PRINTF.  The matcher must place entries directly into the
+# @enter array for each routine.
 
 # Finally, some routines do not list all the keywords, but just say
 # "accepts all keywords accepted by PLOT" or so.  See the SURFACE
