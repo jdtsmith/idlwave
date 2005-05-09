@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2005/05/06 21:38:53 $
+;; Date: $Date: 2005/05/09 20:08:45 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -749,9 +749,6 @@ with `*'s."
 (defvar idlwave-shell-ready nil
   "If non-nil can send next command to IDL process.")
 
-(defvar idlwave-shell-wait-for-output nil
-  "Whether to wait for output to accumulate.")
-
 ;;; The following are the types of messages we attempt to catch to
 ;;; resync our idea of where IDL execution currently is.
 ;;; 
@@ -995,7 +992,6 @@ IDL has currently stepped.")
   (set-marker comint-last-input-end (point))
   (setq idlwave-idlwave_routine_info-compiled nil)
   (setq idlwave-shell-ready nil)
-  (setq idlwave-shell-wait-for-output nil)
   (setq idlwave-shell-bp-alist nil)
   (idlwave-shell-update-bp-overlays) ; Throw away old overlays
   (setq idlwave-shell-sources-alist nil)
@@ -1341,11 +1337,11 @@ message, independent of what HIDE is set to."
 	      (set-marker comint-last-input-end (point))
 	      (comint-simple-send proc cmd)
 	      (setq idlwave-shell-ready nil)
-	      (when (equal preempt 'wait) ; Get all the output at once
-		(if (accept-process-output proc 6) ; long wait
-		    (setq idlwave-shell-wait-for-output t)
-		  (error "Process timed out")
-		  (setq idlwave-shell-pending-commands nil)))))
+	      (if (equal preempt 'wait) ; Get all the output at once
+		(while (not idlwave-shell-ready)
+		  (when (not (accept-process-output proc 6)) ; long wait
+		    (setq idlwave-shell-pending-commands nil)
+		    (error "Process timed out"))))))
 	(goto-char save-point))
       (set-buffer save-buffer))))
 
@@ -1491,120 +1487,110 @@ error messages, etc."
 When the IDL prompt is received executes `idlwave-shell-post-command-hook'
 and then calls `idlwave-shell-send-command' for any pending commands."
   ;; We no longer do the cleanup here - this is done by the process sentinel
-  (when (eq (process-status idlwave-shell-process-name) 'run)
-    ;; OK, process is still running, so we can use it.
-    (let ((data (match-data)) p full-output)
-      (unwind-protect
-          (progn
-	    ;; Ring the bell if necessary
-	    (while (setq p (string-match "\C-G" string))
-	      (ding)
-	      (aset string p ?\C-j ))
-            (if idlwave-shell-hide-output
-		(save-excursion
-		  (while (setq p (string-match "\C-M" string))
-		    (aset string p ?\  ))
-		  (set-buffer
-		   (get-buffer-create idlwave-shell-hidden-output-buffer))
-		  (goto-char (point-max))
-		  (insert string))
-	      (idlwave-shell-comint-filter proc string))
-            ;; Watch for magic - need to accumulate the current line
-            ;; since it may not be sent all at once.
-            (if (string-match "\n" string)
-		(progn
-		  (if idlwave-shell-use-input-mode-magic
-		      (idlwave-shell-input-mode-magic
-		       (concat idlwave-shell-accumulation string)))
-		  (setq idlwave-shell-accumulation
-			(substring string 
-				   (progn (string-match "\\(.*[\n\r]+\\)*" 
-							string)
-					  (match-end 0)))))
-              (setq idlwave-shell-accumulation
-                    (concat idlwave-shell-accumulation string)))
+  (if (eq (process-status idlwave-shell-process-name) 'run)
+      ;; OK, process is still running, so we can use it.
+      (let ((data (match-data)) p full-output)
+	(unwind-protect
+	    (progn
+	      ;; Ring the bell if necessary
+	      (while (setq p (string-match "\C-G" string))
+		(ding)
+		(aset string p ?\C-j ))
+	      (if idlwave-shell-hide-output
+		  (save-excursion
+		    (while (setq p (string-match "\C-M" string))
+		      (aset string p ?\  ))
+		    (set-buffer
+		     (get-buffer-create idlwave-shell-hidden-output-buffer))
+		    (goto-char (point-max))
+		    (insert string))
+		(idlwave-shell-comint-filter proc string))
+	      ;; Watch for magic - need to accumulate the current line
+	      ;; since it may not be sent all at once.
+	      (if (string-match "\n" string)
+		  (progn
+		    (if idlwave-shell-use-input-mode-magic
+			(idlwave-shell-input-mode-magic
+			 (concat idlwave-shell-accumulation string)))
+		    (setq idlwave-shell-accumulation
+			  (substring string 
+				     (progn (string-match "\\(.*[\n\r]+\\)*" 
+							  string)
+					    (match-end 0)))))
+		(setq idlwave-shell-accumulation
+		      (concat idlwave-shell-accumulation string)))
 	    
 	    
 ;;; Test/Debug code
-;;	      (save-excursion (set-buffer
-;;			       (get-buffer-create "*idlwave-shell-output*"))
-;;			      (goto-char (point-max))
-;;			      (insert "\nSTRING===>\n" string "\n<====\n"))
+;	      (save-excursion (set-buffer
+;			       (get-buffer-create "*idlwave-shell-output*"))
+;			      (goto-char (point-max))
+;			      (insert "\nSTRING===>\n" string "\n<====\n"))
 	    
-	    ;; Check for prompt in current accumulating output
-	    (if (setq idlwave-shell-ready
-		      (string-match idlwave-shell-prompt-pattern
-				    idlwave-shell-accumulation))
-		(progn
-		  ;; Gather the command output
+	      ;; Check for prompt in current accumulating output
+	      (when (setq idlwave-shell-ready
+			  (string-match idlwave-shell-prompt-pattern
+					idlwave-shell-accumulation))
+		;; Gather the command output
+		(if idlwave-shell-hide-output
+		    (save-excursion
+		      (set-buffer idlwave-shell-hidden-output-buffer)
+		      (setq full-output (buffer-string))
+		      (goto-char (point-max))
+		      (re-search-backward idlwave-shell-prompt-pattern nil t)
+		      (goto-char (match-end 0))
+		      (setq idlwave-shell-command-output
+		      (buffer-substring (point-min) (point)))
+		      (delete-region (point-min) (point)))
+		  (setq idlwave-shell-command-output
+			(with-current-buffer (process-buffer proc)
+			(buffer-substring
+			 (save-excursion
+			   (goto-char (process-mark proc))
+			   (forward-line 0) ; Emacs 21 (beginning-of-line nil)
+			   (point))
+			 comint-last-input-end))))
+
+		;; Scan for state and do post commands - bracket
+		;; them with idlwave-shell-ready=nil since they may
+		;; call idlwave-shell-send-command themselves.
+		(let ((idlwave-shell-ready nil))
+		  (idlwave-shell-scan-for-state)
+		  ;; Show the output in the shell if it contains an error
 		  (if idlwave-shell-hide-output
-		      (save-excursion
-			(set-buffer idlwave-shell-hidden-output-buffer)
-			(setq full-output (buffer-string))
-			(goto-char (point-max))
-			(re-search-backward idlwave-shell-prompt-pattern nil t)
-			(goto-char (match-end 0))
-			(setq idlwave-shell-command-output
-			      (buffer-substring (point-min) (point)))
-			(delete-region (point-min) (point)))
-                    (setq idlwave-shell-command-output
-			  (with-current-buffer (process-buffer proc)
-			    (buffer-substring
-			     (save-excursion
-			       (goto-char (process-mark proc))
-			       (forward-line 0) ; Emacs 21 (beginning-of-line nil)
-			       (point))
-			     comint-last-input-end))))
-
-                  ;; Scan for state and do post commands - bracket
-                  ;; them with idlwave-shell-ready=nil since they may
-                  ;; call idlwave-shell-send-command themselves.
-                  (let ((idlwave-shell-ready nil))
-		    (idlwave-shell-scan-for-state)
-		    ;; Show the output in the shell if it contains an error
-		    (if idlwave-shell-hide-output
-			(if (and idlwave-shell-show-if-error
-				 (eq idlwave-shell-current-state 'error))
-			    (idlwave-shell-comint-filter proc full-output)
-			  ;; If it's only *mostly* hidden, filter % lines, 
-			  ;; and show anything that remains
-			  (if (eq idlwave-shell-hide-output 'mostly)
-			      (let ((filtered
-				     (idlwave-shell-filter-hidden-output 
-				      full-output)))
-				(if filtered 
-				    (idlwave-shell-comint-filter 
-				     proc filtered))))))
+		      (if (and idlwave-shell-show-if-error
+			       (eq idlwave-shell-current-state 'error))
+			  (idlwave-shell-comint-filter proc full-output)
+			;; If it's only *mostly* hidden, filter % lines, 
+			;; and show anything that remains
+			(if (eq idlwave-shell-hide-output 'mostly)
+			    (let ((filtered
+				   (idlwave-shell-filter-hidden-output 
+				    full-output)))
+			      (if filtered 
+				  (idlwave-shell-comint-filter 
+				   proc filtered))))))
 		    
-		    ;; Call the post-command hook
-                    (if (listp idlwave-shell-post-command-hook)
-                        (progn
-			  ;(message "Calling list")
-			  ;(prin1 idlwave-shell-post-command-hook)
-			  (eval idlwave-shell-post-command-hook))
-		      ;(message "Calling command function")
-                      (funcall idlwave-shell-post-command-hook))
+		  ;; Call the post-command hook
+		  (if (listp idlwave-shell-post-command-hook)
+		      (progn
+					;(message "Calling list")
+					;(prin1 idlwave-shell-post-command-hook)
+			(eval idlwave-shell-post-command-hook))
+					;(message "Calling command function")
+		    (funcall idlwave-shell-post-command-hook))
 
-		    ;; Reset to default state for next command.
-                    ;; Also we do not want to find this prompt again.
-                    (setq idlwave-shell-accumulation nil
-                          idlwave-shell-command-output nil
-                          idlwave-shell-post-command-hook nil
-                          idlwave-shell-hide-output nil
-			  idlwave-shell-show-if-error nil
-			  idlwave-shell-wait-for-output nil))
-                  ;; Done with post command. Do pending command if
-                  ;; any.
-                  (idlwave-shell-send-command))
-	      ;; We didn't get the prompt yet... maybe accept more output
-	      (when idlwave-shell-wait-for-output
-;;; Test/Debug code
-;		(save-excursion (set-buffer
-;				 (get-buffer-create "*idlwave-shell-output*"))
-;				(goto-char (point-max))
-;				(insert "\n<=== WAITING ON OUTPUT ==>\n"))
-		  (accept-process-output proc 1))))
-        (store-match-data data)))))
+		  ;; Reset to default state for next command.
+		  ;; Also we do not want to find this prompt again.
+		  (setq idlwave-shell-accumulation nil
+			idlwave-shell-command-output nil
+			idlwave-shell-post-command-hook nil
+			idlwave-shell-hide-output nil
+			idlwave-shell-show-if-error nil))
+		;; Done with post command. Do pending command if
+		;; any.
+		(idlwave-shell-send-command)))
+	  (store-match-data data)))))
 
 (defun idlwave-shell-sentinel (process event)
   "The sentinel function for the IDLWAVE shell process."
@@ -2107,7 +2093,8 @@ Change the default directory for the process buffer to concur."
     (when (not (string= expression ""))
       (setq idlwave-shell-get-object-class nil)
       (idlwave-shell-send-command
-       (concat "print,obj_class(" expression ")")
+       (concat "if obj_valid(" expression ") then print,obj_class(" 
+	       expression ")")
        'idlwave-shell-parse-object-class
        'hide 'wait)
       ;; If we don't know anything about the class, update shell routines
@@ -2119,13 +2106,10 @@ Change the default directory for the process buffer to concur."
 
 (defun idlwave-shell-parse-object-class ()
   "Parse the output of the obj_class command."
-  (let ((match "print,obj_class([^\n\r]+[\n\r ]"))
-    (if (and
-	 (not (string-match (concat match match "\\s-*^[\n\r]+"
-				    "% Syntax error")
-			    idlwave-shell-command-output))
-	 (string-match (concat match "\\([A-Za-z_0-9]+\\)")
-		       idlwave-shell-command-output))
+  (let ((match "obj_class([^\n\r]+[\n\r ]"))
+    (if (string-match (concat match "\\([A-Za-z_0-9]+\\) *[\n\r]\\(" 
+			      idlwave-shell-prompt-pattern "\\)")
+		      idlwave-shell-command-output)
 	(setq idlwave-shell-get-object-class 
 	      (match-string 1 idlwave-shell-command-output)))))
 
