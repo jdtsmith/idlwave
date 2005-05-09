@@ -9,12 +9,12 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 5.5
-@set EDITION 5.5
+@set VERSION 5.6
+@set EDITION 5.6
 @set IDLVERSION 6.1
 @set NSYSROUTINES 1850
 @set NSYSKEYWORDS 7685
-@set DATE November, 2004
+@set DATE May, 2005
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set AUTHOR-EMAIL jdsmith@@as.arizona.edu
 @set MAINTAINER J.D. Smith
@@ -30,7 +30,7 @@ Emacs, and interacting with an IDL shell run as a subprocess.
 This is edition @value{EDITION} of the IDLWAVE User Manual for IDLWAVE
 @value{VERSION}
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Free Software
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software
 Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
@@ -61,7 +61,7 @@ license to the document, as described in section 6 of the license.
 This is edition @value{EDITION} of the @cite{IDLWAVE User Manual} for
 IDLWAVE version @value{VERSION}, @value{DATE}.
 @sp 2
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Free Software
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005 Free Software
 Foundation, Inc.
 @sp 2
 @cindex Copyright, of IDLWAVE
@@ -559,7 +559,7 @@ Let's try a different day --- how about April fool's day?
 plot_wday,1,4
 @end example
 
-Oops, this looks very wrong.  All April fool's days cannot be Fridays!
+Oops, this looks very wrong.  All April Fool's days cannot be Fridays!
 We've got a bug in the program, perhaps in the @code{daynr} function.
 Let's put a breakpoint on the last line there.  Position the cursor on
 the @samp{return, d+...} line and press @kbd{C-c C-d C-b}.  IDL sets a
@@ -896,8 +896,8 @@ Also, since the indentation level can be somewhat dynamic in continued
 statements with special continuation indentation, especially if
 @code{idlwave-max-extra-continuation-indent} is small, the key
 @kbd{C-u @key{TAB}} will re-indent all lines in the current statement.
-Note that @code{idlwave-indent-to-open-paren}, if non-nil, overrides
-the @code{idlwave-max-extra-continuation-indent} limit, for
+Note that @code{idlwave-indent-to-open-paren}, if non-@code{nil},
+overrides the @code{idlwave-max-extra-continuation-indent} limit, for
 parentheses only, forcing them always to line up.
 
 
@@ -1830,9 +1830,10 @@ for a module name, offering the same default as
 @code{idlwave-routine-info} would have used, taken from nearby buffer
 contents.  In the minibuffer, specify a complete routine name (including
 any class part).  IDLWAVE will display the source file in another
-window, positioned at the routine in question.  You can also visit a
-routine in the current buffer, with completion, by using a single prefix
-(@kbd{C-u C-c C-v}).
+window, positioned at the routine in question.  You can also limit this
+to a routine in the current buffer only, with completion, and a
+context-sensitive default, by using a single prefix (@kbd{C-u C-c C-v})
+or the convenience binding @kbd{C-c C-t}.
 
 @cindex Buffers, killing
 @cindex Killing autoloaded buffers
@@ -1996,6 +1997,8 @@ String abbreviations:
 @tab @code{print,}
 @item @code{\pt}
 @tab @code{plot,}
+@item @code{\pv}
+@tab @code{ptr_valid()}
 @item @code{\re}
 @tab @code{read,}
 @item @code{\rf}
@@ -2217,7 +2220,7 @@ case of routines, keywords, classes, and methods as they are completed, see
 
 @defopt idlwave-abbrev-change-case (@code{nil})
 Non-@code{nil} means all abbrevs will be forced to either upper or lower
-case.  Legal values are @code{nil}, @code{t}, and @code{down}.
+case.  Valid values are @code{nil}, @code{t}, and @code{down}.
 @end defopt
 
 @defopt idlwave-reserved-word-upcase (@code{nil})
@@ -2552,6 +2555,9 @@ keywords, system variables, system variable tags etc.
 (@code{idlwave-update-routine-info})
 @item @kbd{C-c C-v}
 @tab Find the source file of a routine (@code{idlwave-find-module})
+@item @kbd{C-c C-t}
+@tab Find the source file of a routine in the currently visited file 
+(@code{idlwave-find-module-this-file}).
 @item @kbd{C-c =}
 @tab Compile a library routine (@code{idlwave-resolve})
 @end multitable
@@ -2777,16 +2783,20 @@ C-a} (@code{idlwave-clear-all-bp}).  Breakpoints can also be disabled
 and re-enabled: @kbd{C-c C-d C-\}
 (@code{idlwave-shell-toggle-enable-current-bp}).  
 
+Breakpoint lines are highlighted or indicated with an icon in the source
+code (different icons for conditional, after, and other break types).
+Disabled breakpoints are @emph{grayed out} by default.  Note that IDL
+places breakpoints as close as possible on or after the line you
+specify.  IDLWAVE queries the shell for the actual breakpoint location
+which was set, so the exact line you specify may not be marked.  You can
+re-sync the breakpoint list and update the display at any time (e.g., if
+you add or remove some on the command line) using @kbd{C-c C-d C-l}.  
 
-Breakpoint lines are highlighted or indicated with an icon in the
-source code (different icons for conditional, after, and other break
-types).  Disabled breakpoints are @emph{grayed out} by default.  Note
-that IDL places breakpoints as close as possible on or after the line
-you specify.  IDLWAVE queries the shell for the actual breakpoint
-location which was set, so the exact line you specify may not be
-marked.  You can re-sync the breakpoint list and display at any time
-(e.g., if you add or remove some on the command line) using @kbd{C-c
-C-d C-l}.
+By default in recent IDLWAVE versions, the breakpoint line is
+highlighted when the mouse is over it, and a tooltip pops up describing
+the break details.  @kbd{Mouse-3} on the breakpoint line pops up a menu
+of breakpoint actions, including clearing, disabling, and adding or
+changing break conditions or ``after'' break count.
 
 Once the program has stopped somewhere, you can step through it.  The
 most important stepping commands are @kbd{C-c C-d C-s} to execute one
@@ -2802,7 +2812,7 @@ breakpoint and stepping commands:
 @item @kbd{C-c C-d C-b}
 @tab Set breakpoint (@code{idlwave-shell-break-here})
 @item @kbd{C-c C-d C-i}
-@tab Set breakpoint in function named here (@code{idlwave-shell-break-in})
+@tab Set breakpoint in module named here (@code{idlwave-shell-break-in})
 @item @kbd{C-c C-d C-d}
 @tab Clear current breakpoint (@code{idlwave-shell-clear-current-bp})
 @item @kbd{C-c C-d C-a}
@@ -2842,13 +2852,18 @@ provides faster access (@pxref{Electric Debug Mode}).
 
 @defopt idlwave-shell-mark-breakpoints (@code{t})
 Non-@code{nil} means mark breakpoints in the source file buffers.  The
-value indicates the preferred method.  Legal values are @code{nil},
+value indicates the preferred method.  Valid values are @code{nil},
 @code{t}, @code{face}, and @code{glyph}.
 @end defopt
 
 @defopt idlwave-shell-breakpoint-face
 The face for breakpoint lines in the source code if
 @code{idlwave-shell-mark-breakpoints} has the value @code{face}.
+@end defopt
+
+@defopt idlwave-shell-breakpoint-popup-menu (@code{t})
+Whether to pop-up a menu and present a tooltip description on
+breakpoint lines.
 @end defopt
 
 @node Compiling Programs, Walking the Calling Stack, Breakpoints and Stepping, Debugging IDL Programs
@@ -2879,7 +2894,7 @@ been set (or you give two prefix arguments), the last command on the
 
 @defopt idlwave-shell-mark-stop-line (@code{t})
 Non-@code{nil} means mark the source code line where IDL is currently
-stopped.  The value specifies the preferred method.  Legal values are
+stopped.  The value specifies the preferred method.  Valid values are
 @code{nil}, @code{t}, @code{arrow}, and @code{face}.
 @end defopt
 
@@ -2943,7 +2958,7 @@ commonly used debugging commands are enabled:
 @item @kbd{h}
 @tab Continue to the line at cursor position (@code{idlwave-shell-to-here})
 @item @kbd{i}
-@tab Set breakpoint in function named here (@code{idlwave-shell-break-in})
+@tab Set breakpoint in module named here (@code{idlwave-shell-break-in})
 @item @kbd{[}
 @tab Go to the previous breakpoint in the file (@code{idlwave-shell-goto-previous-bp})
 @item @kbd{]}
@@ -3495,7 +3510,12 @@ Info}).  On systems with no shell from which to discover the path
 information (e.g. Windows), a library path must be specified in
 @code{idlwave-library-path} to allow library catalogs to be located, and
 to setup directories for user catalog scan (@pxref{User Catalog} for
-more on this variable).
+more on this variable).  Note that, before the shell is running, IDLWAVE
+can only know about the IDL search path by consulting the file pointed
+to by @code{idlwave-path-file} (@file{~/.idlwave/idlpath.el}, by
+default).  If @code{idlwave-auto-write-path} is enabled (which is the
+default), the paths are written out whenever the IDLWAVE shell is
+started.
 
 @defopt idlwave-auto-write-path  (@code{t})
 Write out information on the !PATH and !DIR paths from IDL automatically
@@ -3770,7 +3790,7 @@ platforms).  Newer versions of Emacs provide a browser-function choice
 
 Note that the HTML files decompiled from RSI Microsoft Help sources
 contain specific references to the @samp{Symbol} font, which by default
-is not permitted in normal encodings (it's technically illegal).  Though
+is not permitted in normal encodings (it's invalid, technically).  Though
 it only impacts a few symbols, you can trick Mozilla-based browsers into
 recognizing @samp{Symbol} by following the directions
 @uref{http://hutchinson.belmont.ma.us/tth/Xfonts.html, here}.  With this
@@ -4074,7 +4094,7 @@ customize the variable @code{idlwave-shell-automatic-electric-debug}
 if you prefer not to enter electric debug on breakpoints@dots{} but
 you really should try it before you disable it!  You can also
 customize this variable to enter debug mode when errors are
-encountered too.  
+encountered.  
 
 @item @strong{I get errors like @samp{Searching for program: no such
 file or directory, idl} when attempting to start the IDL shell.}
@@ -4098,11 +4118,11 @@ configuration files (e.g. @file{.cshrc}), but from the file
 there, or start Emacs and IDLWAVE from the shell.
 
 @item @strong{I get errors like @samp{Symbol's function is void:
-overlayp} when trying to start the shell in XEmacs}
+overlayp}}
 
 You don't have the @samp{fsf-compat} package installed, which IDLWAVE
-needs to run under XEmacs.  Install it and, if necessary, insert
-@code{(require 'overlay)} in your @file{.emacs}.
+needs to run under XEmacs.  Install it, or find an XEmacs distribution
+which includes it by default.
 
 @item @strong{I'm getting errors like @samp{Symbol's value as variable is void:
 cl-builtin-gethash} on completion or routine info.}
@@ -4229,6 +4249,17 @@ and give you a 512 character limit.  You won't be able to use
 @code{!EDIT_INPUT=0}, which gives you an @emph{infinite} limit (OK, a
 memory-bounded limit), but disables the processing of background
 widget events (those with @code{/NO_BLOCK} passed to @code{XManager}).
+
+@item @strong{When I invoke IDL HTML help on a routine, the page which
+is loaded is one page off, e.g. for @code{CONVERT_COORD}, I get
+@code{CONTOUR}.}
+
+You have a mismatch between your help index and the HTML help package
+you downloaded.  You need to ensure you download a ``downgrade kit'' if
+you are using anything older than the latest HTML help package.  A new
+help package apppears with each IDL release (assuming the documentation
+is updated).  See @uref{@value{IDLWAVE-HOMEPAGE}, the maintainers
+webpage} for more.
 
 @end enumerate
 
