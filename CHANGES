@@ -4,6 +4,60 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
+
+
+Revision 5.6
+=============
+   - New right-clickable break-point lines with a tooltip pop-up
+     describing the breakpoint, and a menu of options for clearing,
+     disabling, changing breakpoint conditions and repeat count, etc.
+   - Much faster breakpoint operations, especially over slow links or
+     when working with many hundreds or thousands of compiled
+     routines.
+   - More robust ability to set breakpoints at the beginning of a
+     module (procedure/function/method) referenced nearby, using the
+     same intelligent module inference as visit module uses.
+   - Solved occassional apparent "hang" of the shell, which would
+     require a return to be hit to flush the command queue (compiling,
+     setting breakpoints, etc.).  Anecdotal evidence is that the
+     frequency of this hang increased in IDLv6.1.  Note that, if you
+     are setting your own command prompt expression (e.g. for ENVI, or
+     a special purpose environment), you should use the format "^\r?
+     ?IDL> " to avoid this problem (IDL outputs arbitrary return
+     characters occasionally).
+   - More careful evaluation of expressions pulled from higher levels
+     on the calling stack for examine commands (like C-c C-d C-p
+     `idlwave-shell-print').  Non-stack-local variable examinations
+     should be more robust for complicated expressions.
+   - New convenience key binding, C-c C-t, for visiting a module in
+     the current file, with a context-sensitive default module and
+     completion.
+   - Adding action and bindings to special regular expression
+     characters like "[" now works as expected (e.g. to force blanks
+     around array indices, use (idlwave-action-and-binding "["
+     '(idlwave-surround nil 1)), and similarly for "]").
+   - Two new default convenience abbreviations: \pv for "ptr_valid()"
+     and \ipv for "if ptr_valid() then" (with cursor placed between
+     the parentheses).
+   - With the optional 'complete-structtag module, auto-determine the
+     structure tags of structures being completed in the Shell
+     (similar to object methods).
+
+Revision 5.5
+=============
+   - Allow completion/source-level help on structure or class
+     definitions which inherit some of their data field from other
+     structures in the same __define routine.  Useful for
+     "on-the-spot" structure inheritance.
+   - Greatly improved structure parsing speed.
+   - Fix if statement issue: `&&' was being confused with multiple
+     commands on a line.
+   - Properly indent continuations in method calls after the arrow but
+     before the method name.
+   - Scan and lookup source for routines in buffers which have not yet
+     been saved to file.
+
+
 Revision 5.4
 =============
    - Update routine info and help for IDL v6.1.

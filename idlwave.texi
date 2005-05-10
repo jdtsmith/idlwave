@@ -2362,11 +2362,9 @@ IDLWAVE major mode in buffers.  It can be used to work with IDL
 interactively, to compile and run IDL programs in Emacs buffers and to
 debug these programs.  The IDLWAVE shell is built on @file{comint}, an
 Emacs packages which handles the communication with the IDL program.
-Unfortunately IDL for Windows does not have command-prompt versions
-and thus do not allow the interaction with Emacs@footnote{Please
-inform the maintainer if you come up with a way to make the IDLWAVE
-shell work on these systems.} --- so the IDLWAVE shell currently only
-works under Unix and MacOSX.
+Unfortunately, IDL for Windows does not have command-prompt versions and
+thus do not allow the interaction with Emacs --- so the IDLWAVE shell
+currently only works under Unix and MacOSX.
 
 @menu
 * Starting the Shell::          How to launch IDL as a subprocess
