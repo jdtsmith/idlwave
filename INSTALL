@@ -91,6 +91,17 @@ which will be searched by Emacs for these files.
 
     (setq load-path (cons "~/lib/emacs/lisp" load-path))
 
+Note that, since most Emacs ship with an older copy of idlwave (and
+its info file), you will need to use an info directory which is early
+on the info path list (defaults to /usr/local/info).  Under OSX, with
+fink, the info path is hard coded via the environment variable
+INFOPATH to begin with /sw/share/info, which contains the old info
+file.  Either remove it there, or do the equivalent of:
+
+ setenv INFOPATH "/usr/local/info:$INFOPATH" 
+
+in your startup scripts.
+
 
 2a. INSTALLATION BY HAND
 ========================
@@ -103,9 +114,8 @@ byte-compile them (from within Emacs, execute `M-x byte-compile-file'
 followed by the name of the Lisp files).  You can ignore the warnings
 produced by the byte compiler.
 
-Copy the info files `idlwave' and `idlwave-[123]' into the directory
-where Emacs info files are kept and (optionally) add an entry to the
-`dir' file.
+Copy the info file `idlwave' into the directory where Emacs info files
+are kept and (optionally) add an entry to the `dir' file.
 
 2b. INSTALLATION USING MAKE
 ===========================
@@ -113,8 +123,8 @@ where Emacs info files are kept and (optionally) add an entry to the
 In order to install IDLWAVE with the make utility, examine the header
 of the file `Makefile', and change any defaults necessary.  You need
 to specify the Lisp installation directory and the directory where the
-Info files are installed.  Also, check the name of the Emacs
-executable (usually either `emacs' or `xemacs').
+Info files are installed (see note under 2a).  Also, check the name of
+the Emacs executable (usually either `emacs' or `xemacs').
 
 Then, type 
 
