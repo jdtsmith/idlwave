@@ -188,7 +188,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with GNU Emacs; see the file COPYING.  If not, write to the
+# along with this file; see the file COPYING.  If not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 #============================================================================
@@ -203,6 +203,8 @@ GetOptions("-debug"     => \$debug,
 	   "-xname=s"   => \$ignore_name_re,
 	   "-xclass=s"  => \$ignore_class_re)
   or usage();
+
+$emacs=1;
 
 my (%special_topics,%e,%special_sections,%sysvars,%txt_kwds,%properties,
     %executive_commands,@syntax_kwds,@rejects,@complaints,@add_keywords,
@@ -305,6 +307,7 @@ foreach $file (@files) {
 		    my ($link,$prop,$txt)=@_;
 		    return if $prop=~/^\s*$/;
 		    foreach $prop (split(/,\s*/,$prop)) {
+		      $prop=~s/ *$//;
 		      $properties{$prop_class}{kwds}{$prop}{link}=$link;
 		      foreach (qw(Get Set Init)) {
 			if ($txt=~ m{$_:(?:<.*?>\s*)*\s*Yes}i) {
@@ -1167,7 +1170,7 @@ sub write_rinfo_header {
   print RINFO <<EOF;
 ;;; idlw-rinfo.el --- Routine Information for IDLWAVE
 ;; Copyright (c) 1999 Carsten Dominik
-;; Copyright (c) 1999, 2000, 2001, 2002, 2003, 2004 Free Software Foundation
+;; Copyright (c) 1999,2000,2001,2002,2003,2004,2005 Free Software Foundation
 
 ;; Author: J.D. Smith <jdsmith\@as.arizona.edu>
 ;; Version: VERSIONTAG
