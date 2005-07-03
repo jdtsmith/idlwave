@@ -3,11 +3,11 @@
 ;;    Free Software Foundation
 
 ;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
-;;          Carsten Dominik <dominik@astro.uva.nl>
+;;          Carsten Dominik <dominik@science.uva.nl>
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2005/05/06 21:49:50 $
+;; Date: $Date: 2005/07/03 23:47:10 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -1958,7 +1958,7 @@ The main features of this mode are
   ;; NB: `make-local-hook' needed for older/alternative Emacs compatibility
   (make-local-hook 'kill-buffer-hook)
   (add-hook 'kill-buffer-hook 'idlwave-kill-buffer-update nil 'local)
-  (make-local-hook 'after-save-hook)
+  ;; (make-local-hook 'after-save-hook)
   (add-hook 'after-save-hook 'idlwave-save-buffer-update nil 'local)
   (add-hook 'after-save-hook 'idlwave-revoke-license-to-kill nil 'local)
 
@@ -2711,7 +2711,7 @@ See `idlwave-surround'."
 		 (re-search-backward "\\(#\\)\\=" nil t)) 
 		(setq len (1+ (length (match-string 1))))
 	      (when (re-search-backward an-ops nil t)
-		(setq begin nil) ; won't modify begin
+		;(setq begin nil) ; won't modify begin
 		(setq len (1+ (length (match-string 1))))))))
 	
 	(if (eq t idlwave-pad-keyword)  
@@ -3563,7 +3563,7 @@ is non-nil."
   (let ((pos (point)))
     (if idlwave-file-header
 	(cond ((car idlwave-file-header)
-	       (insert-file (car idlwave-file-header)))
+	       (insert-file-contents (car idlwave-file-header)))
 	      ((stringp (car (cdr idlwave-file-header)))
 	       (insert (car (cdr idlwave-file-header))))))
     (goto-char pos)))
@@ -4282,7 +4282,9 @@ This defines the function `idlwave-sintern-TAG' and the variable
 (defvar idlwave-user-catalog-routines nil
   "Holds the procedure routine-info from the user scan.")
 (defvar idlwave-library-catalog-routines nil
-  "Holds the procedure routine-info from the library catalog files.")
+  "Holds the procedure routine-info from the .idlwave_catalog library files.")
+(defvar idlwave-library-catalog-libname nil
+  "Name of library catalog loaded from .idlwave_catalog files.")
 (defvar idlwave-path-alist nil
   "Alist with !PATH directories and zero or more flags if the dir has
 been scanned in a user catalog ('user) or discovered in a library
@@ -4399,6 +4401,8 @@ will re-read the catalog."
 
 
 (defvar idlwave-load-rinfo-idle-timer)
+(defvar idlwave-shell-path-query)
+
 (defun idlwave-update-routine-info (&optional arg no-concatenate)
   "Update the internal routine-info lists.
 These lists are used by `idlwave-routine-info' (\\[idlwave-routine-info])
@@ -4522,6 +4526,8 @@ information updated immediately, leave NO-CONCATENATE nil."
 		   idlwave-init-rinfo-when-idle-after
 		   nil 'idlwave-load-rinfo-next-step)))
 	(error nil))))
+
+(defvar idlwave-library-routines nil "Obsolete variable.")
 
 (defun idlwave-load-rinfo-next-step ()
   (let ((inhibit-quit t)
@@ -4831,12 +4837,15 @@ information updated immediately, leave NO-CONCATENATE nil."
 
 (defun idlwave-sys-dir ()
   "Return the syslib directory, or a dummy that never matches."
-  (if (string= idlwave-system-directory "")
-      "@@@@@@@@"
-    idlwave-system-directory))
+  (cond
+   ((and idlwave-system-directory
+	 (not (string= idlwave-system-directory "")))
+    idlwave-system-directory)
+   ((getenv "IDL_DIR"))
+   (t "@@@@@@@@")))
 
 
-(defvar idlwave-shell-path-query)
+
 (defun idlwave-create-user-catalog-file (&optional arg)
   "Scan all files on selected dirs of IDL search path for routine information.
 
@@ -5154,6 +5163,9 @@ directories and save the routine info.
 
 
 ;;----- Scanning the library catalogs ------------------
+
+
+
 
 (defun idlwave-scan-library-catalogs (&optional message-base no-load)
   "Scan for library catalog files (.idlwave_catalog) and ingest.  
@@ -5503,13 +5515,15 @@ When we force a method or a method keyword, CLASS can specify the class."
 	     (isa (format "procedure%s-keyword" (if class "-method" "")))
 	     (entry (idlwave-best-rinfo-assq
 		     name 'pro class (idlwave-routines)))
+	     (system (if entry (eq (car (nth 3 entry)) 'system)))
 	     (list (idlwave-entry-keywords entry 'do-link)))
 	(unless (or entry (eq class t))
 	  (error "Nothing known about procedure %s"
 		 (idlwave-make-full-name class name)))
-	(setq list (idlwave-fix-keywords name 'pro class list super-classes))
-	(unless list (error (format "No keywords available for procedure %s"
-				    (idlwave-make-full-name class name))))
+	(setq list (idlwave-fix-keywords name 'pro class list 
+					 super-classes system))
+	(unless list (error "No keywords available for procedure %s"
+			    (idlwave-make-full-name class name)))
 	(setq idlwave-completion-help-info 
 	      (list 'keyword name type-selector class-selector entry super-classes))
 	(idlwave-complete-in-buffer
@@ -5534,20 +5548,22 @@ When we force a method or a method keyword, CLASS can specify the class."
 	     (isa (format "function%s-keyword" (if class "-method" "")))
 	     (entry (idlwave-best-rinfo-assq
 		     name 'fun class (idlwave-routines)))
+	     (system (if entry (eq (car (nth 3 entry)) 'system)))
 	     (list (idlwave-entry-keywords entry 'do-link))
 	     msg-name)
 	(unless (or entry (eq class t))
 	  (error "Nothing known about function %s"
 		 (idlwave-make-full-name class name)))
-	(setq list (idlwave-fix-keywords name 'fun class list super-classes))
+	(setq list (idlwave-fix-keywords name 'fun class list 
+					 super-classes system))
 	;; OBJ_NEW: Messages mention the proper Init method
 	(setq msg-name (if (and (null class)
 				(string= (upcase name) "OBJ_NEW"))
 			   (concat idlwave-current-obj_new-class
 				   "::Init (via OBJ_NEW)")
 			 (idlwave-make-full-name class name)))
-	(unless list (error (format "No keywords available for function %s"
-				    msg-name)))
+	(unless list (error "No keywords available for function %s"
+			    msg-name))
 	(setq idlwave-completion-help-info 
 	      (list 'keyword name type-selector class-selector nil super-classes))
 	(idlwave-complete-in-buffer
@@ -7174,6 +7190,7 @@ Gets set in `idlw-rinfo.el'.")
 	     t)) ; return t to skip other completions
 	  (t nil))))
 
+(defvar link) ;dynamic
 (defun idlwave-complete-sysvar-help (mode word)
   (let ((word (or (nth 1 idlwave-completion-help-info) word))
 	(entry (assoc word idlwave-system-variables-alist)))
@@ -7228,7 +7245,7 @@ Gets set in `idlw-rinfo.el'.")
 		 word))
 	(if (assq (idlwave-sintern-class class-with) 
 		  idlwave-system-class-info)
-	    (error "No help available for system class tags."))
+	    (error "No help available for system class tags"))
 	(if (setq found-in (idlwave-class-found-in class-with))
 	    (setq name (cons (concat found-in "__define") class-with))
 	  (setq name (concat class-with "__define")))))
@@ -7681,10 +7698,12 @@ appropriate Init method."
 			     (idlwave-sintern-class class)))))
     module))
 
-(defun idlwave-fix-keywords (name type class keywords &optional super-classes)
+(defun idlwave-fix-keywords (name type class keywords 
+				  &optional super-classes system)
   "Update a list of keywords.
 Translate OBJ_NEW, adding all super-class keywords, or all keywords
-from all classes if class equals t."
+from all classes if class equals t.  If SYSTEM is non-nil, don't
+demand _EXTRA in the keyword list."
   (let ((case-fold-search t))
 
     ;; If this is the OBJ_NEW function, try to figure out the class and use
@@ -7727,8 +7746,10 @@ from all classes if class equals t."
 	   super-classes
 	   idlwave-keyword-class-inheritance
 	   (stringp class)
-	   (or (assq (idlwave-sintern-keyword "_extra") keywords)
-	       (assq (idlwave-sintern-keyword "_ref_extra") keywords))
+	   (or 
+	    system
+	    (assq (idlwave-sintern-keyword "_extra") keywords)
+	    (assq (idlwave-sintern-keyword "_ref_extra") keywords))
 	   ;; Check if one of the keyword-class regexps matches the name
 	   (let ((regexps idlwave-keyword-class-inheritance) re)
 	     (catch 'exit
@@ -8067,7 +8088,8 @@ Optional args RIGHT and SHIFT indicate, if mouse-3 was used, and if SHIFT
 was pressed."
   (interactive "e")
   (if ev (mouse-set-point ev))
-  (let (data id name type class buf bufwin source word initial-class)
+  (let (data id name type class buf bufwin source link keyword 
+	     word initial-class)
     (setq data (get-text-property (point) 'data)
 	  source (get-text-property (point) 'source)
 	  keyword (get-text-property (point) 'keyword)
@@ -8352,7 +8374,6 @@ routines, and may have been scanned."
       (setcar entry 'builtin))
     (sort alist 'idlwave-routine-twin-compare)))
 
-(defvar name)
 (defvar type)
 (defvar class)
 (defvar idlwave-sort-prefer-buffer-info t
