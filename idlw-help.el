@@ -1,7 +1,7 @@
 ;;; idlw-help.el --- HTML Help code for IDLWAVE
 ;; Copyright (c) 2000 Carsten Dominik
 ;; Copyright (c) 2001, 2002 J.D. Smith
-;; Copyright (c) 2003,2004 Free Software Foundation
+;; Copyright (c) 2003,2004,2005 Free Software Foundation
 ;;
 ;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
 ;;          Carsten Dominik <dominik@astro.uva.nl>
@@ -188,11 +188,13 @@ support."
   :group 'idlwave-online-help
   :type 'string)
 
-(defface idlwave-help-link-face
+(defface idlwave-help-link
   '((((class color)) (:foreground "Blue"))
     (t (:weight bold)))
   "Face for highlighting links into IDLWAVE online help."
   :group 'idlwave-online-help)
+;; backward-compatibility alias
+(put 'idlwave-help-link-face 'face-alias 'idlwave-help-link)
 
 (defvar idlwave-help-activate-links-aggressively nil
   "Obsolete variable.")
@@ -590,12 +592,12 @@ Needs additional info stored in global `idlwave-completion-help-info'."
 (defun idlwave-highlight-linked-completions ()
   "Highlight all completions for which help is available and attach link.
 Those words in `idlwave-completion-help-links' have links.  The
-`idlwave-help-link-face' face is used for this."
+`idlwave-help-link' face is used for this."
   (if idlwave-highlight-help-links-in-completion      
       (with-current-buffer (get-buffer "*Completions*")
 	(save-excursion
 	  (let* ((case-fold-search t)
-		 (props (list 'face 'idlwave-help-link-face))
+		 (props (list 'face 'idlwave-help-link))
 		 (info idlwave-completion-help-info) ; global passed in
 		 (what (nth 0 info))  ; what was completed, or a func
 		 (class (nth 3 info)) ; any class
@@ -612,7 +614,7 @@ Those words in `idlwave-completion-help-links' have links.  The
 		  (setq doit (funcall what 'test word))
 		;; Look for special link property passed in help-links
 		(if idlwave-completion-help-links
-		    (setq doit (assoc-ignore-case 
+		    (setq doit (assoc-ignore-case
 				word idlwave-completion-help-links))))
 	      (when doit
 		(if (consp doit)
