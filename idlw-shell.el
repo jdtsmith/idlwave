@@ -1,12 +1,12 @@
 ;; idlw-shell.el --- run IDL as an inferior process of Emacs.
-;; Copyright (c) 1999,2000,2001,2002,2003,2004 Free Software Foundation
+;; Copyright (c) 1999,2000,2001,2002,2003,2004,2005 Free Software Foundation
 
 ;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
 ;;          Carsten Dominik <dominik@astro.uva.nl>
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2005/05/09 20:08:45 $
+;; Date: $Date: 2005/07/03 23:54:12 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -517,40 +517,44 @@ t          Glyph when possible, otherwise face (same effect as 'glyph)."
 (defvar idlwave-shell-use-breakpoint-glyph t
   "Obsolete variable.  See `idlwave-shell-mark-breakpoints.")
 
-(defcustom idlwave-shell-breakpoint-face 'idlwave-shell-bp-face
+(defcustom idlwave-shell-breakpoint-face 'idlwave-shell-bp
   "*The face for breakpoint lines in the source code.
 Allows you to choose the font, color and other properties for
 lines which have a breakpoint.  See also `idlwave-shell-mark-breakpoints'."
   :group 'idlwave-shell-highlighting-and-faces
   :type 'symbol)
 
-(if idlwave-shell-have-new-custom
-    ;; We have the new customize - use it to define a customizable face
-    (defface idlwave-shell-bp-face
-      '((((class color)) (:foreground "Black" :background "Pink"))
-	(t (:underline t)))
-      "Face for highlighting lines with breakpoints."
-      :group 'idlwave-shell-highlighting-and-faces)
-  ;; Just copy the underline face to be on the safe side.
-  (copy-face 'underline 'idlwave-shell-bp-face))
+(if (not idlwave-shell-have-new-custom)
+    ;; Just copy the underline face to be on the safe side.
+    (copy-face 'underline 'idlwave-shell-bp)
+  ;; We have the new customize - use it to define a customizable face
+  (defface idlwave-shell-bp
+    '((((class color)) (:foreground "Black" :background "Pink"))
+      (t (:underline t)))
+    "Face for highlighting lines with breakpoints."
+    :group 'idlwave-shell-highlighting-and-faces)
+  ;; backward-compatibility alias
+  (put 'idlwave-shell-bp-face 'face-alias 'idlwave-shell-bp))
 
 (defcustom idlwave-shell-disabled-breakpoint-face 
-  'idlwave-shell-disabled-bp-face
+  'idlwave-shell-disabled-bp
   "*The face for disabled breakpoint lines in the source code.
 Allows you to choose the font, color and other properties for
 lines which have a breakpoint.  See also `idlwave-shell-mark-breakpoints'."
   :group 'idlwave-shell-highlighting-and-faces
   :type 'symbol)
 
-(if idlwave-shell-have-new-custom
-    ;; We have the new customize - use it to define a customizable face
-    (defface idlwave-shell-disabled-bp-face
-      '((((class color)) (:foreground "Black" :background "gray"))
-	(t (:underline t)))
-      "Face for highlighting lines with breakpoints."
-      :group 'idlwave-shell-highlighting-and-faces)
-  ;; Just copy the underline face to be on the safe side.
-  (copy-face 'underline 'idlwave-shell-disabled-bp-face))
+(if (not idlwave-shell-have-new-custom)
+    ;; Just copy the underline face to be on the safe side.
+    (copy-face 'underline 'idlwave-shell-disabled-bp)
+  ;; We have the new customize - use it to define a customizable face
+  (defface idlwave-shell-disabled-bp
+    '((((class color)) (:foreground "Black" :background "gray"))
+      (t (:underline t)))
+    "Face for highlighting lines with breakpoints."
+    :group 'idlwave-shell-highlighting-and-faces)
+  ;; backward-compatibility alias
+  (put 'idlwave-shell-disabled-bp-face 'face-alias 'idlwave-shell-disabled-bp))
 
 
 (defcustom idlwave-shell-expression-face 'secondary-selection
@@ -2100,7 +2104,7 @@ Change the default directory for the process buffer to concur."
       ;; If we don't know anything about the class, update shell routines
       (if (and idlwave-shell-get-object-class
 	       (not (assoc-ignore-case idlwave-shell-get-object-class
-				       (idlwave-class-alist))))
+				  (idlwave-class-alist))))
 	  (idlwave-shell-maybe-update-routine-info))
       idlwave-shell-get-object-class)))
 
@@ -2728,7 +2732,7 @@ Runs to the last statement and then steps 1 statement.  Use the .out command."
 	     (funcall orig-func cur-line orig-bp-line)
 	     (or (not bp-line) (funcall closer-func cur-line bp-line)))
 	    (setq bp-line cur-line))))
-    (unless bp-line (error "No further breakpoints."))
+    (unless bp-line (error "No further breakpoints"))
     (goto-line bp-line)))
 
 ;; Examine Commands ------------------------------------------------------
@@ -3854,10 +3858,11 @@ Elements of the alist have the form:
 
 (defun idlwave-shell-module-source-query (module)
   "Determine the source file for a given module."
-  (idlwave-shell-send-command 
-   (format "print,(routine_info('%s',/SOURCE)).PATH" module)
-   `(idlwave-shell-module-source-filter ,module)
-   'hide))
+  (if module
+      (idlwave-shell-send-command 
+       (format "print,(routine_info('%s',/SOURCE)).PATH" module)
+       `(idlwave-shell-module-source-filter ,module)
+       'hide)))
 
 (defun idlwave-shell-module-source-filter (module)
   "Get module source, and update idlwave-shell-sources-alist."
@@ -3866,7 +3871,7 @@ Elements of the alist have the form:
     (if (string-match "\.PATH *[\n\r]\\([^\r\n]+\\)[\n\r]"
 		      idlwave-shell-command-output)
 	(setq filename (substring idlwave-shell-command-output 
-			      (match-beginning 1) (match-end 1)))
+				  (match-beginning 1) (match-end 1)))
       (error "No file matching module found."))
     (if old
 	(setcdr old (list (idlwave-shell-file-name filename) filename))
