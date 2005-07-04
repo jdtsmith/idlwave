@@ -6,7 +6,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2005/07/03 23:54:12 $
+;; Date: $Date: 2005/07/04 01:29:41 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -3706,7 +3706,7 @@ only for glyphs)."
   (interactive "e")
   (if ev (mouse-set-point ev))
   (let ((bp (idlwave-shell-find-bp (idlwave-shell-current-frame)))
-	index condition count select)
+	index condition count select cmd disabled)
     (unless bp
       (error "Breakpoint not found"))
     (setq index (int-to-string (idlwave-shell-bp-get bp))

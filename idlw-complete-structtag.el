@@ -4,7 +4,7 @@
 ;; Author: Carsten Dominik <dominik@astro.uva.nl>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: 1.2
-;; Date: $Date: 2005/05/06 22:53:56 $
+;; Date: $Date: 2005/07/04 01:29:41 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -208,6 +208,8 @@ an up-to-date completion list."
    'idlwave-complete-structure-tag-get-tags-from-help
    'hide 'wait))
 
+(defvar idlwave-shell-prompt-pattern)
+(defvar idlwave-shell-command-output)
 (defun idlwave-complete-structure-tag-get-tags-from-help ()
   "Filter structure tag name output, result to `idlwave-current-struct-tags'."
     (setq idlwave-current-struct-tags
@@ -220,6 +222,8 @@ an up-to-date completion list."
 
 ;; Fake help in the source buffer for structure tags.
 ;; kwd and name are global-variables here.
+(defvar name)
+(defvar kwd)
 (defvar idlwave-help-do-struct-tag)
 (defun idlwave-complete-structure-tag-help (mode word)
   (cond

@@ -4,7 +4,7 @@
 ;; Copyright (c) 2003,2004,2005 Free Software Foundation
 ;;
 ;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
-;;          Carsten Dominik <dominik@astro.uva.nl>
+;;          Carsten Dominik <dominik@science.uva.nl>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
 
@@ -247,6 +247,10 @@ support."
     "--"
     ["Quit" idlwave-help-quit t]))
 
+(defvar idlwave-help-def-pos)
+(defvar idlwave-help-args)
+(defvar idlwave-help-in-header)
+
 (defun idlwave-help-mode ()
   "Major mode for displaying IDL Help.
 
@@ -287,6 +291,7 @@ Here are all keybindings.
   (set (make-local-variable 'idlwave-help-in-header) nil)
   (run-hooks 'idlwave-help-mode-hook))
 
+(defvar idlwave-system-directory)
 (defun idlwave-html-help-location ()
   "Return the help directory where HTML files are, or nil if that is unknown."
   (or (and (stringp idlwave-html-help-location)
@@ -326,7 +331,11 @@ It collects and prints the diagnostics messages."
 				   "; "))))))
 
 (defvar idlwave-help-do-class-struct-tag nil)
+(defvar idlwave-structtag-struct-location)
 (defvar idlwave-help-do-struct-tag nil)
+(defvar idlwave-system-variables-alist)
+(defvar idlwave-executive-commands-alist)
+(defvar idlwave-system-class-info)
 (defun idlwave-do-context-help1 (&optional arg)
   "The work-horse version of `idlwave-context-help', which see."
   (save-excursion
@@ -780,11 +789,10 @@ see if a link is set for it.  Try extra help functions if necessary."
       (browse-url full-link))))
 
 ;; A special help routine for source-level syntax help in files.
-(defvar idlwave-help-def-pos)
-(defvar idlwave-help-args)
-(defvar idlwave-help-in-header)
 (defvar idlwave-help-fontify-source-code)
 (defvar idlwave-help-source-try-header)
+(defvar idlwave-current-tags-buffer)
+(defvar idlwave-current-tags-class)
 (defun idlwave-help-with-source (name type class keyword)
   "Provide help for routines not documented in the IDL manuals.  Works
 by loading the routine source file into the help buffer.  Depending on
