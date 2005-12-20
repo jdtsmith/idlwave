@@ -7,7 +7,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2005/07/03 23:47:10 $
+;; Date: $Date: 2005/12/20 21:31:47 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -24,8 +24,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 
@@ -181,7 +181,7 @@
       `(defvar ,var ,value ,doc))))
 
 (defgroup idlwave nil
-  "Major mode for editing IDL .pro files"
+  "Major mode for editing IDL .pro files."
   :tag "IDLWAVE"
   :link '(url-link :tag "Home Page" 
 		   "http://idlwave.org")
@@ -1161,7 +1161,7 @@ As a user, you should not set this to t.")
 	'("\\<\\(common\\)\\>[ \t]*\\(\\sw+\\)?[ \t]*,?"
 	  (1 font-lock-keyword-face)	          ; "common"
 	  (2 font-lock-reference-face nil t)      ; block name
-	  (font-lock-match-c++-style-declaration-item-and-skip-to-next
+	  ("[ \t]*\\(\\sw+\\)[ ,]*"
 	   ;; Start with point after block name and comma
 	   (goto-char (match-end 0))  ; needed for XEmacs, could be nil 
 	   nil
@@ -4613,9 +4613,12 @@ information updated immediately, leave NO-CONCATENATE nil."
 	(when (or force (not (aref idlwave-load-rinfo-steps-done 2)))
 	  (load-file idlwave-user-catalog-file))
       (error nil))
-    (when (boundp 'idlwave-library-routines)
+    (when (and 
+	   (boundp 'idlwave-library-routines)
+	   idlwave-library-routines)
       (setq idlwave-library-routines nil)
-      (error "Outdated user catalog: %s... recreate" idlwave-user-catalog-file))
+      (error "Outdated user catalog: %s... recreate" 
+	     idlwave-user-catalog-file))
     (setq idlwave-true-path-alist nil)
     (when (or force (not (aref idlwave-load-rinfo-steps-done 3)))
       (message "Normalizing user catalog routines...")
