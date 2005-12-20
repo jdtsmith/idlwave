@@ -1,12 +1,13 @@
 ;; idlw-shell.el --- run IDL as an inferior process of Emacs.
-;; Copyright (c) 1999,2000,2001,2002,2003,2004,2005 Free Software Foundation
+;; Copyright (c) 1999, 2000, 2001, 2002, 2003, 2004, 2005 
+;; Free Software Foundation
 
 ;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
 ;;          Carsten Dominik <dominik@astro.uva.nl>
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2005/07/04 01:29:41 $
+;; Date: $Date: 2005/12/20 21:54:21 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -23,8 +24,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;
@@ -346,7 +347,8 @@ expression being examined."
 (defcustom idlwave-shell-comint-settings
   '((comint-scroll-to-bottom-on-input . t)
     (comint-scroll-to-bottom-on-output . t)
-    (comint-scroll-show-maximum-output . nil))
+    (comint-scroll-show-maximum-output . nil)
+    (comint-prompt-read-only . t))
 
   "Alist of special settings for the comint variables in the IDLWAVE Shell.
 Each entry is a cons cell with the name of a variable and a value.
@@ -532,9 +534,7 @@ lines which have a breakpoint.  See also `idlwave-shell-mark-breakpoints'."
     '((((class color)) (:foreground "Black" :background "Pink"))
       (t (:underline t)))
     "Face for highlighting lines with breakpoints."
-    :group 'idlwave-shell-highlighting-and-faces)
-  ;; backward-compatibility alias
-  (put 'idlwave-shell-bp-face 'face-alias 'idlwave-shell-bp))
+    :group 'idlwave-shell-highlighting-and-faces))
 
 (defcustom idlwave-shell-disabled-breakpoint-face 
   'idlwave-shell-disabled-bp
@@ -552,9 +552,7 @@ lines which have a breakpoint.  See also `idlwave-shell-mark-breakpoints'."
     '((((class color)) (:foreground "Black" :background "gray"))
       (t (:underline t)))
     "Face for highlighting lines with breakpoints."
-    :group 'idlwave-shell-highlighting-and-faces)
-  ;; backward-compatibility alias
-  (put 'idlwave-shell-disabled-bp-face 'face-alias 'idlwave-shell-disabled-bp))
+    :group 'idlwave-shell-highlighting-and-faces))
 
 
 (defcustom idlwave-shell-expression-face 'secondary-selection
@@ -1544,11 +1542,11 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 		      (re-search-backward idlwave-shell-prompt-pattern nil t)
 		      (goto-char (match-end 0))
 		      (setq idlwave-shell-command-output
-		      (buffer-substring (point-min) (point)))
+		      (buffer-substring-no-properties (point-min) (point)))
 		      (delete-region (point-min) (point)))
 		  (setq idlwave-shell-command-output
 			(with-current-buffer (process-buffer proc)
-			(buffer-substring
+			(buffer-substring-no-properties
 			 (save-excursion
 			   (goto-char (process-mark proc))
 			   (forward-line 0) ; Emacs 21 (beginning-of-line nil)
@@ -1696,9 +1694,8 @@ the above."
 		     idlwave-shell-command-output)
        (string-match idlwave-shell-other-error
 		     idlwave-shell-command-output))
-      (save-excursion
-	(set-buffer
-	 (get-buffer-create idlwave-shell-error-buffer))
+      (with-current-buffer
+	  (get-buffer-create idlwave-shell-error-buffer)
 	(erase-buffer)
 	(insert idlwave-shell-command-output)
 	(goto-char (point-min))
@@ -2271,10 +2268,10 @@ overlays."
     (idlwave-shell-display-line 
      (nth idlwave-shell-calling-stack-index stack) nil
      (unless idlwave-shell-electric-debug-mode 'no-debug)) 
-    (message (or message 
-		 (format "In routine %s (stack level %d)"
-			 idlwave-shell-calling-stack-routine
-			 (- idlwave-shell-calling-stack-index))))))
+    (message "%s" (or message 
+		      (format "In routine %s (stack level %d)"
+			      idlwave-shell-calling-stack-routine
+			      (- idlwave-shell-calling-stack-index))))))
 
 (defun idlwave-shell-stack-up ()
   "Display the source code one step up the calling stack."
@@ -2470,13 +2467,13 @@ the problem with not being able to set the breakpoint."
               (beep)
               (y-or-n-p 
                (concat "Okay to recompile file "
-                       (idlwave-shell-bp-get bp 'file) " ")))
+                       (idlwave-shell-bp-get bp 'file) "?")))
             ;; Recompile
             (progn
               ;; Clean up before retrying
               (idlwave-shell-command-failure)
               (idlwave-shell-send-command
-               (concat ".run " (idlwave-shell-bp-get bp 'file)) nil 
+               (concat ".run \"" (idlwave-shell-bp-get bp 'file) "\"") nil 
 	       (if (idlwave-shell-hide-p 'run) 'mostly) nil t)
               ;; Try setting breakpoint again
               (idlwave-shell-set-bp bp))
@@ -2764,13 +2761,15 @@ Runs to the last statement and then steps 1 statement.  Use the .out command."
   t)
 
 (defun idlwave-xemacs-hack-mouse-track (event)
-  (let ((oldfunc (symbol-function 'default-mouse-track-event-is-with-button)))
-    (unwind-protect
-	(progn
-	  (fset 'default-mouse-track-event-is-with-button 
-		'idlwave-default-mouse-track-event-is-with-button)
-	  (mouse-track event))
-      (fset 'default-mouse-track-event-is-with-button oldfunc))))
+  (if (featurep 'xemacs)
+      (let ((oldfunc (symbol-function 
+		      'default-mouse-track-event-is-with-button)))
+	(unwind-protect
+	    (progn
+	      (fset 'default-mouse-track-event-is-with-button 
+		    'idlwave-default-mouse-track-event-is-with-button)
+	      (mouse-track event))
+	  (fset 'default-mouse-track-event-is-with-button oldfunc)))))
 ;;; End terrible hack section
 
 (defun idlwave-shell-mouse-print (event)
@@ -3228,7 +3227,8 @@ If there is a prefix argument, display IDL process."
                  (idlwave-look-at "\\<end\\>")))
           (insert "\nend\n"))
       (save-buffer 0)))
-  (idlwave-shell-send-command (concat ".run " idlwave-shell-temp-pro-file)
+  (idlwave-shell-send-command (concat ".run \"" 
+				      idlwave-shell-temp-pro-file "\"")
 			      nil 
 			      (if (idlwave-shell-hide-p 'run) 'mostly)
 			      nil t)
@@ -3829,7 +3829,9 @@ handled by this command."
 		       ((eq action 'compile) ".compile ")
 		       ((eq action 'batch)   "@")
 		       (t (error "Unknown action %s" action)))
-		 idlwave-shell-last-save-and-action-file)
+		 "\""
+		 idlwave-shell-last-save-and-action-file
+		 "\"")
 	 'idlwave-shell-maybe-update-routine-info
 	 (if (idlwave-shell-hide-p 'run) 'mostly) nil t)
 	(idlwave-shell-bp-query))
@@ -4195,7 +4197,7 @@ Otherwise, just expand the file name."
 (defvar idlwave-shell-electric-debug-read-only) 
 (defvar idlwave-shell-electric-debug-buffers nil)
 
-(easy-mmode-define-minor-mode idlwave-shell-electric-debug-mode
+(define-minor-mode idlwave-shell-electric-debug-mode
   "Toggle Electric Debug mode.
 With no argument, this command toggles the mode. 
 Non-null prefix argument turns on the mode.
