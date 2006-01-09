@@ -7,7 +7,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2006/01/09 19:23:25 $
+;; Date: $Date: 2006/01/09 19:47:22 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -4834,8 +4834,9 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	(insert ")"))))
 
 (defun idlwave-convert-xml-system-routine-info ()
-  ;; Convert XML supplied routine info into internal SEXP form, and
-  ;; cache to disk for quick recovery.
+  "Convert XML supplied IDL routine info into internal form.
+Cache to disk for quick recovery."
+  (interactive)
   (let* ((dir (file-name-as-directory 
 	       (expand-file-name "help/online_help" (idlwave-sys-dir))))
 	 (catalog-file (expand-file-name "idl_catalog.xml" dir))
