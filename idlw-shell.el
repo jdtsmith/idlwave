@@ -7,7 +7,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2005/12/20 21:54:21 $
+;; Date: $Date: 2006/01/09 19:34:24 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -335,6 +335,11 @@ expression being examined."
 	  (cons 
 	   (string :tag "Label  ")
 	   (string :tag "Command"))))
+
+(defcustom idlwave-shell-max-print-length 500
+  "Maximum number of array elements to print when examining."
+  :group 'idlwave-shell-command-setup
+  :type 'integer)
 
 (defvar idlwave-shell-print-expression-function nil
   "*OBSOLETE VARIABLE, is no longer used.")
@@ -702,6 +707,8 @@ the directory stack.")
 (setq idlwave-shell-expression-overlay (make-overlay 1 1))
 (overlay-put idlwave-shell-expression-overlay
 	     'face idlwave-shell-expression-face)
+(overlay-put idlwave-shell-expression-overlay
+	     'priority 1)
 (setq idlwave-shell-output-overlay (make-overlay 1 1))
 (overlay-put idlwave-shell-output-overlay
 	     'face idlwave-shell-output-face)
@@ -825,6 +832,7 @@ IDL has currently stepped.")
   ?          Help on expression near point or in region ([C-u ?]).
   x          Examine expression near point or in region ([C-u x]) with 
              letter completion of the examine type.
+  e          Prompt for an expression to print.
 
  Miscellaneous:
   q   	     Quit - end debugging session and return to the Shell's main level.
@@ -1067,23 +1075,25 @@ IDL has currently stepped.")
   (idlwave-shell-send-command 
    (format "defsysv,'!idlwave_version','%s',1" idlwave-mode-version)
    nil 'hide)
-  ;; Get the paths if they weren't read in from file
-  (if (and (not idlwave-path-alist)
-	   (or (not (stringp idlwave-system-directory))
-	       (eq (length idlwave-system-directory) 0)))
-      (idlwave-shell-send-command idlwave-shell-path-query
-				  'idlwave-shell-get-path-info
-				  'hide)))
+  ;; Read the paths, and save if they changed
+  (idlwave-shell-send-command idlwave-shell-path-query
+			      'idlwave-shell-get-path-info
+			      'hide))
 
+(defvar idlwave-system-directory)
 (defun idlwave-shell-get-path-info (&optional no-write)
   "Get the path lists, writing to file unless NO-WRITE is set."
   (let* ((rpl (idlwave-shell-path-filter))
 	 (sysdir (car rpl))
 	 (dirs (cdr rpl))
-	 (old-path-alist idlwave-path-alist))
+	 (old-path-alist idlwave-path-alist)
+	 (old-sys-dir idlwave-system-directory)
+	 path-changed sysdir-changed)
     (when sysdir
       (setq idlwave-system-directory sysdir)
-      (put 'idlwave-system-directory 'from-shell t))
+      (if (setq sysdir-changed 
+		(not (string= idlwave-system-directory old-sys-dir)))
+	  (put 'idlwave-system-directory 'from-shell t)))
     ;; Preserve any existing flags
     (setq idlwave-path-alist 
 	  (mapcar (lambda (x)
@@ -1092,11 +1102,13 @@ IDL has currently stepped.")
 			  (cons x (cdr old-entry))
 			(list x))))
 		  dirs))
-    (put 'idlwave-path-alist 'from-shell t)
+    (if (setq path-changed (not (equal idlwave-path-alist old-path-alist)))
+	(put 'idlwave-path-alist 'from-shell t))
     (if idlwave-path-alist 
-	(if (and idlwave-auto-write-paths
-		 (not idlwave-library-path)
-		 (not no-write) )
+	(if (and (not no-write)
+		 idlwave-auto-write-paths
+		 (or sysdir-changed path-changed)
+		 (not idlwave-library-path))
 	    (idlwave-write-paths))
       ;; Fall back
       (setq idlwave-path-alist old-path-alist))))
@@ -1210,7 +1222,7 @@ See also the variable `idlwave-shell-prompt-pattern'.
 	  (raise-frame (window-frame window)))
       (if (eq (selected-frame) (window-frame window))
 	  (select-window window))))
-  ;; Save the paths at the end
+  ;; Save the paths at the end, if they are from the Shell and new.
   (add-hook 'idlwave-shell-sentinel-hook 
 	    (lambda ()
 	      (if (and 
@@ -2744,13 +2756,18 @@ Runs to the last statement and then steps 1 statement.  Use the .out command."
   `(lambda (event)
      "Expansion function for expression examination."
      (interactive "e")
-     (let ((transient-mark-mode t)
-	   (zmacs-regions t)
-	   (tracker (if (featurep 'xemacs) 
-			(if (fboundp 'default-mouse-track-event-is-with-button)
-			    'idlwave-xemacs-hack-mouse-track
-			  'mouse-track)
-		      'mouse-drag-region)))
+     (let* ((drag-track (fboundp 'mouse-drag-track))
+	    (transient-mark-mode t)
+	    (zmacs-regions t)
+	    (tracker (if (featurep 'xemacs) 
+			 (if (fboundp 
+			      'default-mouse-track-event-is-with-button)
+			     'idlwave-xemacs-hack-mouse-track
+			   'mouse-track)
+		       ;; Emacs 22 no longer completes the drag with
+		       ;; mouse-drag-region, without an additional
+		       ;; event.  mouse-drag-track does so.
+		       (if drag-track 'mouse-drag-track 'mouse-drag-region))))
        (funcall tracker event)
        (idlwave-shell-print (if (idlwave-region-active-p) '(4) nil)
 			    ,help ,ev))))
@@ -3127,13 +3144,20 @@ HELP can be non-nil for `help,', nil for 'print,' or any string into which
 to insert expression in place of the marker ___, e.g.: print,
 size(___,/DIMENSIONS)"
   (cond
-   ((null help) (concat "print, " expr))
+   ((null help) ;; implement array
+    (let ((max-len (number-to-string idlwave-shell-max-print-length))
+	  (max-ind (number-to-string (1- idlwave-shell-max-print-length))))
+      (concat 
+       "if n_elements(" expr ") gt " max-len 
+       " then print,(" expr ")[0:" max-ind "], \"<... truncated at "
+       max-len " elements>\" else print, " expr)))
    ((stringp help) 
     (if (string-match "\\(^\\|[^_]\\)\\(___\\)\\([^_]\\|$\\)" help)
 	(concat (substring help 0 (match-beginning 2))
 		expr
 		(substring help (match-end 2)))))
-   (t (concat "help, " expr))))
+   (t 
+    (concat "help, " expr))))
    
 
 (defun idlwave-shell-examine-highlight ()
@@ -4167,6 +4191,8 @@ Otherwise, just expand the file name."
   'idlwave-shell-stack-down)
 (define-key idlwave-shell-electric-debug-mode-map "_" 
   'idlwave-shell-stack-down)
+(define-key idlwave-shell-electric-debug-mode-map "e" 
+  '(lambda () (interactive) (idlwave-shell-print '(16))))
 (define-key idlwave-shell-electric-debug-mode-map "q" 'idlwave-shell-retall)
 (define-key idlwave-shell-electric-debug-mode-map "t" 
   '(lambda () (interactive) (idlwave-shell-send-command "help,/TRACE")))
