@@ -38,9 +38,14 @@ in /usr/local/share/emacs/site-lisp/, which is a fine place.
 HTML Help packages
 ---------------------------------------------------------------------------
 
+As of IDL 6.2 and IDLWAVE 6.0, all HTML help is provided by default
+with your installation of IDL, and nothing further needs to be
+installed.  For systems older than IDL 6.2, HTML help can be installed
+separately.
+
 Note that you do *not* need to update your help package with each
 version of IDLWAVE, but only when you change IDL versions -- there is
-only one help package per IDL version.
+only one help package per IDL version (v5.6-v6.1).
 
 To install the HTML Help (needed for context-aware online help), get:
 
@@ -107,12 +112,12 @@ in your startup scripts.
 ========================
 
 In order to install IDLWAVE by hand, put the files `idlwave.el',
-`idlw-rinfo.el', `idlw-shell.el', `idlw-help.el', and
-`idlw-toolbar.el', and, optionally, `idlw-roprompt.el' and
-`idlw-complete-structtag.el' into the chosen load-path directory and
-byte-compile them (from within Emacs, execute `M-x byte-compile-file'
-followed by the name of the Lisp files).  You can ignore the warnings
-produced by the byte compiler.
+`idlw-rinfo.el' (if in the distribution), `idlw-shell.el',
+`idlw-help.el', and `idlw-toolbar.el', and, optionally,
+`idlw-roprompt.el' and `idlw-complete-structtag.el' into the chosen
+load-path directory and byte-compile them (from within Emacs, execute
+`M-x byte-compile-file' followed by the name of the Lisp files).  You
+can ignore the warnings produced by the byte compiler.
 
 Copy the info file `idlwave' into the directory where Emacs info files
 are kept and (optionally) add an entry to the `dir' file.
@@ -121,22 +126,28 @@ are kept and (optionally) add an entry to the `dir' file.
 ===========================
 
 In order to install IDLWAVE with the make utility, examine the header
-of the file `Makefile', and change any defaults necessary.  You need
-to specify the Lisp installation directory and the directory where the
-Info files are installed (see note under 2a).  Also, check the name of
-the Emacs executable (usually either `emacs' or `xemacs').
+of the file `Makefile', and change any default directory locations as
+necessary.  You need to specify the Lisp installation directory and
+the directory where the Info files are installed (see note under 2a).
+Also, check the name of the Emacs executable (usually either `emacs'
+or `xemacs').
 
 Then, type 
 
    make
    make install
    make install-info
+
+and, for manually installed HTML help (only necessary with IDL 6.1 or
+earlier):
+
    make install-help
 
 to compile and install the code, the info files, and the HTML help (if
-updating it).  Note that the help installation requires downloading
-the separate help package, and needs to be performed only when your
-version of IDL changes.
+installing or updating it).  Note that the help installation requires
+downloading the separate help package, and needs to be performed only
+when your version of IDL changes, and is unnecessary starting with IDL
+v6.2.
 
 
 2c. PRE-BUILT XEMACS PACKAGE
@@ -152,6 +163,11 @@ user who can write to the package directories (e.g. root if it's a
 system-wide installation):
 
 M-x package-admin-add-binary-package [Ret] /path/to/idlwave-xemacs.tar.gz
+
+Note that if you install IDLWAVE by hand under XEmacs, you need to
+ensure that the following XEmacs packages are also installed:
+
+fsf-compat xemacs-base mail-lib
 
 See INSTALLING ONLINE HELP below for information on adding the online
 help package to your installation.
@@ -199,7 +215,10 @@ OPTIONAL STEPS
 
 N.B. THE HELP PACKAGE ONLY NEEDS TO BE UPDATED WHEN NEW VERSIONS OF
 IDL ARE RELEASED AND THE DOCUMENTATION IS SCANNED.  IDLWAVE CAN BE
-UPDATED SEPARATELY.
+UPDATED SEPARATELY.  
+
+AS OF IDL v6.2, NO ADDITIONAL HELP PACKAGES NEED TO BE INSTALLED,
+SINCE ALL NECESSARY HELP FILES ARE PROVIDED WITH IDL.
 
 If you want IDLWAVE to display online help for built-in IDL routines,
 you need the HTML version of the IDL documentation.  This package is
