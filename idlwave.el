@@ -1,5 +1,5 @@
 ;; idlwave.el --- IDL editing mode for GNU Emacs
-;; Copyright (c) 1999, 2000, 2001, 2002, 2003, 2004, 2005 
+;; Copyright (c) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
 ;;    Free Software Foundation
 
 ;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
@@ -7,7 +7,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2006/01/09 19:47:22 $
+;; Date: $Date: 2006/02/16 22:22:31 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -199,34 +199,34 @@
   "Indentation and formatting options for IDLWAVE mode."
   :group 'idlwave)
 
-(defcustom idlwave-main-block-indent 0
+(defcustom idlwave-main-block-indent 2
   "*Extra indentation for the main block of code.
 That is the block between the FUNCTION/PRO statement and the END
 statement for that program unit."
   :group 'idlwave-code-formatting
   :type 'integer)
 
-(defcustom idlwave-block-indent 4
+(defcustom idlwave-block-indent 3
   "*Extra indentation applied to block lines.
 If you change this, you probably also want to change `idlwave-end-offset'."
   :group 'idlwave-code-formatting
   :type 'integer)
 
-(defcustom idlwave-end-offset -4
+(defcustom idlwave-end-offset -3
   "*Extra indentation applied to block END lines.
 A value equal to negative `idlwave-block-indent' will make END lines
 line up with the block BEGIN lines."
   :group 'idlwave-code-formatting
   :type 'integer)
 
-(defcustom idlwave-continuation-indent 2
+(defcustom idlwave-continuation-indent 3
   "*Extra indentation applied to continuation lines.
 This extra offset applies to the first of a set of continuation lines.
 The following lines receive the same indentation as the first."
   :group 'idlwave-code-formatting
   :type 'integer)
 
-(defcustom idlwave-max-extra-continuation-indent 20
+(defcustom idlwave-max-extra-continuation-indent 40
   "*Maximum additional indentation for special continuation indent.
 Several special indentations are tried to help line up continuation
 lines in routine calls or definitions, other statements with
@@ -678,7 +678,7 @@ method, add an entry (\"INIT\" . t).  The method name must be ALL-CAPS."
 	   (cons (string  :tag "MODULE" :value "")
 		 (boolean :tag "Determine class for this method")))))
 
-(defcustom idlwave-store-inquired-class nil
+(defcustom idlwave-store-inquired-class t
   "*Non-nil means, store class of a method call as text property on `->'.
 IDLWAVE sometimes has to ask the user for the class associated with a
 particular object method call.  This happens during the commands
@@ -960,7 +960,7 @@ Otherwise STRING is used. If nil, the file summary will be omitted.
 For example you might set PATHNAME to the path for the
 lib_template.pro file included in the IDL distribution.")
 
-(defcustom idlwave-header-to-beginning-of-file nil
+(defcustom idlwave-header-to-beginning-of-file t
   "*Non-nil means, the documentation header will always be at start of file.
 When nil, the header is positioned between the PRO/FUNCTION line of
 the current routine and the code, allowing several routine headers in
@@ -1973,6 +1973,9 @@ The main features of this mode are
 
   ;; Update the routine info with info about current buffer?
   (idlwave-new-buffer-update)
+
+  ;; Check help location
+  (idlwave-help-check-locations)
 
   ;; Run the mode hook
   (run-hooks 'idlwave-mode-hook))
@@ -4610,45 +4613,45 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	 (case-fold-search t)
 	 class-entry
 	 method methods-entry extra-kwds
-	 get-props set-props init-props inherits
+	 props get-props set-props init-props inherits
 	 pelem ptype)
     (while params
-      (setq pelem (car params)
-	    ptype (car pelem)
-	    props (car (cdr pelem)))
-      (cond
+      (setq pelem (car params))
+      (when (listp pelem)
+	(setq ptype (car pelem)
+	      props (car (cdr pelem)))
+	(cond
+	 ((eq ptype 'SUPERCLASS)
+	  (push (cdr (assq 'name props)) inherits))
 
-       ((eq ptype 'SUPERCLASS)
-	(push (cdr (assq 'name props)) inherits))
+	 ((eq ptype 'PROPERTY)
+	  (let ((pname (cdr (assq 'name props)))
+		(plink (cdr (assq 'link props)))
+		(get (string= (cdr (assq 'get props)) "Yes"))
+		(set (string= (cdr (assq 'set props)) "Yes"))
+		(init (string= (cdr (assq 'init props)) "Yes")))
+	    (if get (push (list pname plink) get-props))
+	    (if set (push (list pname plink) set-props))
+	    (if init (push (list pname plink) init-props))))
 
-       ((eq ptype 'PROPERTY)
-	(let ((pname (cdr (assq 'name props)))
-	      (plink (cdr (assq 'link props)))
-	      (get (string= (cdr (assq 'get props)) "Yes"))
-	      (set (string= (cdr (assq 'set props)) "Yes"))
-	      (init (string= (cdr (assq 'init props)) "Yes")))
-	  (if get (push (list pname plink) get-props))
-	  (if set (push (list pname plink) set-props))
-	  (if init (push (list pname plink) init-props))))
-
-       ((eq ptype 'METHOD)
-	(setq method (cdr (assq 'name props)))
-	(setq extra-kwds ;;Assume all property keywords are gathered already
-	      (cond
-	       ((string-match (concat class "::Init") method)
-		(put 'init-props 'matched t)
-		init-props)
-	       ((string-match (concat class "::GetProperty") method)
-		(put 'get-props 'matched t)
-		get-props)
-	       ((string-match (concat class "::SetProperty") method)
-		(put 'set-props 'matched t)
-		set-props)
-	       (t nil)))
-	(setq methods-entry 
-	      (nconc (idlwave-xml-create-rinfo-list pelem class extra-kwds) 
-		     methods-entry)))
-       (t))
+	 ((eq ptype 'METHOD)
+	  (setq method (cdr (assq 'name props)))
+	  (setq extra-kwds ;;Assume all property keywords are gathered already
+		(cond
+		 ((string-match (concat class "::Init") method)
+		  (put 'init-props 'matched t)
+		  init-props)
+		 ((string-match (concat class "::GetProperty") method)
+		  (put 'get-props 'matched t)
+		  get-props)
+		 ((string-match (concat class "::SetProperty") method)
+		  (put 'set-props 'matched t)
+		  set-props)
+		 (t nil)))
+	  (setq methods-entry 
+		(nconc (idlwave-xml-create-rinfo-list pelem class extra-kwds) 
+		       methods-entry)))
+	 (t)))
       (setq params (cdr params)))
     ;(unless (get 'init-props 'matched)
     ;  (message "Failed to match Init in class %s" class))
@@ -4673,36 +4676,46 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	 (params (cddr xml-entry))
 	 (syntax-vec (make-vector 3 nil)) ; procedure, function, exec command
 	 (case-fold-search t)
-	 syntax kwds pelem ptype entry props result type)
+	 syntax kwd klink pref-list kwds pelem ptype entry props result type)
     (if class ;; strip out class name from class method name string
 	(if (string-match (concat class "::") name)
 	    (setq name (substring name (match-end 0)))))
     (while params
-	    (setq pelem (car params)
-		  ptype (car pelem)
-		  props (car (cdr pelem)))
-	    (cond
-	     ((eq ptype 'SYNTAX)
-	      (setq syntax (cdr (assq 'name props)))
-	      (if (string-match "-&gt;" syntax)
-		  (setq syntax (replace-match "->" t nil syntax)))
-	      (setq type (cdr (assq 'type props)))
-	      (push syntax
-		    (aref syntax-vec (cond
-				      ((string-match "^pro" type) 0)
-				      ((string-match "^fun" type) 1)
-				      ((string-match "^exec" type) 2)))))
-	     ((eq ptype 'KEYWORD)
-	      (push (list (cdr (assq 'name props))
-			  (cdr (assq 'link props))) kwds))
-	     (t)); Do nothing for the others
-	    (setq params (cdr params)))
+      (setq pelem (car params))
+      (when (listp pelem)
+	(setq ptype (car pelem)
+	      props (car (cdr pelem)))
+	(cond
+	 ((eq ptype 'SYNTAX)
+	  (setq syntax (cdr (assq 'name props)))
+	  (if (string-match "-&gt;" syntax)
+	      (setq syntax (replace-match "->" t nil syntax)))
+	  (setq type (cdr (assq 'type props)))
+	  (push syntax
+		(aref syntax-vec (cond
+				  ((string-match "^pro" type) 0)
+				  ((string-match "^fun" type) 1)
+				  ((string-match "^exec" type) 2)))))
+	 ((eq ptype 'KEYWORD)
+	  (setq kwd (cdr (assq 'name props))
+		klink (cdr (assq 'link props)))
+	  (if (string-match "^\\[XY\\(Z?\\)\\]" kwd)
+	      (progn 
+		(setq pref-list 
+		      (if (match-string 1 kwd) '("X" "Y" "Z") '("X" "Y"))
+		      kwd (substring kwd (match-end 0)))
+		(loop for x in pref-list do
+		      (push (list (concat x kwd) klink) kwds)))
+	    (push (list kwd klink) kwds)))
+
+	 (t))); Do nothing for the others
+      (setq params (cdr params)))
     
     ;; Debug
 ;    (if (and (null (aref syntax-vec 0))
 ;	     (null (aref syntax-vec 1))
 ;	     (null (aref syntax-vec 2)))
-;	(with-current-buffer (get-buffer-create "XML_complaints")
+;	(with-current-buffer (get-buffer-create "IDL_XML_catalog_complaints")
 ;	  (if class
 ;	      (insert (format "Missing SYNTAX entry for %s::%s\n" class name))
 ;	    (insert (message "Missing SYNTAX entry for %s\n" name)))))
@@ -4779,6 +4792,19 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
     (loop for x in remove-list do
 	  (delq x idlwave-system-routines))))
 
+(defun idlwave-convert-xml-clean-sysvar-aliases (aliases)
+  ;; Duplicate and trim original routine aliases from rinfo list
+  ;; This if for, e.g. !X, !Y, !Z.
+  (let (alias remove-list new parts all-parts)
+    (loop for x in aliases do
+	  (when (setq alias (assoc (cdr x) idlwave-system-variables-alist))
+	    (unless (memq alias remove-list) (push alias remove-list))
+	    (setq alias (copy-sequence alias))
+	    (setcar alias (car x))
+	    (push alias idlwave-system-variables-alist)))
+    (loop for x in remove-list do
+	  (delq x idlwave-system-variables-alist))))
+
 
 (defun idlwave-xml-create-sysvar-alist (xml-entry)
   ;; Create a sysvar list entry from the xml parsed list.
@@ -4789,16 +4815,17 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	 (case-fold-search t)
 	 pelem ptype props fields tags)
     (while params
-      (setq pelem (car params)
-	    ptype (car pelem)
-	    props (car (cdr pelem)))
-      (cond
-       ((eq ptype 'FIELD)
-	(push (cons (cdr (assq 'name props)) 
-		    (cdr
-			 (idlwave-split-link-target (cdr (assq 'link props)))))
-	      tags)))
-      (setq params (cdr params)))
+      (setq pelem (car params))
+      (when (listp pelem)
+	(setq ptype (car pelem)
+	      props (car (cdr pelem)))
+	(cond
+	 ((eq ptype 'FIELD)
+	  (push (cons (cdr (assq 'name props)) 
+		      (cdr
+		       (idlwave-split-link-target (cdr (assq 'link props)))))
+		tags))))
+	(setq params (cdr params)))
     (delq nil
 	  (list sysvar (if tags (cons 'tags tags)) (list 'link link)))))
 
@@ -4841,8 +4868,8 @@ Cache to disk for quick recovery."
 	       (expand-file-name "help/online_help" (idlwave-sys-dir))))
 	 (catalog-file (expand-file-name "idl_catalog.xml" dir))
 	 (elem-cnt 0)
-	 rinfo msg-cnt elem type nelem class-result alias 
-	 routines routine-aliases statement-aliases
+	 props rinfo msg-cnt elem type nelem class-result alias 
+	 routines routine-aliases statement-aliases sysvar-aliases
 	 buf version-string)
     (if (not (file-exists-p catalog-file))
 	(error "No such XML routine info file: %s" catalog-file)
@@ -4858,14 +4885,14 @@ Cache to disk for quick recovery."
       (if (bufferp buf) (kill-buffer buf)))
     (message "Reading XML routine info...done")
     (setq rinfo (assq 'CATALOG rinfo))
-    (unless rinfo (message "Failed to parse XML routine info"))
+    (unless rinfo (error "Failed to parse XML routine info"))
     ;;(setq rinfo (car rinfo)) ; Skip the catalog stuff.
     
     (setq version-string (cdr (assq 'version (nth 1 rinfo)))
 	  rinfo (cddr rinfo))
 
     (setq nelem (length rinfo)
-	  msg-cnt (/ nelem 100))
+	  msg-cnt (/ nelem 20))
     
     (setq idlwave-xml-routine-info-file nil)
     (message "Converting XML routine info...")
@@ -4874,47 +4901,56 @@ Cache to disk for quick recovery."
 	  idlwave-system-class-info nil
 	  idlwave-executive-commands-alist nil
 	  idlwave-help-special-topic-words nil)
+
     (while rinfo
       (setq elem (car rinfo)
-	    type (car elem)
 	    rinfo (cdr rinfo))
-
       (incf elem-cnt)
-      (if (= (mod elem-cnt msg-cnt) 0)
-	  (message "Converting XML routine info...%2d%%" 
-		   (/ (* elem-cnt 100) nelem)))
-      (cond 
-       ((eq type 'ROUTINE)
-	(if (setq alias (assq 'alias_to (nth 1 elem)))
-	    (push (cons (cdr (assq 'name (nth 1 elem))) (cdr alias)) 
-		  routine-aliases)
-	  (setq routines (idlwave-xml-create-rinfo-list elem))
-	  (if (listp (cdr routines))
-	      (setq idlwave-system-routines
-		    (nconc idlwave-system-routines routines))
-	    ;; a cons cell is an executive commands
-	    (push routines idlwave-executive-commands-alist))))
+      (when (listp elem)
+	(setq type (car elem)
+	      props (car (cdr elem)))
+	(if (= (mod elem-cnt msg-cnt) 0)
+	    (message "Converting XML routine info...%2d%%" 
+		     (/ (* elem-cnt 100) nelem)))
+	(cond 
+	 ((eq type 'ROUTINE)
+	  (if (setq alias (assq 'alias_to props))
+	      (push (cons (cdr (assq 'name props)) (cdr alias)) 
+		    routine-aliases)
+	    (setq routines (idlwave-xml-create-rinfo-list elem))
+	    (if (listp (cdr routines))
+		(setq idlwave-system-routines
+		      (nconc idlwave-system-routines routines))
+	      ;; a cons cell is an executive commands
+	      (push routines idlwave-executive-commands-alist))))
+	 
+	 ((eq type 'CLASS)
+	  (setq class-result (idlwave-xml-create-class-method-lists elem))
+	  (push (car class-result) idlwave-system-class-info)
+	  (setq idlwave-system-routines
+	  (nconc idlwave-system-routines (cdr class-result))))
 
-       ((eq type 'CLASS)
-	(setq class-result (idlwave-xml-create-class-method-lists elem))
-	(push (car class-result) idlwave-system-class-info)
-	(setq idlwave-system-routines
-	      (nconc idlwave-system-routines (cdr class-result))))
+	 ((eq type 'STATEMENT)
+	  (push (cons (cdr (assq 'name props))
+		      (cdr (assq 'link props)))
+	  idlwave-help-special-topic-words)
+	  ;; Save the links to those which are statement aliases (not routines)
+	  (if (setq alias (assq 'alias_to props))
+	      (unless (member (cdr alias) statement-aliases)
+		(push (cdr alias) statement-aliases))))
 
-       ((eq type 'STATEMENT)
-	(push (cons (cdr (assq 'name (nth 1 elem)))
-		    (cdr (assq 'link (nth 1 elem))))
-	      idlwave-help-special-topic-words)
-	(if (setq alias (assq 'alias_to (nth 1 elem)))
-	    (unless (member (cdr alias) statement-aliases)
-	      (push (cdr alias) statement-aliases))))
-
-       ((eq type 'SYSVAR)
-	(push (idlwave-xml-create-sysvar-alist elem) 
-	      idlwave-system-variables-alist))
-       (t)))
+	 ((eq type 'SYSVAR)
+	  (if (setq alias (cdr (assq 'alias_to props)))
+	      (push (cons (substring (cdr (assq 'name props)) 1) 
+			  (substring alias 1))
+		    sysvar-aliases)
+	    (push (idlwave-xml-create-sysvar-alist elem) 
+		  idlwave-system-variables-alist)))
+	 (t))))
     (idlwave-convert-xml-clean-routine-aliases routine-aliases)
     (idlwave-convert-xml-clean-statement-aliases statement-aliases)
+    (idlwave-convert-xml-clean-sysvar-aliases sysvar-aliases)
+
     (setq idlwave-xml-routine-info-file catalog-file)
     (idlwave-save-routine-info)
     (message "Converting XML routine info...done")))
@@ -4930,7 +4966,7 @@ Cache to disk for quick recovery."
 (defun idlwave-load-rinfo-next-step ()
   (let ((inhibit-quit t)
 	(arr idlwave-load-rinfo-steps-done))
-    (when (catch 'exit
+    (if (catch 'exit
 	  (when (not (aref arr 0))
 	    (message "Loading system routine info in idle time...")
 	    (idlwave-load-system-routine-info)
@@ -4938,6 +4974,7 @@ Cache to disk for quick recovery."
 	    (message "Loading system routine info in idle time...done")
 	    (aset arr 0 t)
 	    (throw 'exit t))
+	  
 	  (when (not (aref arr 1))
 	    (message "Normalizing idlwave-system-routines in idle time...")
 	    (idlwave-reset-sintern t)
@@ -4947,6 +4984,7 @@ Cache to disk for quick recovery."
 	    (message "Normalizing idlwave-system-routines in idle time...done")
 	    (aset arr 1 t)
 	    (throw 'exit t))
+
 	  (when (not (aref arr 2))
 	    (when (and (stringp idlwave-user-catalog-file)
 		       (file-regular-p idlwave-user-catalog-file))
@@ -4963,9 +5001,10 @@ Cache to disk for quick recovery."
 		    (ding)
 		    (message "Outdated user catalog: %s... recreate" 
 			     idlwave-user-catalog-file))
-		(message "Loading user catalog in idle time...done"))
-	      (aset arr 2 t)
-	      (throw 'exit t)))
+		(message "Loading user catalog in idle time...done")))
+	    (aset arr 2 t)
+	    (throw 'exit t))
+
 	  (when (not (aref arr 3))
 	    (when idlwave-user-catalog-routines
 	      (message "Normalizing user catalog routines in idle time...")
@@ -4976,6 +5015,7 @@ Cache to disk for quick recovery."
 	       "Normalizing user catalog routines in idle time...done"))
 	    (aset arr 3 t)
 	    (throw 'exit t))
+
 	  (when (not (aref arr 4))
 	    (idlwave-scan-library-catalogs 
 	     "Loading and normalizing library catalogs in idle time...")
@@ -4985,6 +5025,7 @@ Cache to disk for quick recovery."
 	    (message "Finishing initialization in idle time...")
 	    (idlwave-routines)
 	    (message "Finishing initialization in idle time...done")
+	    (aset arr 5 t)	    
 	    (throw 'exit nil)))
 	;; restart the timer
 	(if (sit-for 1)
@@ -5007,9 +5048,10 @@ Cache to disk for quick recovery."
     (setq idlwave-system-routines
 	  (idlwave-sintern-rinfo-list idlwave-system-routines 'sys))
     (message "Normalizing idlwave-system-routines...done"))
-  (setq idlwave-routines (copy-sequence idlwave-system-routines))
-  (setq idlwave-last-system-routine-info-cons-cell
-	(nthcdr (1- (length idlwave-routines)) idlwave-routines))
+  (when idlwave-system-routines
+    (setq idlwave-routines (copy-sequence idlwave-system-routines))
+    (setq idlwave-last-system-routine-info-cons-cell
+	  (nthcdr (1- (length idlwave-routines)) idlwave-routines)))
 
   ;; User catalog
   (when (and (stringp idlwave-user-catalog-file)
@@ -5630,6 +5672,17 @@ be set to nil to disable library catalog scanning."
 (defconst idlwave-routine-info.pro
   "
 ;; START OF IDLWAVE SUPPORT ROUTINES
+pro idlwave_print_safe,item,limit
+  catch,err
+  if err ne 0 then begin
+     print,'Could not print item.'
+     return
+  endif
+  if n_elements(item) gt limit then $
+     print,item[0:limit-1],'<... truncated at ',strtrim(limit,2),' elements>' $
+  else print,item
+end
+
 pro idlwave_print_info_entry,name,func=func,separator=sep
   ;; See if it's an object method
   if name eq '' then return
@@ -5686,16 +5739,26 @@ pro idlwave_print_info_entry,name,func=func,separator=sep
     + sep + cs + sep + kwstring
 end
 
-pro idlwave_routine_info
+pro idlwave_routine_info,file
   on_error,1
   sep = '<@>'
   print,'>>>BEGIN OF IDLWAVE ROUTINE INFO (\"' + sep + '\" IS THE SEPARATOR)'
   all = routine_info()
-  for i=0,n_elements(all)-1 do $
-    idlwave_print_info_entry,all[i],separator=sep
+  fileQ=n_elements(file) ne 0
+  if fileQ then file=strtrim(file,2)
+  for i=0L,n_elements(all)-1L do begin 
+     if fileQ then begin 
+        if (routine_info(all[i],/SOURCE)).path eq file then $
+           idlwave_print_info_entry,all[i],separator=sep
+     endif else idlwave_print_info_entry,all[i],separator=sep
+  endfor 
   all = routine_info(/functions)
-  for i=0,n_elements(all)-1 do $
-    idlwave_print_info_entry,all[i],/func,separator=sep
+  for i=0L,n_elements(all)-1L do begin 
+     if fileQ then begin 
+        if (routine_info(all[i],/FUNCTIONS,/SOURCE)).path eq file then $
+           idlwave_print_info_entry,all[i],separator=sep,/FUNC
+     endif else idlwave_print_info_entry,all[i],separator=sep,/FUNC
+  endfor 
   print,'>>>END OF IDLWAVE ROUTINE INFO'
 end
 
@@ -5708,7 +5771,7 @@ pro idlwave_get_sysvars
       help,/brief,output=s,/system_variables  ; ? unsafe use of OUTPUT=
       s = strtrim(strjoin(s,' ',/single),2)   ; make one line
       v = strsplit(s,' +',/regex,/extract)    ; get variables
-      for i=0,n_elements(v)-1 do begin
+      for i=0L,n_elements(v)-1 do begin
           t = ['']                            ; get tag list
           a=execute('if n_tags('+v[i]+') gt 0 then t=tag_names('+v[i]+')')
           print, 'IDLWAVE-SYSVAR: '+v[i]+' '+strjoin(t,' ',/single)
@@ -5729,13 +5792,8 @@ end
 
 (defvar idlwave-shell-temp-pro-file)
 (defvar idlwave-shell-temp-rinfo-save-file)
-(defun idlwave-shell-update-routine-info (&optional quiet run-hooks wait)
-  "Query the shell for routine_info of compiled modules and update the lists."
-  ;; Save and compile the procedure.  The compiled procedure is then
-  ;; saved into an IDL SAVE file, to allow for fast RESTORE.
-  ;; We need to RESTORE the procedure each time we use it, since
-  ;; the user may have killed or redefined it.  In particular,
-  ;; .RESET_SESSION will kill all user procedures.
+
+(defun idlwave-shell-compile-helper-routines (&optional wait)
   (unless (and idlwave-idlwave_routine_info-compiled
 	       (file-readable-p (idlwave-shell-temp-file 'rinfo)))
     (save-excursion
@@ -5745,19 +5803,36 @@ end
       (insert idlwave-routine-info.pro)
       (save-buffer 0))
     (idlwave-shell-send-command 
-     (concat ".run " idlwave-shell-temp-pro-file)
+     (concat ".run \"" idlwave-shell-temp-pro-file "\"")
      nil 'hide wait)
-;    (message "SENDING SAVE") ; ????????????????????????
     (idlwave-shell-send-command
-     (format "save,'idlwave_routine_info','idlwave_print_info_entry','idlwave_get_class_tags','idlwave_get_sysvars',FILE='%s',/ROUTINES" 
+     (format "save,'idlwave_print_safe','idlwave_routine_info','idlwave_print_info_entry','idlwave_get_class_tags','idlwave_get_sysvars',FILE='%s',/ROUTINES" 
 	     (idlwave-shell-temp-file 'rinfo))
-     nil 'hide wait))
+     nil 'hide)
+    (setq idlwave-idlwave_routine_info-compiled t))
 
-  ;; Restore and execute the procedure, analyze the output
-;  (message "SENDING RESTORE & EXECUTE") ; ????????????????????????
+  ;; Restore if necessary.  Must use execute to hide lame routine_info
+  ;; errors on undefinded routine
   (idlwave-shell-send-command
-   (format "RESTORE, '%s' & idlwave_routine_info"
+   (format "if execute(\"_v=routine_info('idlwave_routine_info',/SOURCE)\") eq 0 then restore,'%s' else if _v.path eq '' then restore,'%s'"
+	   idlwave-shell-temp-rinfo-save-file
 	   idlwave-shell-temp-rinfo-save-file)
+   nil 'hide))
+
+
+(defun idlwave-shell-update-routine-info (&optional quiet run-hooks wait file)
+  "Query the shell for routine_info of compiled modules and update the lists."
+  ;; Save and compile the procedure.  The compiled procedure is then
+  ;; saved into an IDL SAVE file, to allow for fast RESTORE.  We may
+  ;; need to test for and possibly RESTORE the procedure each time we
+  ;; use it, since the user may have killed or redefined it.  In
+  ;; particular, .RESET_SESSION will kill all user procedures.  If
+  ;; FILE is set, only update routine info for routines in that file.
+
+  (idlwave-shell-compile-helper-routines wait)
+  ; execute the routine_info procedure, and analyze the output
+  (idlwave-shell-send-command
+   (format "idlwave_routine_info%s" (if file (concat ",'" file "'") ""))
    `(progn
       (idlwave-shell-routine-info-filter)
       (idlwave-concatenate-rinfo-lists ,quiet ,run-hooks))
@@ -7592,7 +7667,8 @@ property indicating the link is added."
 	     t)) ; return t to skip other completions
 	  (t nil))))
 
-(defvar link) ;dynamic
+(defvar link) ;dynamic variables set by help callback
+(defvar props)
 (defun idlwave-complete-sysvar-help (mode word)
   (let ((word (or (nth 1 idlwave-completion-help-info) word))
 	(entry (assoc word idlwave-system-variables-alist)))
@@ -8623,9 +8699,8 @@ command can be used to detect possible name clashes during this process."
 		      km-prop keymap
 		      'help-echo "Mouse2: Find source"))      
 	 (nroutines (length (or special-routines routines)))
-	 (step (/ nroutines 99))
+	 (step (/ nroutines 100))
 	 (n 0)
-	 (next-perc 1)
 	 (cnt 0)
 	 (idlwave-sort-prefer-buffer-info nil)
 	 routine twins dtwins twin done props1 lroutines)
@@ -8661,11 +8736,9 @@ command can be used to detect possible name clashes during this process."
       (setq buffer-read-only nil)
       (erase-buffer)
       (while (setq routine (pop routines))
-	(setq n (1+ n))
-	(if (= (* next-perc step) n)
-	    (progn
-	      (message "Compiling list...(%2d%%)" next-perc)
-	      (setq next-perc (1+ next-perc))))
+	(if (= (mod (setq n (1+ n)) step) 0)
+	    (message "Compiling list...(%2d%%)" (/ (* n 100) nroutines)))
+
 	;; Get a list of all twins
 	(setq twins (idlwave-routine-twins routine (or lroutines routines)))
 	(if (memq routine done)
@@ -9273,7 +9346,7 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 ;; Will only work on systems which support this.
 (or idlwave-routines (idlwave-start-load-rinfo-timer))
 
-;;;###autoload(add-to-list 'auto-mode-alist '("\\.[Pp][Rr][Oo]\\'" . idlwave-mode))
+;;;###autoload (add-to-list 'auto-mode-alist '("\\.[Pp][Rr][Oo]\\'" . idlwave-mode))
 
 ;; Run the hook
 (run-hooks 'idlwave-load-hook)
