@@ -61,11 +61,19 @@
 (defvar idlwave-html-link-sep 
   (if idlwave-html-help-pre-v6 "#" "#wp"))
 
+(defcustom idlwave-html-system-help-location   "help/online_help/"
+  "The directory, relative to idlwave-system-directory, where the idl
+HTML help files live, for IDL 6.2 and later.  This location, if found,
+is used in preference to the old idlwave-html-help-location."
+  :group 'idlwave-online-help
+  :type 'directory)
+
 (defcustom idlwave-html-help-location 
-  "help/online_help/"
-  "The complete directory where the idl HTML help files live.  
-If not an absolute path, it is considered relative to
-idlwave-system-directory."
+   (if (memq system-type '(ms-dos windows-nt))
+      nil
+    "/usr/local/etc/")
+  "The directory where the idl_html_help/ dir lives.  Obsolete for IDL
+6.2 or later (see idlwave-html-system-help-location)."
   :group 'idlwave-online-help
   :type 'directory)
 
@@ -87,6 +95,8 @@ Defaults to `browse-url-browser-function', which see."
   "Program to run if using browse-url-generic-program."
   :group 'idlwave-online-help
   :type 'string)
+
+(defvar browse-url-generic-args)
 
 (defcustom idlwave-help-browser-generic-args 
   (if (boundp 'browse-url-generic-args)
@@ -192,8 +202,6 @@ support."
     (t (:weight bold)))
   "Face for highlighting links into IDLWAVE online help."
   :group 'idlwave-online-help)
-;; backward-compatibility alias
-(put 'idlwave-help-link-face 'face-alias 'idlwave-help-link)
 
 (defvar idlwave-help-activate-links-aggressively nil
   "Obsolete variable.")
@@ -292,13 +300,32 @@ Here are all keybindings.
 
 (defun idlwave-html-help-location ()
   "Return the help directory where HTML files are, or nil if that is unknown."
-  (let ((help-dir (or (and (stringp idlwave-html-help-location)
+  (let ((syshelp-dir (expand-file-name 
+		      idlwave-html-system-help-location (idlwave-sys-dir)))
+	(help-dir (or (and (stringp idlwave-html-help-location)
 			   (> (length idlwave-html-help-location) 0)
 			   idlwave-html-help-location)
 		      (getenv "IDLWAVE_HELP_LOCATION"))))
-    (if (file-name-absolute-p help-dir)
-	help-dir
-      (expand-file-name help-dir (idlwave-sys-dir)))))
+    (cond 
+     (syshelp-dir)
+     (help-dir))))
+
+(defun idlwave-help-check-locations ()
+  ;; Check help locations and assistant.
+  (let ((sys-dir (idlwave-sys-dir))
+	(help-loc (idlwave-html-help-location)))
+    (if (or (not (file-directory-p sys-dir))
+	    (not (file-directory-p help-loc)))
+	(message
+	 "HTML help location not found: try setting `idlwave-system-directory' and/or `idlwave-html-help-location'.")
+      ;; Got a location, see if we have the assistant
+      (when (and idlwave-help-use-assistant
+		 (not (idlwave-help-assistant-available)))
+	(message "Cannot locate IDL Assistant, enabling default browse-browser.")
+	(setq idlwave-help-use-assistant nil)
+	(unless idlwave-help-browse-url-available
+	  (error "browse-url is not available; install it or IDL Assistant to use HTML help."))))))
+
 
 (defvar idlwave-current-obj_new-class)
 (defvar idlwave-help-diagnostics)
@@ -762,26 +789,23 @@ see if a link is set for it.  Try extra help functions if necessary."
 	(browse-url-generic-program idlwave-help-browser-generic-program)
 	;(browse-url-generic-args idlwave-help-browser-generic-args)
 	full-link)
-    
-    (unless idlwave-help-browse-url-available
-      (error "browse-url is not available -- install it to use HTML help."))
 
     ;; Just a regular file name (+ anchor name)
     (unless (and (stringp help-loc)
 		 (file-directory-p help-loc))
-      (error 
-       "Invalid help location; customize `idlwave-html-help-location'."))
-    (setq full-link (concat "file://" (expand-file-name link help-loc)))
+      (error "Invalid help location."))
+    (setq full-link (browse-url-file-url (expand-file-name link help-loc)))
 
-    ;; Check for a local browser
+    ;; Select the browser
     (cond
+     (idlwave-help-use-assistant
+      (idlwave-help-assistant-open-link link))
+
      ((or idlwave-help-browser-is-local
 	  (string-match "w3" (symbol-name idlwave-help-browser-function)))
       (idlwave-help-display-help-window '(lambda () (browse-url full-link))))
-     (idlwave-help-use-assistant
-      (idlwave-help-assistant-open-link link))
-     (t
-      (browse-url full-link)))))
+
+     (t (browse-url full-link)))))
 
 ;; A special help routine for source-level syntax help in files.
 (defvar idlwave-help-fontify-source-code)
@@ -829,8 +853,8 @@ This function can be used as `idlwave-extra-help-function'."
 	  (if in-buf
 	      (progn
 		(setq file (buffer-file-name in-buf))
-		(erase-buffer)
-		(insert-buffer in-buf))
+		(erase-buffer)		
+		(insert-buffer-substring in-buf))
 	    (if (file-exists-p file) ;; otherwise just load the file
 		(progn
 		  (erase-buffer)
@@ -1199,11 +1223,20 @@ Useful when source code is displayed as help.  See the option
   "The command, rooted at idlwave-system-directory, which invokes the
 IDL assistant.")
 
+(defvar idlwave-help-assistant-available nil) 
+(defun idlwave-help-assistant-available ()
+  (if idlwave-help-assistant-available
+      (eq idlwave-help-assistant-available t)
+    (setq idlwave-help-assistant-available
+	  (if (file-executable-p (idlwave-help-assistant-command))
+	      t
+	    'not-available))))
+
 (defun idlwave-help-assistant-command ()
   (expand-file-name idlwave-help-assistant-command (idlwave-sys-dir)))
 
 (defun idlwave-help-assistant-start (&optional link)
-  "Start the IDL Assistant, paging to LINK, if passed."
+  "Start the IDL Assistant, loading LINK, if passed."
   (when (or (not idlwave-help-assistant-socket)
 	    (not (eq (process-status idlwave-help-assistant-socket) 'open)))
     (let ((help-loc (idlwave-html-help-location))
