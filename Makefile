@@ -68,7 +68,7 @@ CP = cp -p
 ##----------------------------------------------------------------------
 
 # The following variables need to be defined by the maintainer
-LISPFILES  = idlwave.el idlw-help.el idlw-shell.el idlw-rinfo.el \
+LISPFILES  = idlwave.el idlw-help.el idlw-shell.el\
 	     idlw-toolbar.el idlw-complete-structtag.el idlw-roprompt.el 
 ELCFILES   = $(LISPFILES:.el=.elc)
 TEXIFILES  = idlwave.texi
@@ -84,14 +84,14 @@ SHELL = /bin/sh
 
 DISTFILES= README INSTALL CHANGES ChangeLog COPYING Makefile\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES) lpath.el\
-	get_html_rinfo idlwave_catalog tutorial.pro
+	idlwave_catalog tutorial.pro
 
 WEBDISTFILES= idlwave.ps idlwave.pdf idlwave.html CHANGES
 HELPDISTFILES= $(HTMLHELPDIR)
 HELPDISTFILE=idlwave-idlv$(IDL)-help.tar.bz2
 XEMACSDISTFILES= README INSTALL CHANGES ChangeLog COPYING\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES)\
-	get_html_rinfo idlwave_catalog tutorial.pro
+	idlwave_catalog tutorial.pro
 
 EMACSDISTFILES= $(LISPFILES) $(TEXIFILES) ChangeLog
 
