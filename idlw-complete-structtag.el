@@ -1,10 +1,10 @@
 ;;; idlw-complete-structtag.el --- Completion of structure tags.
-;; Copyright (c) 2001,2002 Free Software Foundation
+;; Copyright (c) 2001,2002,2003,2004,2005,2006 Free Software Foundation
 
 ;; Author: Carsten Dominik <dominik@astro.uva.nl>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: 1.2
-;; Date: $Date: 2006/01/09 19:36:56 $
+;; Date: $Date: 2006/02/20 01:32:10 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -106,7 +106,7 @@
 (add-hook 'idlwave-update-rinfo-hook 'idlwave-structtag-reset)
 
 ;;; The main code follows below
-
+(defvar idlwave-completion-help-info)
 (defun idlwave-complete-structure-tag ()
   "Complete a structure tag.
 This works by looking in the current file for a structure assignment to a
