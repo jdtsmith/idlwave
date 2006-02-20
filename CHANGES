@@ -4,6 +4,40 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
+Revision 6.0
+=============
+   - Use the new HTML help and XML routine info catalog distributed
+     with IDL starting with version 6.2.  Help is now available
+     without a separate download, and is always in sync with IDLWAVE's
+     routine information.
+   - Use the new IDL Assistant directly by default to display bundled
+     HTML help.
+   - Fall back on class help for methods without any help entry.
+   - Allow keyword inheritence on system classes, in addition to user
+     classes with *_EXTRA keywords.
+   - Much better handling of >, <, >=, <=, ->, &, and && for space
+     padding with optional idlwave-surround-by-blank and
+     idlwave-do-actions.
+   - Limit the total length printed when examining long arrays, using
+     'idlwave_print_safe'.  Default limit 200.
+   - Read-only prompt in the shell with Emacs 22.
+   - No more complaints when compiling filenames with space.
+   - New convience command "e" in Electric Debug Mode, which prompts
+     for an expression to print.
+   - Better caching of path and system directory info gleaned from the
+     shell.
+   - Better checking/recompilation for idlwave_* helper routines
+     (e.g. if you are a frequent .full_reset_session user).
+   - Made default block indent 3 and main level indent 2 (users who
+     like the old defaults can customize and set
+     idlwave-main-block-indent to 0, idlwave-block-indent to 3,
+     idlwave-end-offset to -3, and idlwave-continuation-indent to 2).
+   - When stepping through code, the highlight color of the line where
+     IDL is currently stopped changes to gray temporarily, until IDL
+     stops at another line, to give feedback for long operations.
+   - When compiling files, the routine info for routines in that file
+     alone are updated from the shell, to avoid slow-down for very
+     large numbers of routines.  C-c TAB updates all of them.
 
 
 Revision 5.6
