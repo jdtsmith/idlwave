@@ -306,9 +306,12 @@ Here are all keybindings.
 			   (> (length idlwave-html-help-location) 0)
 			   idlwave-html-help-location)
 		      (getenv "IDLWAVE_HELP_LOCATION"))))
-    (cond 
-     (syshelp-dir)
-     (help-dir))))
+    (if (file-directory-p syshelp-dir) 
+	syshelp-dir
+      (setq help-dir (expand-file-name "idl_html_help" help-dir))
+      (if (file-directory-p help-dir) help-dir))))
+      
+(defvar idlwave-help-assistant-available nil) 
 
 (defun idlwave-help-check-locations ()
   ;; Check help locations and assistant.
@@ -317,14 +320,14 @@ Here are all keybindings.
     (if (or (not (file-directory-p sys-dir))
 	    (not (file-directory-p help-loc)))
 	(message
-	 "HTML help location not found: try setting `idlwave-system-directory' and/or `idlwave-html-help-location'.")
-      ;; Got a location, see if we have the assistant
-      (when (and idlwave-help-use-assistant
-		 (not (idlwave-help-assistant-available)))
-	(message "Cannot locate IDL Assistant, enabling default browse-browser.")
-	(setq idlwave-help-use-assistant nil)
-	(unless idlwave-help-browse-url-available
-	  (error "browse-url is not available; install it or IDL Assistant to use HTML help."))))))
+	 "HTML help location not found: try setting `idlwave-system-directory' and/or `idlwave-html-help-location'."))
+    ;; see if we have the assistant
+    (when (and idlwave-help-use-assistant
+	       (not (eq (idlwave-help-assistant-available) t)))
+      (message "Cannot locate IDL Assistant, enabling default browser.")
+      (setq idlwave-help-use-assistant nil)
+      (unless idlwave-help-browse-url-available
+	(error "browse-url is not available; install it or IDL Assistant to use HTML help.")))))
 
 
 (defvar idlwave-current-obj_new-class)
@@ -1223,7 +1226,6 @@ Useful when source code is displayed as help.  See the option
   "The command, rooted at idlwave-system-directory, which invokes the
 IDL assistant.")
 
-(defvar idlwave-help-assistant-available nil) 
 (defun idlwave-help-assistant-available ()
   (if idlwave-help-assistant-available
       (eq idlwave-help-assistant-available t)
