@@ -7,7 +7,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2006/02/16 22:27:44 $
+;; Date: $Date: 2006/04/12 22:58:23 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -507,11 +507,11 @@ line where IDL is stopped.  See also `idlwave-shell-mark-stop-line'."
 
 (defcustom idlwave-shell-electric-stop-line-face 
   (prog1
-      (copy-face 'modeline 'idlwave-shell-electric-stop-line-face)
-    (set-face-background 'idlwave-shell-electric-stop-line-face 
+      (copy-face 'modeline 'idlwave-shell-electric-stop-line)
+    (set-face-background 'idlwave-shell-electric-stop-line 
 			 idlwave-shell-electric-stop-color)
     (condition-case nil
-	(set-face-foreground 'idlwave-shell-electric-stop-line-face nil)
+	(set-face-foreground 'idlwave-shell-electric-stop-line nil)
       (error nil)))
   "*The face for `idlwave-shell-stop-line-overlay' when in electric debug mode.
 Allows you to choose the font, color and other properties for the line
@@ -725,6 +725,15 @@ the directory stack.")
 (setq idlwave-shell-output-overlay (make-overlay 1 1))
 (overlay-put idlwave-shell-output-overlay
 	     'face idlwave-shell-output-face)
+
+(copy-face idlwave-shell-stop-line-face 
+	   'idlwave-shell-pending-stop)
+(copy-face idlwave-shell-electric-stop-line-face 
+	   'idlwave-shell-pending-electric-stop)
+(set-face-background 'idlwave-shell-pending-stop "gray70")
+(set-face-background 'idlwave-shell-pending-electric-stop "gray70")
+
+
 
 (defvar idlwave-shell-bp-query "help,/breakpoints"
   "Command to obtain list of breakpoints")
@@ -1453,6 +1462,8 @@ when the IDL prompt gets displayed again after the current IDL command."
 	   (and (eq idlwave-shell-char-mode-active 'exit)
 		(throw 'exit "Single char loop exited"))))))))
 
+(defvar idlwave-shell-stored-incomplete-input nil
+  "Stored input for history cycling.")
 (defun idlwave-shell-move-or-history (up &optional arg)
   "When in last line of process buffer, do `comint-previous-input'.
 Otherwise just move the line.  Move down unless UP is non-nil."
@@ -1464,11 +1475,32 @@ Otherwise just move the line.  Move down unless UP is non-nil."
     (if (and idlwave-shell-arrows-do-history
 	     (>= (1+ (save-excursion (end-of-line) (point))) proc-pos))
 	(progn
-	  ;;(goto-char proc-pos)
-	  (goto-char (point-max))
-	  ;;(and (not (eolp)) (kill-line nil))
-	  (comint-previous-input arg))
-      (previous-line arg))))
+	  ;; Stepping off the "end" of the ring, with stored partial input.
+	  (if (and comint-input-ring-index 
+		   (or 
+		    (and (< arg 0) ; going down
+			 (eq comint-input-ring-index 0))
+		    (and (> arg 0)
+			 (eq comint-input-ring-index 
+			     (1- (ring-length comint-input-ring)))))
+		   idlwave-shell-stored-incomplete-input)
+	      (progn 
+		(delete-region
+		 (or  (marker-position comint-accum-marker)
+		      (process-mark (get-buffer-process (current-buffer))))
+		 (point))
+		(when (> (length idlwave-shell-stored-incomplete-input) 0)
+		  (insert idlwave-shell-stored-incomplete-input)
+		  (message "Incomplete command line restored"))
+		(setq comint-input-ring-index nil))
+	    
+	    ;; If leaving edit line, save partial input
+	    (if (null comint-input-ring-index) ;not yet on ring
+		(setq idlwave-shell-stored-incomplete-input
+		      (funcall comint-get-old-input)))
+	    (goto-char (point-max))
+	    (comint-previous-input arg)))
+      (forward-line arg))))
 
 (defun idlwave-shell-up-or-history (&optional arg)
 "When in last line of process buffer, move to previous input.
@@ -1700,6 +1732,8 @@ The 3rd group is the line number.
 The 5th group is the file name.
 All parts may contain linebreaks surrounded by spaces.  This is important
 in IDL5 which inserts random linebreaks in long module and file names.")
+
+(defvar idlwave-shell-electric-debug-mode) ; defined by easy-mmode
 
 (defun idlwave-shell-scan-for-state ()
   "Scan for state info.  Looks for messages in output from last IDL
@@ -2242,7 +2276,6 @@ args of an executive .run, .rnew or .compile."
     (looking-at "\\$")))
 
 ;; Debugging Commands ------------------------------------------------------
-(defvar idlwave-shell-electric-debug-mode) ; defined by easy-mmode
 
 (defun idlwave-shell-redisplay (&optional hide)
   "Tries to resync the display with where execution has stopped.
@@ -2336,12 +2369,13 @@ used.  Does nothing if the resulting frame is nil."
   "Check that frame is for an existing file."
   (file-readable-p (car frame)))
 
-
 (defun idlwave-shell-stop-line-pending ()
   ;; Temporarily change the color of the stop line overlay
   (if idlwave-shell-stop-line-overlay
       (overlay-put idlwave-shell-stop-line-overlay 'face
-		   '(background-color . "gray70"))))
+		   (if idlwave-shell-electric-debug-mode
+		       'idlwave-shell-pending-electric-stop
+		     'idlwave-shell-pending-stop))))
 
 (defvar idlwave-shell-suppress-electric-debug nil)
 (defun idlwave-shell-display-line (frame &optional col debug)
@@ -2403,8 +2437,8 @@ matter what the settings of that variable."
 		  ;; restore face and move overlay 
 		  (overlay-put idlwave-shell-stop-line-overlay 'face
 			       (if idlwave-shell-electric-debug-mode
-				   idlwave-shell-electric-stop-line-face 
-				 idlwave-shell-stop-line-face))
+                                   idlwave-shell-electric-stop-line-face 
+                                 idlwave-shell-stop-line-face))
 		  (move-overlay idlwave-shell-stop-line-overlay
 				(point) (save-excursion (end-of-line) (point))
 				(current-buffer)))
