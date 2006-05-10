@@ -7,7 +7,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2006/02/16 22:22:31 $
+;; Date: $Date: 2006/05/10 18:14:07 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -164,6 +164,8 @@
   (defalias 'line-end-position 'point-at-eol))
 (unless (fboundp 'char-valid-p)
   (defalias 'char-valid-p 'characterp))
+(unless (fboundp 'match-string-no-properties)
+  (defalias 'match-string-no-properties 'match-string))
 
 (if (not (fboundp 'cancel-timer))
     (condition-case nil
@@ -1207,9 +1209,9 @@ As a user, you should not set this to t.")
        ;; Treats continuation lines, works only during whole buffer
        ;; fontification.  Slow, use it only in fancy fontification.
        (keyword-parameters
-	'("\\(,\\|[a-zA-Z0-9_](\\)[ \t]*\\(\\$[ \t]*\\(;.*\\)?\\(\n[ \t]*;.*\\)*\n[ \t]*\\)?\\(/[a-zA-Z_]\\sw*\\|[a-zA-Z_]\\sw*[ \t]*=\\)"
-	  (5 font-lock-reference-face)))
-
+	'("\\(,\\|[a-zA-Z0-9_](\\)[ \t]*\\(\\$[ \t]*\\(;.*\\)?\n\\([ \t]*\\(;.*\\)?\n\\)*[ \t]*\\)?\\(/[a-zA-Z_]\\sw*\\|[a-zA-Z_]\\sw*[ \t]*=\\)"
+	  (6 font-lock-reference-face)))
+       
        ;; System variables start with a bang.
        (system-variables
 	'("\\(![a-zA-Z_0-9]+\\(\\.\\sw+\\)?\\)"
@@ -1914,6 +1916,7 @@ The main features of this mode are
   
   (set (make-local-variable 'comment-start-skip) ";+[ \t]*")
   (set (make-local-variable 'comment-start) ";")
+  (set (make-local-variable 'comment-add) 1) ; ";;" for new and regions
   (set (make-local-variable 'require-final-newline) t)
   (set (make-local-variable 'abbrev-all-caps) t)
   (set (make-local-variable 'indent-tabs-mode) nil)
@@ -1946,6 +1949,10 @@ The main features of this mode are
   ;; Following line is for Emacs - XEmacs uses the corresponding property
   ;; on the `idlwave-mode' symbol.
   (set (make-local-variable 'font-lock-defaults) idlwave-font-lock-defaults)
+  (set (make-local-variable 'font-lock-mark-block-function) 
+       'idlwave-mark-subprogram)
+  (set (make-local-variable 'font-lock-fontify-region-function)
+       'idlwave-font-lock-fontify-region)
 
   ;; Imenu setup
   (set (make-local-variable 'imenu-create-index-function)
@@ -1954,6 +1961,14 @@ The main features of this mode are
        'idlwave-unit-name)
   (set (make-local-variable 'imenu-prev-index-position-function)
        'idlwave-prev-index-position)
+
+  ;; HideShow setup
+  (add-to-list 'hs-special-modes-alist
+	       (list 'idlwave-mode
+		     idlwave-begin-block-reg
+		     idlwave-end-block-reg
+		     ";"
+		     'idlwave-forward-block nil))
 
   ;; Make a local post-command-hook and add our hook to it
   ;; NB: `make-local-hook' needed for older/alternative Emacs compatibility
@@ -1999,15 +2014,21 @@ The main features of this mode are
     (idlwave-read-paths)  ; we may need these early
     (setq idlwave-setup-done t)))
 
+(defun idlwave-font-lock-fontify-region (beg end &optional verbose)
+  "Fontify continuation lines correctly."
+  (let (pos)
+    (save-excursion
+      (goto-char beg)
+      (forward-line -1)
+      (when (setq pos (idlwave-is-continuation-line))
+	(goto-char pos)
+	(idlwave-beginning-of-statement)
+	(setq beg (point)))))
+  (font-lock-default-fontify-region beg end verbose))
+
 ;;
 ;; Code Formatting ----------------------------------------------------
 ;; 
-
-(defun idlwave-push-mark (&rest rest)
-  "Push mark for compatibility with Emacs 18/19."
-  (if (fboundp 'iconify-frame)
-      (apply 'push-mark rest)
-    (push-mark)))
 
 (defun idlwave-hard-tab ()
   "Inserts TAB in buffer in current position."
@@ -2402,7 +2423,7 @@ non-nil."
   (idlwave-end-of-statement)
   (let ((end (point)))
     (idlwave-beginning-of-statement)
-    (idlwave-push-mark end nil t)))
+    (push-mark end nil t)))
 
 (defun idlwave-mark-block ()
   "Mark containing block."
@@ -2413,7 +2434,7 @@ non-nil."
   (let ((end (point)))
     (idlwave-backward-block)
     (idlwave-beginning-of-statement)
-    (idlwave-push-mark end nil t)))
+    (push-mark end nil t)))
 
 
 (defun idlwave-mark-subprogram ()
@@ -2424,7 +2445,7 @@ The marks are pushed."
   (idlwave-beginning-of-subprogram)
   (let ((beg (point)))
     (idlwave-forward-block)
-    (idlwave-push-mark beg nil t))
+    (push-mark beg nil t))
   (exchange-point-and-mark))
 
 (defun idlwave-backward-up-block (&optional arg)
@@ -2445,11 +2466,12 @@ If prefix ARG < 0 then move forward to enclosing block end."
   (idlwave-block-jump-out 1 'nomark)
   (backward-word 1))
 
-(defun idlwave-forward-block ()
+(defun idlwave-forward-block (&optional arg)
   "Move across next nested block."
   (interactive)
-  (if (idlwave-down-block 1)
-      (idlwave-block-jump-out 1 'nomark)))
+  (let ((arg (or arg 1)))
+    (if (idlwave-down-block arg)
+	(idlwave-block-jump-out arg 'nomark))))
 
 (defun idlwave-backward-block ()
   "Move backward across previous nested block."
@@ -2495,7 +2517,7 @@ The marks are pushed."
 	  (if (re-search-forward idlwave-doclib-end nil t)
 	      (progn
 		(forward-line 1)
-		(idlwave-push-mark beg nil t)
+		(push-mark beg nil t)
 		(message "Could not find end of doc library header.")))
 	  (message "Could not find doc library header start.")
 	  (goto-char here)))))
@@ -3193,13 +3215,14 @@ Skips any whitespace. Returns 0 if the end-of-line follows the whitespace."
   "Tests if current line is continuation line.
 Blank or comment-only lines following regular continuation lines (with
 `$') count as continuations too."
-  (save-excursion
-    (or 
-     (idlwave-look-at "\\<\\$")
-     (catch 'loop
-       (while (and (looking-at "^[ \t]*\\(;.*\\)?$") 
-		   (eq (forward-line -1) 0))
-	 (if (idlwave-look-at "\\<\\$") (throw 'loop t)))))))
+  (let (p)
+    (save-excursion
+      (or 
+       (idlwave-look-at "\\<\\$")
+       (catch 'loop
+	 (while (and (looking-at "^[ \t]*\\(;.*\\)?$") 
+		     (eq (forward-line -1) 0))
+	   (if (setq p (idlwave-look-at "\\<\\$")) (throw 'loop p))))))))
 
 (defun idlwave-is-comment-line ()
   "Tests if the current line is a comment line."
@@ -3628,6 +3651,7 @@ location on mark ring so that the user can return to previous point."
 	  (insert "\n;\n;\t")
 	  (run-hooks 'idlwave-timestamp-hook))
       (error "No valid DOCLIB header"))))
+
 
 ;;; CJC 3/16/93
 ;;; Interface to expand-region-abbrevs which did not work when the
@@ -8347,7 +8371,7 @@ If we do not know about MODULE, just return KEYWORD literally."
 	 (col 0)
 	 (data (list name type class (current-buffer) nil initial-class))
 	 (km-prop (if (featurep 'xemacs) 'keymap 'local-map))
-	 (face 'idlwave-help-link-face)
+	 (face 'idlwave-help-link)
 	 beg props win cnt total)
     ;; Fix keywords, but don't add chained super-classes, since these 
     ;; are shown separately for that super-class
