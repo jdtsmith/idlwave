@@ -7,7 +7,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2006/08/22 05:12:45 $
+;; Date: $Date: 2006/08/22 05:14:18 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -253,7 +253,7 @@ to set this option to nil."
   :group 'idlwave-shell-general-setup
   :type 'boolean)
 
-(defcustom idlwave-shell-file-name-chars "~/A-Za-z0-9+:_.$#%={}\\-"
+(defcustom idlwave-shell-file-name-chars "~/A-Za-z0-9+:_.$#%={}\\- "
   "The characters allowed in file names, as a string.
 Used for file name completion. Must not contain `'', `,' and `\"'
 because these are used as separators by IDL."
