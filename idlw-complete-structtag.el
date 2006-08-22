@@ -4,7 +4,7 @@
 ;; Author: Carsten Dominik <dominik@astro.uva.nl>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: 1.2
-;; Date: $Date: 2006/02/20 01:32:10 $
+;; Date: $Date: 2006/08/22 05:15:50 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -88,6 +88,7 @@
 ;;  - You can force an update of the tag list with the usual command
 ;;    to update routine info in IDLWAVE: C-c C-i
 
+(require 'idlwave)
 
 ;; Some variables to identify the previously used structure
 (defvar idlwave-current-tags-var nil)
