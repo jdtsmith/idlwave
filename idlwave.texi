@@ -335,6 +335,9 @@ appendix.
 @tab Re-indent all lines in the current statement.
 @item @kbd{M-@key{RET}}
 @tab Start a continuation line, splitting the current line at point.
+@item @kbd{M-;}
+@tab Start new comment at line beginning or after code, or (un)comment
+highlighted region.
 @item @kbd{M-q}
 @tab Fill the current comment paragraph.
 @item @kbd{C-c ?}
