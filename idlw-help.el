@@ -1,7 +1,7 @@
 ;;; idlw-help.el --- HTML Help code for IDLWAVE
 ;; Copyright (c) 2000 Carsten Dominik
 ;; Copyright (c) 2001, 2002 J.D. Smith
-;; Copyright (c) 2003,2004,2005 Free Software Foundation
+;; Copyright (c) 2003,2004,2005,2006 Free Software Foundation
 ;;
 ;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
 ;;          Carsten Dominik <dominik@science.uva.nl>
@@ -863,6 +863,7 @@ This function can be used as `idlwave-extra-help-function'."
 		  (erase-buffer)
 		  (insert-file-contents file nil nil nil 'replace))
 	      (idlwave-help-error name type class keyword)))
+	  (goto-char (point-min))
 	  (if (and idlwave-help-fontify-source-code (not in-buf))
 	      (idlwave-help-fontify)))
       (idlwave-help-error name type class keyword))
@@ -1237,19 +1238,18 @@ IDL assistant.")
 (defun idlwave-help-assistant-command ()
   (expand-file-name idlwave-help-assistant-command (idlwave-sys-dir)))
 
-(defun idlwave-help-assistant-start (&optional link)
-  "Start the IDL Assistant, loading LINK, if passed."
+(defun idlwave-help-assistant-start (&optional full-link)
+  "Start the IDL Assistant, loading link FULL-LINK, if passed."
   (when (or (not idlwave-help-assistant-socket)
 	    (not (eq (process-status idlwave-help-assistant-socket) 'open)))
-    (let ((help-loc (idlwave-html-help-location))
-	  (command (idlwave-help-assistant-command))
-	  (extra-args 
-	   (nconc
-	    (if (memq system-type '(ms-dos windows-nt))
-		`("-profile" ,(expand-file-name "idl.adp" help-loc)))
-	    (if link 
-		`("-file" ,(expand-file-name link help-loc)))))
-	  port)
+    (let* ((help-loc (idlwave-html-help-location))
+	   (command (idlwave-help-assistant-command))
+	   (extra-args 
+	    (nconc
+	     (if (memq system-type '(ms-dos windows-nt))
+		 `("-profile" ,(expand-file-name "idl.adp" help-loc)))
+	     (if full-link `("-file" ,full-link))))
+	   port)
       (if idlwave-help-assistant-socket 
 	  (delete-process idlwave-help-assistant-socket))
 	
@@ -1269,8 +1269,10 @@ IDL assistant.")
 	      (open-network-stream "IDL_ASSISTANT_SOCK" 
 				   nil "localhost" port))
 	(if (eq (process-status idlwave-help-assistant-socket) 'open)
-	    (process-send-string  idlwave-help-assistant-socket
-				  (concat "setHelpPath " help-loc "\n"))
+	    (progn
+	      (process-send-string  idlwave-help-assistant-socket
+				    (concat "setHelpPath " help-loc "\n"))
+	      t)
 	  (idlwave-help-assistant-close)
 	  (error "Cannot communicate with IDL_ASSISTANT"))))))
 
@@ -1280,18 +1282,58 @@ IDL assistant.")
 
 (defun idlwave-help-assistant-open-link (&optional link)
   ;; Open a link (file name with anchor, no leading path) in the assistant.
-  (if link 
-      (let ((file (expand-file-name link (idlwave-html-help-location))))
-	(idlwave-help-assistant-start link)
-	(process-send-string idlwave-help-assistant-socket
-			     (concat "openLink " file "\n"))
-	(string-match "\.html" link)
-	(process-send-string idlwave-help-assistant-socket
-			     (concat "searchIndexNoOpen " 
-				     (substring link 0 (match-beginning 0))
-				     "\n")))
-    (idlwave-help-assistant-raise)))
-  
+  (let ((help-loc (idlwave-html-help-location))
+	topic anchor file just-started exists full-link)
+    
+    (if (string-match "\.html" link)
+	(setq topic (substring link 0 (match-beginning 0))
+	      anchor (substring link (match-end 0)))
+      (error "Malformed help link."))
+    
+    (setq file (expand-file-name (concat topic ".html") help-loc))
+    (if (file-exists-p file)
+	(setq exists t)
+      (setq file (expand-file-name 
+		  (concat (upcase topic) ".html") help-loc))
+      (setq exists (file-exists-p file)))
+    
+    (setq full-link    (concat file anchor)
+	  just-started (idlwave-help-assistant-start (if exists full-link)))
+    (if exists
+	(progn
+	  (if (not just-started)
+	      (process-send-string idlwave-help-assistant-socket
+				   (concat "openLink " full-link "\n")))
+	  (process-send-string idlwave-help-assistant-socket
+			       (concat "searchIndexNoOpen " topic "\n")))
+      (process-send-string idlwave-help-assistant-socket
+			   (concat "searchIndexAndOpen " topic "\n"))))
+  (idlwave-help-assistant-raise))
+
+(defvar idlwave-help-assistant-help-with-topic-history nil
+  "The history of help topics selected with the minibuffer.")
+
+(defun idlwave-help-assistant-help-with-topic (&optional topic)
+  "Prompt for and provide help with TOPIC."
+  (interactive)
+  (let (list)
+    (unless topic
+      (idlwave-routines)
+      (setq list (append (mapcar (lambda (x)
+				   (concat (nth 2 x) (car x)))
+				 idlwave-system-routines)
+			 (mapcar (lambda (x)
+				   (concat "." (car x)))
+				 idlwave-executive-commands-alist)
+			 idlwave-system-class-info))
+      (setq topic 
+	    (idlwave-completing-read 
+	     "Help Topic: " list
+	     nil nil nil
+	     'idlwave-help-assistant-help-with-topic-history)))
+    (if (and topic (not (string= topic "")))
+	(idlwave-help-assistant-open-link (concat topic ".html")))))
+
 (defun idlwave-help-assistant-close ()
   (when (and idlwave-help-assistant-process
 	     (eq (process-status idlwave-help-assistant-process) 'run))
