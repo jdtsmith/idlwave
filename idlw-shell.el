@@ -7,7 +7,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2006/04/12 22:58:23 $
+;; Date: $Date: 2006/08/22 05:12:45 $
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.
@@ -1462,8 +1462,6 @@ when the IDL prompt gets displayed again after the current IDL command."
 	   (and (eq idlwave-shell-char-mode-active 'exit)
 		(throw 'exit "Single char loop exited"))))))))
 
-(defvar idlwave-shell-stored-incomplete-input nil
-  "Stored input for history cycling.")
 (defun idlwave-shell-move-or-history (up &optional arg)
   "When in last line of process buffer, do `comint-previous-input'.
 Otherwise just move the line.  Move down unless UP is non-nil."
@@ -1474,33 +1472,8 @@ Otherwise just move the line.  Move down unless UP is non-nil."
     (if (eq t idlwave-shell-arrows-do-history) (goto-char proc-pos))
     (if (and idlwave-shell-arrows-do-history
 	     (>= (1+ (save-excursion (end-of-line) (point))) proc-pos))
-	(progn
-	  ;; Stepping off the "end" of the ring, with stored partial input.
-	  (if (and comint-input-ring-index 
-		   (or 
-		    (and (< arg 0) ; going down
-			 (eq comint-input-ring-index 0))
-		    (and (> arg 0)
-			 (eq comint-input-ring-index 
-			     (1- (ring-length comint-input-ring)))))
-		   idlwave-shell-stored-incomplete-input)
-	      (progn 
-		(delete-region
-		 (or  (marker-position comint-accum-marker)
-		      (process-mark (get-buffer-process (current-buffer))))
-		 (point))
-		(when (> (length idlwave-shell-stored-incomplete-input) 0)
-		  (insert idlwave-shell-stored-incomplete-input)
-		  (message "Incomplete command line restored"))
-		(setq comint-input-ring-index nil))
-	    
-	    ;; If leaving edit line, save partial input
-	    (if (null comint-input-ring-index) ;not yet on ring
-		(setq idlwave-shell-stored-incomplete-input
-		      (funcall comint-get-old-input)))
-	    (goto-char (point-max))
-	    (comint-previous-input arg)))
-      (forward-line arg))))
+	(comint-previous-input arg)
+      (previous-line arg))))
 
 (defun idlwave-shell-up-or-history (&optional arg)
 "When in last line of process buffer, move to previous input.
@@ -2129,7 +2102,7 @@ HEAP_GC, /VERBOSE"
 Change the default directory for the process buffer to concur."
   (save-excursion
     (set-buffer (idlwave-shell-buffer))
-    (if (string-match ",___cur[\n\r]\\(\\S-*\\) *[\n\r]"
+    (if (string-match ",___cur[\n\r]+\\([^\n\r]+\\)[\n\r]"
 		      idlwave-shell-command-output)
 	(let ((dir (substring idlwave-shell-command-output 
 			      (match-beginning 1) (match-end 1))))
@@ -4133,7 +4106,8 @@ Otherwise, just expand the file name."
 (define-key idlwave-shell-mode-map "\C-c?"    'idlwave-routine-info)
 (define-key idlwave-shell-mode-map "\C-g"     'idlwave-keyboard-quit)
 (define-key idlwave-shell-mode-map "\M-?"     'idlwave-context-help)
-(define-key idlwave-shell-mode-map [(control meta ?\?)] 'idlwave-online-help)
+(define-key idlwave-shell-mode-map [(control meta ?\?)] 
+  'idlwave-help-assistant-help-with-topic)
 (define-key idlwave-shell-mode-map "\C-c\C-i" 'idlwave-update-routine-info)
 (define-key idlwave-shell-mode-map "\C-c\C-y" 'idlwave-shell-char-mode-loop)
 (define-key idlwave-shell-mode-map "\C-c\C-x" 'idlwave-shell-send-char)
@@ -4412,7 +4386,7 @@ idlwave-shell-electric-debug-mode-map)
      ["Edit Default Cmd" idlwave-shell-edit-default-command-line t])
     ("Breakpoints"
      ["Set Breakpoint" idlwave-shell-break-here 
-      :keys "C-c C-d C-c" :active (eq major-mode 'idlwave-mode)]
+      :keys "C-c C-d C-b" :active (eq major-mode 'idlwave-mode)]
      ("Set Special Breakpoint"
       ["Set After Count Breakpoint"
        (progn
