@@ -7,7 +7,7 @@
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2006/05/10 18:14:07 $
+;; Date: $Date: 2006/08/22 05:11:48 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -1596,7 +1596,8 @@ Capitalize system variables - action only
 (define-key idlwave-mode-map "\C-c\C-t"   'idlwave-find-module-this-file)
 (define-key idlwave-mode-map "\C-c?"      'idlwave-routine-info)
 (define-key idlwave-mode-map "\M-?"       'idlwave-context-help)
-(define-key idlwave-mode-map [(control meta ?\?)] 'idlwave-online-help)
+(define-key idlwave-mode-map [(control meta ?\?)] 
+  'idlwave-help-assistant-help-with-topic)
 ;; Pickup both forms of Esc/Meta binding
 (define-key idlwave-mode-map [(meta tab)] 'idlwave-complete)
 (define-key idlwave-mode-map [?\e?\t] 'idlwave-complete)
@@ -4894,19 +4895,14 @@ Cache to disk for quick recovery."
 	 (elem-cnt 0)
 	 props rinfo msg-cnt elem type nelem class-result alias 
 	 routines routine-aliases statement-aliases sysvar-aliases
-	 buf version-string)
+	 version-string)
     (if (not (file-exists-p catalog-file))
 	(error "No such XML routine info file: %s" catalog-file)
       (if (not (file-readable-p catalog-file))
 	  (error "Cannot read XML routine info file: %s" catalog-file)))
     (require 'xml)
     (message "Reading XML routine info...")   
-    (unwind-protect
-	(progn
-	  ;; avoid warnings about read-only files
-	  (setq buf (find-file-noselect catalog-file 'nowarn))
-	  (setq rinfo (xml-parse-file catalog-file)))
-      (if (bufferp buf) (kill-buffer buf)))
+    (setq rinfo (xml-parse-file catalog-file))
     (message "Reading XML routine info...done")
     (setq rinfo (assq 'CATALOG rinfo))
     (unless rinfo (error "Failed to parse XML routine info"))
@@ -7715,7 +7711,7 @@ property indicating the link is added."
      ((eq mode 'set)
       (if entry 
 	  (setq link 
-		(if (setq target (cdr (assoc word tags)))
+		(if (setq target (cdr (assoc-ignore-case word tags)))
 		  (idlwave-substitute-link-target main target)
 		main)))) ;; setting dynamic!!!
      (t (error "This should not happen")))))
@@ -7764,8 +7760,7 @@ property indicating the link is added."
 (defun idlwave-class-or-superclass-with-tag (class tag)
   "Find and return the CLASS or one of its superclass with the
 associated TAG, if any."
-  (let ((sclasses (cons class (cdr (assq 'all-inherits 
-					 (idlwave-class-info class)))))
+  (let ((sclasses (cons class (idlwave-all-class-inherits class)))
 	cl)
    (catch 'exit
      (while sclasses
@@ -9233,6 +9228,8 @@ Assumes that point is at the beginning of the unit as found by
      "--"
      ["Info" idlwave-info t]
      "--"
+     ["Help with Topic" idlwave-help-assistant-help-with-topic 
+      idlwave-help-use-assistant]
      ["Launch IDL Help" idlwave-launch-idlhelp t])))
 
 (defvar idlwave-mode-debug-menu-def
