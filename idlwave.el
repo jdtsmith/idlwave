@@ -1599,8 +1599,7 @@ Capitalize system variables - action only
 (define-key idlwave-mode-map "\C-c\C-t"   'idlwave-find-module-this-file)
 (define-key idlwave-mode-map "\C-c?"      'idlwave-routine-info)
 (define-key idlwave-mode-map "\M-?"       'idlwave-context-help)
-(define-key idlwave-mode-map [(control meta ?\?)] 
-  'idlwave-help-assistant-help-with-topic)
+(define-key idlwave-mode-map [(control meta ?\?)] 'idlwave-help-with-topic)
 ;; Pickup both forms of Esc/Meta binding
 (define-key idlwave-mode-map [(meta tab)] 'idlwave-complete)
 (define-key idlwave-mode-map [?\e?\t] 'idlwave-complete)
