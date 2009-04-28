@@ -1,8 +1,45 @@
-This is the CHANGES file of the IDLWAVE distribution, version VERSIONTAG 
+This is the CHANGES file of the IDLWAVE distribution, version 6.2pre2 
 
 The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
+
+Revision 6.2 (incorporating changes to version 6.1 for Emacs 22)
+================================================================
+   - Improved fontification handling of keywords, especially in
+     continued statements and routine definitions (routine keywords
+     stay fontified as you edit!).
+   - Fails gracefully if no help is installed (e.g. for IDL <6.1
+     without any HTML help module).
+   - A new "help with topic" (C-M-?) to lookup inidividual help topics
+     in the IDL Assistant, with completion.
+   - Better handling of spaces and IDL formatting quirks for syncing
+     the current working directory.
+   - HideShow support.  Just add `hs-minor-mode' to the mode hook (or
+     type M-x hs-minor-mode), and you can quickly hide and show
+     logical blocks, entire routines, etc.  Very useful for long files
+     filled with many routines.
+   - Trim out spurious "None" superclasses in routine information of
+     classes without inheritance.  You may need to rebuild your XML
+     Help catalog to accomplish this (IDLWAVE->Routine Info->Rescan
+     XML Help Catalog).
+   - Automatically list the enclosing routine name in the
+     ChangeLog (C-x 4 a append a new ChangeLog entry).
+   - Changing the break condition or repeat count on a disabled
+     breakpoint now works correctly.
+   - Can customize the height of the shell buffer when it is displayed
+     in the same frame (see `idlwave-shell-buffer-height-frac').
+   - Default command (C-c C-d C-y) prompts for the default command to
+     execute, if it hasn't yet been set.  It also no longer resets IDL.
+   - Direct support in the shell for multi-line commands ending in '&'
+     executed as a single statement (e.g. FOR loops).  Use C-c SPACE
+     to add a new command line at the IDL> prompt.
+   - When using up/down arrows to cycle through history in the Shell,
+     first move through multi-line commands line by line.  Only when
+     at the beginning or end is the next history item recalled.  This
+     makes editing and re-executing multi-line commands much easier.
+     Hold shift when hitting up/down arrow to skip through the full
+     multi-line command with one keypress (the old behavior).
 
 Revision 6.0
 =============
