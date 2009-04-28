@@ -6,13 +6,15 @@ idl-shell.el, available at idlwave.org.
 
 Revision 6.2 (incorporating changes to version 6.1 for Emacs 22)
 ================================================================
+   - Support for the new Eclipse-based help system, including direct
+     keyword linking.
    - Improved fontification handling of keywords, especially in
      continued statements and routine definitions (routine keywords
      stay fontified as you edit!).
    - Fails gracefully if no help is installed (e.g. for IDL <6.1
      without any HTML help module).
    - A new "help with topic" (C-M-?) to lookup inidividual help topics
-     in the IDL Assistant, with completion.
+     in the IDL help system, with completion.
    - Better handling of spaces and IDL formatting quirks for syncing
      the current working directory.
    - HideShow support.  Just add `hs-minor-mode' to the mode hook (or
