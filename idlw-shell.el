@@ -3,10 +3,10 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
 ;;    Free Software Foundation, Inc.
 
-;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
-;;          Carsten Dominik <dominik@astro.uva.nl>
-;;          Chris Chase <chase@att.com>
-;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
+;; Authors: J.D. Smith 
+;;          Carsten Dominik 
+;;          Chris Chase 
+;; Maintainer: J.D. Smith
 ;; Version: VERSIONTAG
 ;; Date: $Date: 2008/01/25 20:53:53 $
 ;; Keywords: processes
