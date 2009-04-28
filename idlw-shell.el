@@ -2218,7 +2218,7 @@ Change the default directory for the process buffer to concur."
   "Parse the output of the obj_class command."
   (let ((match "obj_class([^\n\r]+[\n\r ]"))
     (if (string-match (concat match "\\([A-Za-z_0-9]+\\) *[\n\r]\\(" 
-			      idlwave-shell-prompt-pattern "\\)")
+			      idlwave-shell-prompt-pattern "\\|$\\)")
 		      idlwave-shell-command-output)
 	(setq idlwave-shell-get-object-class 
 	      (match-string 1 idlwave-shell-command-output)))))
@@ -4236,7 +4236,7 @@ Otherwise, just expand the file name."
 (define-key idlwave-shell-mode-map "\C-g"     'idlwave-keyboard-quit)
 (define-key idlwave-shell-mode-map "\M-?"     'idlwave-context-help)
 (define-key idlwave-shell-mode-map [(control meta ?\?)] 
-  'idlwave-help-assistant-help-with-topic)
+  'idlwave-help-with-topic)
 (define-key idlwave-shell-mode-map "\C-c\C-i" 'idlwave-update-routine-info)
 (define-key idlwave-shell-mode-map "\C-c\C-y" 'idlwave-shell-char-mode-loop)
 (define-key idlwave-shell-mode-map "\C-c\C-x" 'idlwave-shell-send-char)
