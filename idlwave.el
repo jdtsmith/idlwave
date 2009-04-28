@@ -1997,9 +1997,6 @@ The main features of this mode are
   ;; Update the routine info with info about current buffer?
   (idlwave-new-buffer-update)
 
-  ;; Check help location
-  (idlwave-help-check-locations)
-
   ;; Run the mode hook
   (run-hooks 'idlwave-mode-hook))
 
@@ -2019,7 +2016,11 @@ The main features of this mode are
      idlwave-path-file (expand-file-name 
 			idlwave-path-file 
 			idlwave-config-directory))
+    ;; Check and setup help location
     (idlwave-read-paths)  ; we may need these early
+
+    (idlwave-help-check-locations)
+
     (setq idlwave-setup-done t)))
 
 (defun idlwave-font-lock-fontify-region (beg end &optional verbose)
