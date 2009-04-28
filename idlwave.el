@@ -2699,8 +2699,12 @@ substatement."
                (idlwave-next-statement))))
     (if pre (goto-char last))
     ;; If a continuation line starts here, move to next line
-    (if (looking-at "[ \t]*\\$\\([ \t]*\\(;\\|$\\)\\)")
-	(beginning-of-line 2))
+    (when (looking-at "[ \t]*\\$\\([ \t]*\\(;\\|$\\)\\)")
+      (beginning-of-line 2))
+    (while (or
+	    (looking-at idlwave-comment-line-start-skip) ;comment only
+	    (looking-at "[ \t]*$")) ; blank
+      (beginning-of-line 2))
     (point)))
 
 (defun idlwave-statement-type ()
