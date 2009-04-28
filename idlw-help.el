@@ -61,10 +61,12 @@
 (defvar idlwave-html-link-sep 
   (if idlwave-html-help-pre-v6 "#" "#wp"))
 
-(defcustom idlwave-html-system-help-location   "help/online_help/"
-  "The directory, relative to idlwave-system-directory, where the idl
-HTML help files live, for IDL 6.2 and later.  This location, if found,
-is used in preference to the old idlwave-html-help-location."
+(defcustom idlwave-html-system-help-location   "help/"
+  "The directory, relative to idlwave-system-directory, where the
+idl HTML help files live, for IDL 7.0 and later.  This location,
+if found, is used in preference to the old
+idlwave-html-help-location.  Note that IDL v6.3-v7.0 used
+help/online_help."
   :group 'idlwave-online-help
   :type 'directory)
 
@@ -81,7 +83,7 @@ is used in preference to the old idlwave-html-help-location."
   "Obsolete variable.") 
 
 (defcustom idlwave-help-use-assistant t
-  "Whether to use the IDL Assistant as the help browser."
+  "Whether to use the IDL Assistant as the help browser (<IDL v6.4)."
   :group 'idlwave-online-help
   :type 'boolean)
 
@@ -298,37 +300,6 @@ Here are all keybindings.
   (set (make-local-variable 'idlwave-help-in-header) nil)
   (run-hooks 'idlwave-help-mode-hook))
 
-(defun idlwave-html-help-location ()
-  "Return the help directory where HTML files are, or nil if that is unknown."
-  (let ((syshelp-dir (expand-file-name 
-		      idlwave-html-system-help-location (idlwave-sys-dir)))
-	(help-dir (or (and (stringp idlwave-html-help-location)
-			   (> (length idlwave-html-help-location) 0)
-			   idlwave-html-help-location)
-		      (getenv "IDLWAVE_HELP_LOCATION"))))
-    (if (file-directory-p syshelp-dir) 
-	syshelp-dir
-      (setq help-dir (expand-file-name "idl_html_help" help-dir))
-      (if (file-directory-p help-dir) help-dir))))
-      
-(defvar idlwave-help-assistant-available nil) 
-
-(defun idlwave-help-check-locations ()
-  ;; Check help locations and assistant.
-  (let ((sys-dir (idlwave-sys-dir))
-	(help-loc (idlwave-html-help-location)))
-    (if (or (not (file-directory-p sys-dir))
-	    (not (file-directory-p help-loc)))
-	(message
-	 "HTML help location not found: try setting `idlwave-system-directory' and/or `idlwave-html-help-location'."))
-    ;; see if we have the assistant
-    (when (and idlwave-help-use-assistant
-	       (not (eq (idlwave-help-assistant-available) t)))
-      (message "Cannot locate IDL Assistant, enabling default browser.")
-      (setq idlwave-help-use-assistant nil)
-      (unless idlwave-help-browse-url-available
-	(error "browse-url is not available; install it or IDL Assistant to use HTML help.")))))
-
 
 (defvar idlwave-current-obj_new-class)
 (defvar idlwave-help-diagnostics)
@@ -382,8 +353,7 @@ It collects and prints the diagnostics messages."
 			   (< beg (- end 4))))
 	   module keyword cw mod1 mod2 mod3)
       (if (or arg 
-	      (and (not st-ass)
-		   (not classtag)
+	      (and (not classtag)
 		   (not structtag)
 		   (not (member (string-to-char this-word) '(?! ?.)))))
 	  ;; Need the module information
@@ -404,7 +374,8 @@ It collects and prints the diagnostics messages."
        (arg (setq mod1 module))
        
        ;; A special topic -- only system help
-       (st-ass (setq mod1 (list (cdr st-ass))))
+       ((and st-ass (not (memq cw '(function-keyword procedure-keyword))))
+	(setq mod1 (list (cdr st-ass))))
        
        ;; A system variable -- only system help
        ((string-match 
@@ -692,7 +663,7 @@ Those words in `idlwave-completion-help-links' have links.  The
 (defvar default-toolbar-visible-p)
 
 (defun idlwave-help-display-help-window (&optional pos-or-func)
-  "Display the help window.  
+  "Display the (source-based) help window.  
 Move window start to POS-OR-FUNC, if passed as a position, or call it
 if passed as a function.  See `idlwave-help-use-dedicated-frame'."
   (let ((cw (selected-window))
@@ -716,7 +687,7 @@ if passed as a function.  See `idlwave-help-use-dedicated-frame'."
     (select-window cw)))
 
 (defun idlwave-help-select-help-frame ()
-  "Select the help frame."
+  "Select the (source-based) help frame."
   (if (and (frame-live-p idlwave-help-frame)
 	   (not (eq (selected-frame) idlwave-help-frame)))
       (progn
@@ -736,6 +707,7 @@ Either loads an HTML link, if LINK is non-nil, or gets special-help on
 the optional arguments, if any special help is defined.  If LINK is
 `t', first look up the optional arguments in the routine info list to
 see if a link is set for it.  Try extra help functions if necessary."
+
   ;; Lookup link
   (if (eq link t) 
       (let ((entry (idlwave-best-rinfo-assoc name type class 
@@ -785,22 +757,31 @@ see if a link is set for it.  Try extra help functions if necessary."
       (idlwave-help-error name type class keyword))
     (select-window cw)))
 
+
 (defun idlwave-help-html-link (link)
   "Get html help on a given LINK."
   (let ((browse-url-browser-function idlwave-help-browser-function)
-	(help-loc (idlwave-html-help-location))
 	(browse-url-generic-program idlwave-help-browser-generic-program)
 	;(browse-url-generic-args idlwave-help-browser-generic-args)
-	full-link)
+	help-loc full-link)
 
     ;; Just a regular file name (+ anchor name)
-    (unless (and (stringp help-loc)
-		 (file-directory-p help-loc))
-      (error "Invalid help location."))
-    (setq full-link (browse-url-file-url (expand-file-name link help-loc)))
+    (unless (or idlwave-help-use-eclipse-help
+		(and (stringp help-loc)
+		     (file-directory-p help-loc)))
+      (error "Invalid help request."))
+    
+    (if (not (or idlwave-help-use-eclipse-help
+		 idlwave-help-use-assistant))
+	(setq 
+	 help-loc (idlwave-html-help-location)
+	 full-link (browse-url-file-url (expand-file-name link help-loc))))
 
     ;; Select the browser
     (cond
+     (idlwave-help-use-eclipse-help
+      (idlwave-help-eclipse-help-open-link link))
+     
      (idlwave-help-use-assistant
       (idlwave-help-assistant-open-link link))
 
@@ -1213,6 +1194,111 @@ Useful when source code is displayed as help.  See the option
   (let ((entry (idlwave-best-rinfo-assoc name type class (idlwave-routines))))
     (idlwave-entry-has-help entry)))
 
+(defvar idlwave-help-with-topic-history nil
+  "The history of help topics selected with the minibuffer.")
+
+(defun idlwave-help-with-topic (&optional topic)
+  "Prompt for and provide help with TOPIC."
+  (interactive)
+  (let (list)
+    (unless topic
+      (idlwave-routines)
+      (setq list (append (mapcar (lambda (x)
+				   (concat (nth 2 x) (car x)))
+				 idlwave-system-routines)
+			 (mapcar (lambda (x)
+				   (concat "." (car x)))
+				 idlwave-executive-commands-alist)
+			 idlwave-system-class-info))
+      (setq topic 
+	    (idlwave-completing-read 
+	     "Help Topic: " list
+	     nil nil nil
+	     'idlwave-help-with-topic-history)))
+    (if (and topic (not (string= topic "")))
+	(idlwave-help-html-link (concat topic ".html")))))
+
+
+
+(defun idlwave-html-help-location ()
+  "Return the help directory where HTML files are, or nil if that is unknown."
+  ;; Note that starting with IDL 7, the HTML files are not included directly,
+  ;; so this becomes vestigial.
+  (let ((syshelp-dir (expand-file-name 
+		      (if (file-directory-p idlwave-html-system-help-location)
+			  idlwave-html-system-help-location
+			(concat (file-name-as-directory 
+				 idlwave-html-system-help-location)
+				"online_help"))
+		      (idlwave-sys-dir)))
+	(help-dir (or (and (stringp idlwave-html-help-location)
+			   (> (length idlwave-html-help-location) 0)
+			   idlwave-html-help-location)
+		      (getenv "IDLWAVE_HELP_LOCATION"))))
+    (if (and syshelp-dir (file-directory-p syshelp-dir))
+	syshelp-dir
+      (if help-dir 
+	  (progn
+	    (setq help-dir (expand-file-name "idl_html_help" help-dir))
+	    (if (file-directory-p help-dir) help-dir))))))
+      
+(defvar idlwave-help-assistant-available nil) 
+(defvar idlwave-help-use-eclipse-help nil)
+(defun idlwave-help-check-locations ()
+  ;; Check help locations and assistant.
+  (let ((sys-dir (idlwave-sys-dir))
+	idl_uses_assistant)
+    (if (not (file-directory-p sys-dir))
+	(message "IDL system directory not found: try setting `idlwave-system-directory' or IDL_DIR.")
+      (setq idl_uses_assistant 
+	    (file-directory-p
+	     (expand-file-name "online_help" 
+			       (concat (file-name-as-directory sys-dir) 
+				       "help"))))
+      (if idl_uses_assistant
+	  (let ((help-loc (idlwave-html-help-location)))
+	    (if (or (not help-loc)
+		    (not (file-directory-p help-loc)))
+		(message "HTML help location not found: try setting `idlwave-html-help-location'."))
+	    ;; see if we have the assistant
+	    (when (and idlwave-help-use-assistant
+		       (not (eq (idlwave-help-assistant-available) t)))
+	      (message "Cannot locate IDL Assistant, enabling default browser.")
+	      (setq idlwave-help-use-assistant nil)
+	      (unless idlwave-help-browse-url-available
+		(error "browse-url is not available; install it or IDL Assistant to use HTML help."))))
+	;; No assistant, check for and record eclipse-based help
+	;; (use new location of idl_catalog as indicator).
+	(setq idlwave-help-use-eclipse-help 
+	      (file-exists-p (expand-file-name "idl_catalog.xml" 
+					       (expand-file-name 
+						"help" sys-dir))))))))
+
+
+
+;;---- Control the idlhelp Eclipse-based help front-end, which shipped
+;;---- with IDL v7.0
+
+;; The Windows version does not have a !DIR/bin/* set of front-end
+;; scripts, but instead only links directly to bin.x86.  As a result,
+;; we must pass the -profile argument as well.
+(defvar idlwave-help-eclipse-help-command 
+  (if (memq system-type '(ms-dos windows-nt))
+      "idlde/idlhelp.exe"
+    "bin/idlhelp")
+  "The command, rooted at idlwave-system-directory, which invokes the
+the idlhelp script.")
+
+(defun idlwave-help-eclipse-help-command ()
+  (expand-file-name idlwave-help-eclipse-help-command (idlwave-sys-dir)))
+
+(defun idlwave-help-eclipse-help-open-link (&optional link)
+  "Start IDL Eclipse-Help (if needed), loading link FULL-LINK, if passed."
+  (let ((command (idlwave-help-eclipse-help-command))
+	(extra-args (if link `("-topic" ,link))))
+    (apply 'call-process command nil 0 nil extra-args)))
+  
+
 ;;----- Control the IDL Assistant, which shipped with IDL v6.2
 (defvar idlwave-help-assistant-process nil)
 (defvar idlwave-help-assistant-socket nil)
@@ -1222,7 +1308,7 @@ Useful when source code is displayed as help.  See the option
 ;; we must pass the -profile argument as well.
 (defvar idlwave-help-assistant-command 
   (if (memq system-type '(ms-dos windows-nt))
-      "bin/bin.x86/idl_assistant"
+      "bin/bin.x86/idl_assistant.exe"
     "bin/idl_assistant")
   "The command, rooted at idlwave-system-directory, which invokes the
 IDL assistant.")
@@ -1309,30 +1395,6 @@ IDL assistant.")
       (process-send-string idlwave-help-assistant-socket
 			   (concat "searchIndexAndOpen " topic "\n"))))
   (idlwave-help-assistant-raise))
-
-(defvar idlwave-help-assistant-help-with-topic-history nil
-  "The history of help topics selected with the minibuffer.")
-
-(defun idlwave-help-assistant-help-with-topic (&optional topic)
-  "Prompt for and provide help with TOPIC."
-  (interactive)
-  (let (list)
-    (unless topic
-      (idlwave-routines)
-      (setq list (append (mapcar (lambda (x)
-				   (concat (nth 2 x) (car x)))
-				 idlwave-system-routines)
-			 (mapcar (lambda (x)
-				   (concat "." (car x)))
-				 idlwave-executive-commands-alist)
-			 idlwave-system-class-info))
-      (setq topic 
-	    (idlwave-completing-read 
-	     "Help Topic: " list
-	     nil nil nil
-	     'idlwave-help-assistant-help-with-topic-history)))
-    (if (and topic (not (string= topic "")))
-	(idlwave-help-assistant-open-link (concat topic ".html")))))
 
 (defun idlwave-help-assistant-close ()
   (when (and idlwave-help-assistant-process
