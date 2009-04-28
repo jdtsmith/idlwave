@@ -144,7 +144,7 @@ an up-to-date completion list."
 	  (if (or (not (string= var (or idlwave-current-tags-var "@")))
 		  (not (eq (current-buffer) idlwave-current-tags-buffer))
                   (not (equal start idlwave-current-tags-completion-pos)))
-	      (idlwave-prepare-structure-tag-completion var))
+	      (idlwave-prepare-structure-tag-completion var ))
           (setq idlwave-current-tags-completion-pos start)
 	  (setq idlwave-completion-help-info 
 		(list 'idlwave-complete-structure-tag-help))
@@ -215,8 +215,7 @@ an up-to-date completion list."
   "Filter structure tag name output, result to `idlwave-current-struct-tags'."
     (setq idlwave-current-struct-tags
 	  (if (string-match (concat "tag_names(.*) *\n"
-				    "\\(\\(.*[\r\n]?\\)*\\)"
-				    "\\(" idlwave-shell-prompt-pattern "\\)")
+				    "\\(\\(.*[\r\n]?\\)*\\)")
 			    idlwave-shell-command-output)
 	      (split-string (match-string 1 idlwave-shell-command-output)))))
 
