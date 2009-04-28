@@ -4612,10 +4612,16 @@ information updated immediately, leave NO-CONCATENATE nil."
 	       (message 
 		"Could not locate any system routine information."))))))))
 
-(defun idlwave-xml-system-routine-info-up-to-date()
+(defun idlwave-xml-system-routine-info-file()
   (let* ((dir (file-name-as-directory 
-	       (expand-file-name "help/online_help" (idlwave-sys-dir))))
-	 (catalog-file (expand-file-name "idl_catalog.xml" dir)))
+	       (expand-file-name "help/" (idlwave-sys-dir)))))
+    (if (file-directory-p (expand-file-name "online_help" dir))
+	(setq dir (expand-file-name "online_help" dir)))
+    (expand-file-name "idl_catalog.xml" dir)))
+  
+
+(defun idlwave-xml-system-routine-info-up-to-date()
+  (let* ((catalog-file (idlwave-xml-system-routine-info-file)))
     (file-newer-than-file-p ;converted file is newer than catalog
      idlwave-xml-system-rinfo-converted-file
      catalog-file)))
@@ -4910,9 +4916,7 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
   "Convert XML supplied IDL routine info into internal form.
 Cache to disk for quick recovery."
   (interactive)
-  (let* ((dir (file-name-as-directory 
-	       (expand-file-name "help/online_help" (idlwave-sys-dir))))
-	 (catalog-file (expand-file-name "idl_catalog.xml" dir))
+  (let* ((catalog-file (idlwave-xml-system-routine-info-file))
 	 (elem-cnt 0)
 	 props rinfo msg-cnt elem type nelem class-result alias 
 	 routines routine-aliases statement-aliases sysvar-aliases
