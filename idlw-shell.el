@@ -1616,16 +1616,18 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 					idlwave-shell-accumulation))
 		;; Gather the command output
 		(if idlwave-shell-hide-output
+		    ;; Hidden output
 		    (save-excursion
 		      (set-buffer idlwave-shell-hidden-output-buffer)
 		      (setq full-output (buffer-string))
 		      (goto-char (point-max))
 		      (re-search-backward idlwave-shell-prompt-pattern nil t)
-		      (goto-char (match-end 0))
+		      ;;(goto-char (match-end 0))
 		      (setq idlwave-shell-command-output
 			    (buffer-substring-no-properties 
 			     (point-min) (point)))
 		      (delete-region (point-min) (point)))
+		  ;; In-shell output
 		  (setq idlwave-shell-command-output
 			(with-current-buffer (process-buffer proc)
 			(buffer-substring-no-properties
@@ -3115,7 +3117,7 @@ idlw-shell-examine-alist via mini-buffer shortcut key."
 
 (defun idlwave-shell-examine-display ()
   "View the examine command output in a separate buffer."
-  (let (win cur-beg cur-end)
+  (let (win cur-beg cur-end beg end str)
     (save-excursion
       (set-buffer (get-buffer-create "*Examine*"))
       (use-local-map idlwave-shell-examine-map)
@@ -3126,72 +3128,75 @@ idlw-shell-examine-alist via mini-buffer shortcut key."
 	(if (string-match "^% Syntax error." idlwave-shell-command-output)
 	    (insert "% Syntax error.\n")
 	  (insert idlwave-shell-command-output)
+	  (goto-char (point-max))
+
 	  ;; Just take the last bit between the prompts (if more than one).
-	  (let* ((end (or
-		       (re-search-backward idlwave-shell-prompt-pattern nil t)
-		       (point-max)))
-		 (beg (progn 
-			(goto-char
-			 (or (progn (if (re-search-backward 
-					 idlwave-shell-prompt-pattern nil t)
-					(match-end 0)))
-			     (point-min)))
-			(re-search-forward "\n")))
-		 (str (buffer-substring beg end)))
-	    (delete-region (point-min) (point-max))
-	    (insert str)
-	    (if idlwave-shell-examine-label
-		(progn (goto-char (point-min))
-		       (insert idlwave-shell-examine-label)
-		       (setq idlwave-shell-examine-label nil)))))
+	  ;; Don't rely on a final prompt (which really shouldn't be there).
+	  (if (re-search-backward idlwave-shell-prompt-pattern nil t)
+	      (progn (setq end (line-end-position 0));end previous line
+		     (if (re-search-backward idlwave-shell-prompt-pattern nil t)
+			 (setq beg (line-beginning-position 2));begin next line
+		       (goto-char end)
+		       (setq beg (line-beginning-position 2)
+			     end (point-max))))
+	    (setq beg (point-min)
+		  end (point-max)))
+	  
+	  (setq str (buffer-substring beg end))
+	  (delete-region (point-min) (point-max))
+	  (insert str)
+	  (if idlwave-shell-examine-label
+	      (progn (goto-char (point-min))
+		     (insert idlwave-shell-examine-label)
+		     (setq idlwave-shell-examine-label nil))))
 	(setq cur-beg (point-min)
-	      cur-end (point-max))
-	(setq buffer-read-only t)
-	(move-overlay idlwave-shell-output-overlay cur-beg cur-end
-		      (current-buffer))
+	      cur-end (point-max)))
+      (setq buffer-read-only t)
+      (move-overlay idlwave-shell-output-overlay cur-beg cur-end
+		    (current-buffer))
 	
-	;; Look for the examine buffer in all windows.  If one is
-	;; found in a frame all by itself, use that, otherwise, switch
-	;; to or create an examine window in this frame, and resize if
-	;; it's a newly created window
-	(let* ((winlist (get-buffer-window-list "*Examine*" nil 'visible)))
-	  (setq win (idlwave-display-buffer 
-		     "*Examine*" 
-		     nil
-		     (let ((list winlist) thiswin)
-		       (catch 'exit
-			 (save-selected-window
-			   (while (setq thiswin (pop list))
-			     (select-window thiswin)
-			     (if (one-window-p) 
-				 (throw 'exit (window-frame thiswin)))))))))
-	  (set-window-start win (point-min)) ; Ensure the point is visible.
-	  (save-selected-window
-	    (select-window win)
-	    (let ((elt (assoc win idlwave-shell-examine-window-alist)))
-	      (when (and (not (one-window-p))
-			 (or (not (memq win winlist)) ;a newly created window
-			     (eq (window-height) (cdr elt))))
-		;; Autosize it.
-		(enlarge-window (- (/ (frame-height) 2)
-				   (window-height)))
-		(shrink-window-if-larger-than-buffer)
-		;; Clean the window list of dead windows
-		(setq idlwave-shell-examine-window-alist
-		      (delq nil
-			    (mapcar (lambda (x) (if (window-live-p (car x)) x))
-				    idlwave-shell-examine-window-alist)))
-		;; And add the new value.
-		(if (setq elt (assoc win idlwave-shell-examine-window-alist))
-		    (setcdr elt (window-height))
-		  (add-to-list 'idlwave-shell-examine-window-alist 
-			       (cons win (window-height)))))))))
-      ;; Recenter for maximum output, after widened
-      (save-selected-window
-	(select-window win)
-	(goto-char (point-max))
-	(skip-chars-backward "\n")
-	(recenter -1)))))
+      ;; Look for the examine buffer in all windows.  If one is
+      ;; found in a frame all by itself, use that, otherwise, switch
+      ;; to or create an examine window in this frame, and resize if
+      ;; it's a newly created window
+      (let* ((winlist (get-buffer-window-list "*Examine*" nil 'visible)))
+	(setq win (idlwave-display-buffer 
+		   "*Examine*" 
+		   nil
+		   (let ((list winlist) thiswin)
+		     (catch 'exit
+		       (save-selected-window
+			 (while (setq thiswin (pop list))
+			   (select-window thiswin)
+			   (if (one-window-p) 
+			       (throw 'exit (window-frame thiswin)))))))))
+	(set-window-start win (point-min)) ; Ensure the point is visible.
+	(save-selected-window
+	  (select-window win)
+	  (let ((elt (assoc win idlwave-shell-examine-window-alist)))
+	    (when (and (not (one-window-p))
+		       (or (not (memq win winlist)) ;a newly created window
+			   (eq (window-height) (cdr elt))))
+	      ;; Autosize it.
+	      (enlarge-window (- (/ (frame-height) 2)
+				 (window-height)))
+	      (shrink-window-if-larger-than-buffer)
+	      ;; Clean the window list of dead windows
+	      (setq idlwave-shell-examine-window-alist
+		    (delq nil
+			  (mapcar (lambda (x) (if (window-live-p (car x)) x))
+				  idlwave-shell-examine-window-alist)))
+	      ;; And add the new value.
+	      (if (setq elt (assoc win idlwave-shell-examine-window-alist))
+		  (setcdr elt (window-height))
+		(add-to-list 'idlwave-shell-examine-window-alist 
+			     (cons win (window-height)))))))))
+    ;; Recenter for maximum output, after widened
+    (save-selected-window
+      (select-window win)
+      (goto-char (point-max))
+      (skip-chars-backward "\n")
+      (recenter -1))))
 
 (defun idlwave-shell-examine-display-quit ()
   (interactive)
