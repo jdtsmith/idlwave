@@ -229,8 +229,9 @@ an up-to-date completion list."
   (cond
    ((eq mode 'test)
     ;; fontify only in source buffers, not in the shell.
-    (not (equal idlwave-current-tags-buffer
-                (get-buffer (idlwave-shell-buffer)))))
+    (or (not (fboundp 'idlwave-shell-buffer))
+	(not (equal idlwave-current-tags-buffer
+		    (get-buffer (idlwave-shell-buffer))))))
    ((eq mode 'set)
     (setq kwd word
 	  idlwave-help-do-struct-tag idlwave-structtag-struct-location))
