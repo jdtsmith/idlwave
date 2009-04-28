@@ -7398,7 +7398,8 @@ backward."
 	    (and (not (eq bound 'back)) (re-search-forward re lim t)))
 	(progn
 	  (goto-char (match-beginning 3))
-	  (match-string-no-properties 5)))))
+	  (if name (match-string-no-properties 4)
+	    t)))))
 
 (defvar idlwave-class-info nil) 
 (defvar idlwave-class-reset nil) ; to reset buffer-local classes
@@ -9397,8 +9398,6 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 
 ;; Run the hook
 (run-hooks 'idlwave-load-hook)
-
 (provide 'idlwave)
 
-;; arch-tag: f77f3b0c-c37c-424f-a328-0886fd42b6fb
 ;;; idlwave.el ends here
