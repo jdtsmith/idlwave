@@ -11,9 +11,9 @@
 @syncodeindex fn cp
 @set VERSION 6.2
 @set EDITION 6.2
-@set IDLVERSION 6.4
+@set IDLVERSION 7.1
 @set NSYSROUTINES 4346
-@set DATE November, 2007
+@set DATE April, 2009
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set MAINTAINER J.D. Smith
 @set IDLWAVEHOMEPAGE http://idlwave.org/
@@ -1287,11 +1287,10 @@ Maximum number of source files displayed in the Routine Info window.
 
 For IDL system routines, extensive documentation is supplied with IDL.
 IDLWAVE can access the HTML version of this documentation very quickly
-and accurately, based on the local context.  This can be @emph{much}
-faster than using the IDL online help application, because IDLWAVE
-usually gets you to the right place in the documentation directly ---
-e.g. a specific keyword of a routine --- without any additional browsing
-and scrolling.
+and accurately, based on the local context.  This can be faster than
+using the IDL online help application, because IDLWAVE usually gets you
+to the right place in the documentation directly --- e.g. a specific
+keyword of a routine --- without any additional browsing and scrolling.
 
 For this online help to work, an HTML version of the IDL documentation
 is required.  Beginning with IDL 6.2, HTML documentation is distributed
@@ -1306,7 +1305,12 @@ the menu entry @code{IDLWAVE->Routine Info->Rescan XML Help Catalog}.
 Before IDL 6.2, the HTML help was not distributed with IDL, and was not
 part of the standalone IDLWAVE distribution, but had to be downloaded
 separately.  This is no longer necessary: all help and routine
-information is supplied with IDL versions 6.2 and later.
+information is supplied with IDL versions 6.2 and later. 
+
+@cindex Eclipse-based help
+Starting with IDL 7.0, the HTML help system and associated IDL Assistant
+tool was dropped for an Eclipse-based help system, without access to the
+documentation mediated via the @samp{idlhelp} tool.
 
 There are a variety of options for displaying the HTML help: see below.
 Help for routines without HTML documentation is also available, by using
@@ -1387,6 +1391,12 @@ directly in the originating source file.
 @cindex Help using HTML manuals
 @cindex IDL manual, HTML version
 @cindex IDL Assistant
+
+This section is relevant only to version of IDL <7.0, at which point the
+HTML help system was replaced with the Eclipse-based help system.  It is
+not longer possible to browse the HTML help using alternative browsers
+(c.f. the @samp{idlhelp} tool).  IDLWAVE automatically detects which
+help system you have, and uses it.
 
 Help using the HTML documentation is invoked with the built-in Emacs
 command @code{browse-url}, which displays the relevant help topic in a
@@ -1823,31 +1833,21 @@ In many programs, especially those involving widgets, large structures
 (e.g. the @samp{state} structure) are used to communicate among
 routines.  It is very convenient to be able to complete structure tags,
 in the same way as for instance variables (tags) of the @samp{self}
-object (@pxref{Object Method Completion and Class Ambiguity}).  Add-in
-code for structure tag completion is available in the form of a loadable
-completion module: @file{idlw-complete-structtag.el}.  Tag completion in
-structures is highly ambiguous (much more so than @samp{self}
-completion), so @code{idlw-complete-structtag} makes an unusual and very
-specific assumption: the exact same variable name is used to refer to
-the structure in all parts of the program.  This is entirely unenforced
-by the IDL language, but is a typical convention.  If you consistently
-refer to the same structure with the same variable name
-(e.g. @samp{state}), structure tags which are read from its definition
-in the same file can be used for completion.
+object (@pxref{Object Method Completion and Class Ambiguity}).  Tag
+completion in structures is highly ambiguous (much more so than
+@samp{self} completion), so @code{idlw-complete-structtag} makes an
+unusual and very specific assumption: the exact same variable name is
+used to refer to the structure in all parts of the program.  This is
+entirely unenforced by the IDL language, but is a typical convention.
+If you consistently refer to the same structure with the same variable
+name (e.g. @samp{state}), structure tags which are read from its
+definition in the same file can be used for completion.
 
-Structure tag completion is not enabled by default.  To enable it,
-simply add the following to your @file{.emacs}:
-
-@lisp
-   (add-hook 'idlwave-load-hook 
-             (lambda () (require 'idlw-complete-structtag)))
-@end lisp
-
-Once enabled, you'll also be able to access online help on the structure
-tags, using the usual methods (@pxref{Online Help}).  In addition,
-structure variables in the shell will be queried for tag names, similar
-to the way object variables in the shell are queried for method names.
-So, e.g.:
+Structure tag completion is enabled by default.  You'll also be able to
+access online help on the structure tags, using the usual methods
+(@pxref{Online Help}).  In addition, structure variables in the shell
+will be queried for tag names, similar to the way object variables in
+the shell are queried for method names.  So, e.g.:
 
 @example
 IDL> st.[Tab]
@@ -1855,6 +1855,12 @@ IDL> st.[Tab]
 
 @noindent will complete with all structure fields of the structure
 @code{st}.
+
+@defopt idlwave-complete-structure-tags (@code{t})
+Non-@code{nil} means complete structure tags in the source buffers and
+shell.
+@end defopt
+
 
 @node Routine Source, Resolving Routines, Completion, The IDLWAVE Major Mode
 @section Routine Source
@@ -3577,8 +3583,8 @@ ships with.  IDLWAVE @value{VERSION} is distributed with a list of
 @value{NSYSROUTINES} routines and object methods, reflecting IDL version
 @value{IDLVERSION}.  As of IDL v6.2, the routine info is distributed
 directly with IDL in the form of an XML catalog which IDLWAVE scans.
-Formerly, this list was created by scanning the IDL manuals to produce
-the file @file{idlw-rinfo.el}.
+Formerly, this list was created (imperfectly) by scanning the IDL
+manuals to produce the file @file{idlw-rinfo.el}.
 
 @item 
 IDLWAVE @emph{scans} all its @emph{buffers} in the current Emacs session
@@ -3939,6 +3945,11 @@ itself.
 @node HTML Help Browser Tips, Configuration Examples, Sources of Routine Info, Top
 @appendix HTML Help Browser Tips
 @cindex Browser Tips
+
+The following information pertains to IDL versions >=5.0 and
+<7.0.  With IDL v7.0, the IDL Assistant was dropped in favor of the
+Eclipse-based help system, and IDL is no longer distributed with the
+raw HTML help files.
 
 There are a wide variety of possible browsers to use for displaying
 the online HTML help available with IDLWAVE (starting with version
