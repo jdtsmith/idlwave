@@ -601,6 +601,10 @@ for which to assume this can be set here."
   :group 'idlwave-routine-info
   :type '(repeat (regexp :tag "Match method:")))
   
+(defcustom idlwave-complete-structure-tags t
+  "Whether to complete structure tags in source and shell."
+  :group 'idlwave-routine-info
+  :type 'boolean)
 
 (defcustom idlwave-completion-show-classes 1
   "*Number of classes to show when completing object methods and keywords.
@@ -1995,6 +1999,11 @@ The main features of this mode are
 
   ;; Update the routine info with info about current buffer?
   (idlwave-new-buffer-update)
+
+  (if idlwave-complete-structure-tags
+      (add-hook 'idlwave-mode-hook 
+		(lambda ()
+		  (require 'idlw-complete-structtag))))
 
   ;; Run the mode hook
   (run-hooks 'idlwave-mode-hook))
