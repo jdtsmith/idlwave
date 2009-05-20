@@ -169,7 +169,7 @@ probably a good idea to still call this function as a fallback."
   :group 'idlwave-online-help
   :type 'symbol)
 
-(defcustom idlwave-help-fontify-source-code nil
+(defcustom idlwave-help-fontify-source-code t
   "*Non-nil means, fontify source code displayed as help like normal code."
   :group 'idlwave-online-help
   :type 'boolean)
