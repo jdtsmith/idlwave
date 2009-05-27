@@ -75,21 +75,21 @@ TEXIFILES  = idlwave.texi
 INFOFILES  = idlwave
 RINFOFILES = idlw-rinfo.el
 HTMLHELPDIR  = idl_html_help
-DLDIR     = /var/www/html/idlwave/download
-HTMLDIR    = /var/www/html/idlwave/
+DLDIR     = /Volumes/www/idlwave/download
+HTMLDIR    = /Volumes/www/idlwave/
 XEMACSDIR  = packages/xemacs-packages/idlwave
 
 .SUFFIXES: .el .elc .texi
 SHELL = /bin/sh
 
-DISTFILES= README INSTALL CHANGES ChangeLog COPYING Makefile\
+DISTFILES= README INSTALL CHANGES COPYING Makefile\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES) lpath.el\
 	idlwave_catalog tutorial.pro
 
 WEBDISTFILES= idlwave.ps idlwave.pdf idlwave.html CHANGES
 HELPDISTFILES= $(HTMLHELPDIR)
 HELPDISTFILE=idlwave-idlv$(IDL)-help.tar.bz2
-XEMACSDISTFILES= README INSTALL CHANGES ChangeLog COPYING\
+XEMACSDISTFILES= README INSTALL CHANGES COPYING\
 	$(LISPFILES) $(TEXIFILES) $(INFOFILES)\
 	idlwave_catalog tutorial.pro
 
