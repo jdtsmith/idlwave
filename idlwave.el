@@ -2647,9 +2647,13 @@ If not in a statement just moves to end of line. Returns position."
 (defun idlwave-skip-multi-commands (&optional lim)
   "Skip past multiple commands on a line (or multiple lines) (with `&')."
   (let ((save-point (point)))
-    (while (re-search-forward "[^&]*[^&]&" lim t))
-    (if (idlwave-quoted) (goto-char save-point))
-    (point)))
+    (while (re-search-forward "[^&]*?\\(&\\)[^&]" lim t)
+      (backward-char)
+      (if (and (not (idlwave-quoted))
+	       (not (eq (char-before (- (point) 1)) ?&)))
+	  (setq save-point (point))))
+    (goto-char save-point)
+    save-point))
 
 (defun idlwave-skip-label-or-case ()
   "Skip label or case statement element.
