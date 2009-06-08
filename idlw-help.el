@@ -1250,8 +1250,8 @@ Useful when source code is displayed as help.  See the option
 	idl_uses_assistant)
     (if (not (file-directory-p sys-dir))
 	(message "IDL system directory not found: try setting `idlwave-system-directory' or IDL_DIR.")
-      (setq idl_uses_assistant 
-	    (file-directory-p
+      (setq idl_uses_assistant  ; "online_help/" only existed for the 
+	    (file-directory-p   ;  IDL Assistant-based versions of IDL
 	     (expand-file-name "online_help" 
 			       (concat (file-name-as-directory sys-dir) 
 				       "help"))))
