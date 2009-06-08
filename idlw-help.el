@@ -763,8 +763,9 @@ see if a link is set for it.  Try extra help functions if necessary."
   (let ((browse-url-browser-function idlwave-help-browser-function)
 	(browse-url-generic-program idlwave-help-browser-generic-program)
 	;(browse-url-generic-args idlwave-help-browser-generic-args)
-	help-loc full-link)
-
+	help-loc (idlwave-html-help-location)
+	full-link)
+    
     ;; Just a regular file name (+ anchor name)
     (unless (or idlwave-help-use-eclipse-help
 		(and (stringp help-loc)
@@ -774,7 +775,6 @@ see if a link is set for it.  Try extra help functions if necessary."
     (if (not (or idlwave-help-use-eclipse-help
 		 idlwave-help-use-assistant))
 	(setq 
-	 help-loc (idlwave-html-help-location)
 	 full-link (browse-url-file-url (expand-file-name link help-loc))))
 
     ;; Select the browser
