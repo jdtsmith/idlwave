@@ -2714,9 +2714,10 @@ substatement."
     ;; If a continuation line starts here, move to next line
     (when (looking-at "[ \t]*\\$\\([ \t]*\\(;\\|$\\)\\)")
       (beginning-of-line 2))
-    (while (or
-	    (looking-at idlwave-comment-line-start-skip) ;comment only
-	    (looking-at "[ \t]*$")) ; blank
+    (while 
+	(and (not (eobp))
+	     (or (looking-at idlwave-comment-line-start-skip) ;comment only
+		 (looking-at "[ \t]*$"))) ; blank
       (beginning-of-line 2))
     (point)))
 
