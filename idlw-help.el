@@ -763,7 +763,7 @@ see if a link is set for it.  Try extra help functions if necessary."
   (let ((browse-url-browser-function idlwave-help-browser-function)
 	(browse-url-generic-program idlwave-help-browser-generic-program)
 	;(browse-url-generic-args idlwave-help-browser-generic-args)
-	help-loc (idlwave-html-help-location)
+	(help-loc (idlwave-html-help-location))
 	full-link)
     
     ;; Just a regular file name (+ anchor name)
