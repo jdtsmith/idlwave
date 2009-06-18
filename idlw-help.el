@@ -1294,9 +1294,10 @@ the idlhelp script.")
 
 (defun idlwave-help-eclipse-help-open-link (&optional link)
   "Start IDL Eclipse-Help (if needed), loading link FULL-LINK, if passed."
-  (let ((command (idlwave-help-eclipse-help-command))
-	(extra-args (if link `("-topic" ,link))))
-    (apply 'call-process command nil 0 nil extra-args)))
+  (let ((command (idlwave-help-eclipse-help-command)))
+    (if (string-match "\.html$" link) ;; Strip HTML, unless anchored
+	(setq link (substring link 0 (match-beginning 0))))
+    (apply 'call-process command nil 0 nil (if link `("-topic" ,link)))))
   
 
 ;;----- Control the IDL Assistant, which shipped with IDL v6.2
