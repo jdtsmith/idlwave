@@ -1626,7 +1626,8 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 		      (setq idlwave-shell-command-output
 			    (buffer-substring-no-properties 
 			     (point-min) (point)))
-		      (delete-region (point-min) (point)))
+		      (erase-buffer))
+					;(delete-region (point-min) (point)))
 		  ;; In-shell output
 		  (setq idlwave-shell-command-output
 			(with-current-buffer (process-buffer proc)
