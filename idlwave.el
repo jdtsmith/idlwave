@@ -1286,7 +1286,9 @@ only by whitespace.")
   "Regular expression to find the beginning of a block. The case does
 not matter. The search skips matches in comments.")
 
-(defconst idlwave-begin-unit-reg "^\\s-*\\(pro\\|function\\)\\>\\|\\`"
+(defconst idlwave-profun-reg "^\\s-*\\(pro\\|function\\)\\>")
+
+(defconst idlwave-begin-unit-reg (concat idlwave-profun-reg "\\|\\`")
   "Regular expression to find the beginning of a unit. The case does
 not matter.")
 
@@ -2960,7 +2962,7 @@ Inserts spaces before markers at point."
 		      (setq beg-prev-pos (point)))
 		    0)
 		   ;; Main block
-		   ((idlwave-look-at idlwave-begin-unit-reg t)
+		   ((idlwave-look-at idlwave-profun-reg t)
 		    (+ (idlwave-current-statement-indent)
 		       idlwave-main-block-indent))
 		   ;; Begin block
