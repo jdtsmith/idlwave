@@ -1857,8 +1857,10 @@ the above."
 		    idlwave-shell-command-output)
       (setq idlwave-shell-current-state 'breakpoint))
 
-     ;; Otherwise, no particular state
-     (t (setq idlwave-shell-current-state nil)))))
+     ;; Otherwise, no particular state, display no line
+     (t (setq idlwave-shell-current-state nil)
+	(unless idlwave-shell-post-command-hook
+	  (idlwave-shell-display-line nil))))))
 
 
 (defun idlwave-shell-parse-line (string &optional skip-main)
