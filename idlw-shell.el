@@ -781,6 +781,9 @@ string to be sent to IDL and PCMD is a post-command to be placed on
 `idlwave-shell-post-command-hook'. If HIDE is non-nil, hide the output
 from command CMD. PCMD and HIDE are optional.")
 
+(defvar idlwave-shell-current-command nil
+  "Current command being executed.")
+
 (defun idlwave-shell-buffer ()
   "Name of buffer associated with IDL process.
 The name of the buffer is made by surrounding `idlwave-shell-process-name
@@ -1370,6 +1373,7 @@ message, independent of what HIDE is set to."
 	      ;; If this is an executive command, reset the stack pointer
 	      (if (eq (string-to-char cmd) ?.)
 		  (setq idlwave-shell-calling-stack-index 0))
+	      (setq idlwave-shell-current-command cmd)
 	      ;; Set post-command
 	      (setq idlwave-shell-post-command-hook pcmd)
 	      ;; Output hiding
@@ -1599,7 +1603,7 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 			  (substring string 
 				     (progn (string-match "\\(.*[\n\r]+\\)*" 
 							  string)
-					    (match-end 0)))))
+	 				    (match-end 0)))))
 		(setq idlwave-shell-accumulation
 		      (concat idlwave-shell-accumulation string)))
 	    
@@ -1614,7 +1618,7 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 	      (when (setq idlwave-shell-ready
 			  (string-match idlwave-shell-prompt-pattern
 					idlwave-shell-accumulation))
-		;; Gather the command output
+		;; Gather the command output, and the input as well.
 		(if idlwave-shell-hide-output
 		    ;; Hidden output
 		    (save-excursion
@@ -1674,7 +1678,8 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 
 		  ;; Reset to default state for next command.
 		  ;; Also we do not want to find this prompt again.
-		  (setq idlwave-shell-accumulation nil
+		  (setq idlwave-shell-current-command nil
+			idlwave-shell-accumulation nil
 			idlwave-shell-command-output nil
 			idlwave-shell-post-command-hook nil
 			idlwave-shell-hide-output nil
@@ -2178,11 +2183,10 @@ HEAP_GC, /VERBOSE"
 Change the default directory for the process buffer to concur."
   (save-excursion
     (set-buffer (idlwave-shell-buffer))
-    (if (string-match ",___cur[\n\r ]+\\([^\n\r]+\\)[\n\r]"
-		      idlwave-shell-command-output)
-	(let ((dir (substring idlwave-shell-command-output 
-			      (match-beginning 1) (match-end 1))))
-;	  (message "Setting Emacs working dir to %s" dir)
+    (idlwave-shell-strip-input)
+    (if (string-match "\\([^\n\r]+\\)[\n\r]" idlwave-shell-command-output)
+	(let ((dir (match-string 1 idlwave-shell-command-output)))
+	  (message "Setting Emacs working dir to %s" dir)
 	  (setq idlwave-shell-default-directory dir)
 	  (setq default-directory (file-name-as-directory dir))))))
 
@@ -3118,6 +3122,22 @@ idlw-shell-examine-alist via mini-buffer shortcut key."
       (idlwave-shell-examine-display)
     (idlwave-shell-examine-highlight)))
 
+(defun idlwave-shell-strip-input ()
+  "Strip the input from command output."
+  (when idlwave-shell-current-command
+    (if (string-match idlwave-shell-prompt-pattern idlwave-shell-command-output)
+	(setq idlwave-shell-command-output 
+	      (substring idlwave-shell-command-output (match-end 0))))
+    (when (eq t (compare-strings 
+		 idlwave-shell-command-output 0 (length idlwave-shell-current-command)
+		 idlwave-shell-current-command 0 nil))
+      (setq idlwave-shell-command-output 
+	    (substring idlwave-shell-command-output 
+		       (length idlwave-shell-current-command)))
+      (if (string-match "[ \t]*[\r\n]*" idlwave-shell-command-output)
+	  (setq idlwave-shell-command-output 
+		(substring idlwave-shell-command-output (match-end 0)))))))
+
 (defun idlwave-shell-examine-display ()
   "View the examine command output in a separate buffer."
   (let (win cur-beg cur-end beg end str)
@@ -3128,6 +3148,7 @@ idlw-shell-examine-alist via mini-buffer shortcut key."
       (goto-char (point-max))
       (save-restriction
 	(narrow-to-region (point) (point))
+	(idlwave-shell-strip-input)
 	(if (string-match "^% Syntax error." idlwave-shell-command-output)
 	    (insert "% Syntax error.\n")
 	  (insert idlwave-shell-command-output)
