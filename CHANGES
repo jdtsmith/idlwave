@@ -6,6 +6,7 @@ idl-shell.el, available at idlwave.org.
 
 Revision 6.2 (incorporating changes to version 6.1 for Emacs 22)
 ================================================================
+   - Support for the Windows command-line IDL tool (as of version 7.1)
    - Support for the new Eclipse-based help system, including direct
      keyword linking.
    - Structure tag completion now enabled by default.
@@ -30,13 +31,14 @@ Revision 6.2 (incorporating changes to version 6.1 for Emacs 22)
      ChangeLog (C-x 4 a append a new ChangeLog entry).
    - Changing the break condition or repeat count on a disabled
      breakpoint now works correctly.
-   - Can customize the height of the shell buffer when it is displayed
-     in the same frame (see `idlwave-shell-buffer-height-frac').
+   - The height of the shell buffer when it is displayed in the same
+     frame is customizable (see `idlwave-shell-buffer-height-frac') 
    - Default command (C-c C-d C-y) prompts for the default command to
      execute, if it hasn't yet been set.  It also no longer resets IDL.
    - Direct support in the shell for multi-line commands ending in '&'
      executed as a single statement (e.g. FOR loops).  Use C-c SPACE
-     to add a new command line at the IDL> prompt.
+     to add a new command line at the IDL> prompt (and M-Ret to
+     continue the current line, just as in a buffer).
    - When using up/down arrows to cycle through history in the Shell,
      first move through multi-line commands line by line.  Only when
      at the beginning or end is the next history item recalled.  This
