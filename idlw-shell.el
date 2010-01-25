@@ -2757,7 +2757,7 @@ If ENABLE is non-nil, enable them instead."
     (idlwave-shell-break-here 1 nil nil nil 'no-show)
     (idlwave-shell-cont 'no-show)
     (idlwave-shell-enable-all-bp 'enable 'no-update disabled))
-  (idlwave-shell-redisplay)) ; sync up everything at the end
+  (idlwave-shell-redisplay 'hide)) ; sync up everything at the end
 
 (defun idlwave-shell-break-this-module (&optional arg)
   (interactive "P")
