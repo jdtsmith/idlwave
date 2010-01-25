@@ -1292,13 +1292,22 @@ the idlhelp script.")
 (defun idlwave-help-eclipse-help-command ()
   (expand-file-name idlwave-help-eclipse-help-command (idlwave-sys-dir)))
 
+(defvar idlwave-help-eclipse-hook-added nil)
+
 (defun idlwave-help-eclipse-help-open-link (&optional link)
   "Start IDL Eclipse-Help (if needed), loading link FULL-LINK, if passed."
   (let ((command (idlwave-help-eclipse-help-command)))
     (if (string-match "\.html$" link) ;; Strip HTML, unless anchored
 	(setq link (substring link 0 (match-beginning 0))))
+    (if (not idlwave-help-eclipse-hook-added)
+	(add-hook 'kill-emacs-hook 'idlwave-help-eclipse-kill)
+	(setq idlwave-help-eclipse-hook-added t))
     (apply 'call-process command nil 0 nil (if link `("-topic" ,link)))))
   
+(defun idlwave-help-eclipse-kill ()
+  (let ((command (idlwave-help-eclipse-help-command)))
+    (call-process command nil 0 nil "-command" "shutdown")))
+
 
 ;;----- Control the IDL Assistant, which shipped with IDL v6.2
 (defvar idlwave-help-assistant-process nil)
