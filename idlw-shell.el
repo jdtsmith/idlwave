@@ -2339,8 +2339,7 @@ overlays."
   (setq idlwave-shell-calling-stack-index 0)
   (idlwave-shell-send-command
    "help,/trace"
-   '(idlwave-shell-display-line
-     (idlwave-shell-pc-frame))
+   '(idlwave-shell-display-line (idlwave-shell-pc-frame))
    hide)
   (idlwave-shell-bp-query))
 
@@ -3034,7 +3033,7 @@ idlw-shell-examine-alist via mini-buffer shortcut key."
       (when (and beg end)
 	(if (and process-mark (> process-mark beg) (< process-mark end))
 	    (setq beg (marker-position process-mark)))
-	(setq expr (buffer-substring beg end)))
+	(setq expr (buffer-substring-no-properties beg end)))
 
       ;; Show the overlay(s) and attach any necessary hooks and filters
       (when (and beg end idlwave-shell-expression-overlay)
