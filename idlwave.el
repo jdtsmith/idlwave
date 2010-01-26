@@ -1943,6 +1943,10 @@ The main features of this mode are
   (set (make-local-variable 'paragraph-ignore-fill-prefix) nil)
   (set (make-local-variable 'parse-sexp-ignore-comments) t)
 
+  ;; ChangeLog
+  (set (make-local-variable 'add-log-current-defun-function) 
+       'idlwave-current-routine-fullname)
+
   ;; Set tag table list to use IDLTAGS as file name.
   (if (boundp 'tag-table-alist)
       (add-to-list 'tag-table-alist '("\\.pro$" . "IDLTAGS")))
@@ -2530,6 +2534,9 @@ The marks are pushed."
 	  (message "Could not find doc library header start.")
 	  (goto-char here)))))
 
+(defun idlwave-current-routine-fullname ()
+  (let ((name (idlwave-current-routine)))
+    (idlwave-make-full-name (nth 2 name) (car name))))
 
 (defun idlwave-current-routine ()
   "Return (NAME TYPE CLASS) of current routine."
