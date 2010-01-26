@@ -884,6 +884,7 @@ IDL has currently stepped.")
 (defvar idlwave-shell-error-buffer)
 (defvar idlwave-shell-error-last)
 (defvar idlwave-shell-bp-buffer)
+(defvar idlwave-shell-command-buffer)
 (defvar idlwave-shell-sources-query)
 (defvar idlwave-shell-mode-map)
 (defvar idlwave-shell-calling-stack-index)
@@ -991,6 +992,8 @@ IDL has currently stepped.")
   (set (make-local-variable 'completion-ignore-case) t)
   (setq comint-completion-addsuffix '("/" . ""))
   (setq comint-input-ignoredups t)
+  (setq comint-input-sender (function idlwave-shell-sender))
+  
   (setq major-mode 'idlwave-shell-mode)
   (setq mode-name "IDL-Shell")
   (setq idlwave-shell-mode-line-info nil)
@@ -1473,16 +1476,20 @@ when the IDL prompt gets displayed again after the current IDL command."
 	   (and (eq idlwave-shell-char-mode-active 'exit)
 		(throw 'exit "Single char loop exited"))))))))
 
-(defun idlwave-shell-move-or-history (up &optional arg)
+(defun idlwave-shell-move-or-history (up &optional arg noblock-move)
   "When in last line of process buffer, do `comint-previous-input'.
-Otherwise just move the line.  Move down unless UP is non-nil."
+Otherwise just move the line.  Move down unless UP is non-nil.
+Move normally inside of blocks, unless NOBLOCK-MOVE is non-nil."
   (let* ((proc-pos (marker-position
 		    (process-mark (get-buffer-process (current-buffer)))))
 	 (arg (or arg 1))
 	 (arg (if up arg (- arg))))
     (if (eq t idlwave-shell-arrows-do-history) (goto-char proc-pos))
     (if (and idlwave-shell-arrows-do-history
-	     (>= (1+ (save-excursion (end-of-line) (point))) proc-pos))
+	     (or noblock-move
+		 (if up
+		     (= (line-number-at-pos) (line-number-at-pos proc-pos))
+		   (= (line-number-at-pos) (line-number-at-pos (point-max))))))
 	(comint-previous-input arg)
       (previous-line arg))))
 
@@ -1498,6 +1505,15 @@ Otherwise just move the line.  Move down unless UP is non-nil."
   (interactive "p")
   (idlwave-shell-move-or-history nil arg))
 
+(defun idlwave-shell-noblock-up-or-history (&optional arg)
+  (interactive "p")
+  (idlwave-shell-move-or-history t arg 'noblock))
+
+(defun idlwave-shell-noblock-down-or-history (&optional arg)
+  (interactive "p")
+  (idlwave-shell-move-or-history nil arg 'noblock))
+
+
 ;; Newer versions of comint.el changed the name of comint-filter to
 ;; comint-output-filter.
 (defun idlwave-shell-comint-filter (process string) nil)
@@ -1508,6 +1524,33 @@ Otherwise just move the line.  Move down unless UP is non-nil."
 (defun idlwave-shell-is-running ()
   "Return t if the shell process is running."
   (eq (process-status idlwave-shell-process-name) 'run))
+
+(defun idlwave-shell-accumulate ()
+  "Split line for accumulation, adding &"
+  (interactive)
+  (end-of-line)
+  (insert " &")
+  (comint-accumulate))
+
+(defun idlwave-shell-sender (proc string)
+  "Send the command, stripping newlines after non-quoted
+ampersands beforehand."
+  (if (string-match "&\\s-*\n" string)
+      (save-excursion
+	(set-buffer (get-buffer-create idlwave-shell-command-buffer))
+	(if (not (eq major-mode 'idlwave-mode)) (idlwave-mode))
+	(erase-buffer)
+	(insert string)
+	(goto-char (point-min))
+	(while (and (re-search-forward "&\\s-*\n" nil t)
+		    (progn (goto-char (match-beginning 0))
+			   (not  (or 
+				  (idlwave-in-comment)
+				  (idlwave-in-quote)))))
+	  (goto-char (match-end 0))
+	  (delete-char -1))
+	(setq string (buffer-string))))
+  (comint-simple-send proc string))
 
 (defun idlwave-shell-filter-hidden-output (output)
   "Filter hidden output, leaving the good stuff.
@@ -1904,6 +1947,7 @@ file name."
   (idlwave-shell-update-bp-overlays) ; kill old overlays
   (idlwave-shell-kill-buffer idlwave-shell-hidden-output-buffer)
   (idlwave-shell-kill-buffer idlwave-shell-bp-buffer)
+  (idlwave-shell-kill-buffer idlwave-shell-command-buffer)
   (idlwave-shell-kill-buffer idlwave-shell-error-buffer)
   ;; (idlwave-shell-kill-buffer (idlwave-shell-buffer))
   (and (get-buffer (idlwave-shell-buffer))
@@ -3390,6 +3434,10 @@ Resize to no more than BUFFER-HEIGHT-FRAC of the frame buffer if set."
 (defvar idlwave-shell-bp-buffer " *idlwave-shell-bp*"
   "Scratch buffer for parsing IDL breakpoint lists and other stuff.")
 
+(defvar idlwave-shell-command-buffer " *idlwave-shell-command*"
+  "Scratch IDLWAVE mode buffer for parsing IDL statements.")
+
+
 (defun idlwave-shell-bp-query (&optional no-show)
   "Reconcile idlwave-shell's breakpoint list with IDL's.
 Queries IDL using the string in `idlwave-shell-bp-query'."
@@ -4143,6 +4191,17 @@ Otherwise, just expand the file name."
   'idlwave-shell-debug-map)
 (define-key idlwave-shell-mode-map [(up)]  'idlwave-shell-up-or-history)
 (define-key idlwave-shell-mode-map [(down)] 'idlwave-shell-down-or-history)
+
+(define-key idlwave-shell-mode-map [(shift up)]  
+  'idlwave-shell-noblock-up-or-history)
+(define-key idlwave-shell-mode-map [(shift down)] 
+  'idlwave-shell-noblock-down-or-history)
+
+(define-key idlwave-shell-mode-map "\C-c " 'idlwave-shell-accumulate)
+(define-key idlwave-shell-mode-map "\M-\r" 
+  (lambda () (interactive (idlwave-split-line 'noindent))))
+
+
 (define-key idlwave-mode-map "\C-c\C-y" 'idlwave-shell-char-mode-loop)
 (define-key idlwave-mode-map "\C-c\C-x" 'idlwave-shell-send-char)
 
