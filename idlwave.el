@@ -2008,7 +2008,8 @@ The main features of this mode are
 		  (require 'idlw-complete-structtag))))
 
   ;; Run the mode hook
-  (run-hooks 'idlwave-mode-hook))
+  (run-mode-hooks 'idlwave-mode-hook))
+
 
 (defvar idlwave-setup-done nil)
 (defun idlwave-setup ()
