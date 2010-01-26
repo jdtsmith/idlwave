@@ -3461,12 +3461,12 @@ Queries IDL using the string in `idlwave-shell-bp-query'."
 			      'hide))
 
 (defun idlwave-shell-bp-get (bp &optional item)
-  "Get a value for a breakpoint.  
-BP has the form of elements in idlwave-shell-bp-alist.  Optional
-second arg ITEM is the particular value to retrieve.  ITEM can be
-'file, 'line, 'index, 'module, 'count, 'cmd, 'condition, 'disabled or
-'data.  'data returns a list of 'count, 'cmd and 'condition.  Defaults
-to 'index."
+  "Get a value for a breakpoint.  BP has the form of elements in
+idlwave-shell-bp-alist.  Optional second arg ITEM is the
+particular value to retrieve.  ITEM can be 'file, 'line, 'index,
+'module, 'count, 'cmd, 'condition, 'disabled, 'type, or
+'data.  'data returns a list of 'count, 'cmd and 'condition.
+Defaults to 'index."
   (cond
    ;; Frame
    ((eq item 'line) (nth 1 (car bp)))
@@ -3478,7 +3478,12 @@ to 'index."
    ((eq item 'condition) (nth 2 (cdr (cdr bp))))
    ((eq item 'disabled) (nth 3 (cdr (cdr bp))))
    ;; IDL breakpoint info
-   ((eq item 'module) (nth 1 (car (cdr bp))))
+   ((eq item 'module) 
+    (let ((module (nth 1 (car (cdr bp)))))
+      (if (listp module) (car module) module)))
+   ((eq item 'type)
+    (let ((module (nth 1 (car (cdr bp)))))
+      (if (listp module) (nth 1 module))))
    ;;    index - default
    (t (nth 0 (car (cdr bp))))))
 
@@ -3571,7 +3576,9 @@ If BP frame is in `idlwave-shell-bp-alist' updates the breakpoint data."
 and third args, DATA and MODULE, are optional.  Returns a breakpoint
 of the format used in `idlwave-shell-bp-alist'.  Can be used in commands
 attempting match a breakpoint in `idlwave-shell-bp-alist'."
-  (cons frame (cons (list nil module) data)))
+  (cons frame ;; (file line)
+	(cons (list nil module) ;; (index_id (module type) | module)
+	      data)))           ;; (count command condition disabled)
 
 (defvar idlwave-shell-old-bp nil
   "List of breakpoints previous to setting a new breakpoint.")
@@ -3607,20 +3614,24 @@ specified.  If NO-SHOW is non-nil, don't do any updating."
    'hide)
 
   ;; Get sources for this routine in the sources list
-  (idlwave-shell-module-source-query (idlwave-shell-bp-get bp 'module))
+  (idlwave-shell-module-source-query (idlwave-shell-bp-get bp 'module)
+				     (idlwave-shell-bp-get bp 'type))
   (let*
-      ((arg (idlwave-shell-bp-get bp 'count))
-       (key (cond
-              ((not (and arg (numberp arg))) "")
-              ((= arg 1)
-               ",/once")
-              ((> arg 1)
-               (format ",after=%d" arg))))
+      ((count (idlwave-shell-bp-get bp 'count))
        (condition (idlwave-shell-bp-get bp 'condition))
        (disabled (idlwave-shell-bp-get bp 'disabled))
-       (key (concat key 
-		    (if condition (concat ",CONDITION=\"" condition "\""))))
-       (key (concat key (if disabled ",/DISABLE")))
+       (key (concat (if (and count (numberp count))
+			(cond
+			 ((= count 1) ",/once")
+			 ((> count 1) (format ",after=%d" count))))
+		    (if condition (concat ",CONDITION=\"" condition "\""))
+		    ;; IDL can't simultaneously set a condition/count
+		    ;; and disable a breakpoint, but it does keep both
+		    ;; of these when resetting the same BP.  We assume
+		    ;; DISABLE and CONDITION/COUNT are not set
+		    ;; together for a newly created breakpoint.
+		    (if (and disabled (not condition) (not count))
+			    ",/DISABLE")))
        (line (idlwave-shell-bp-get bp 'line)))
     (idlwave-shell-send-command
      (concat "breakpoint,'" 
@@ -3688,7 +3699,7 @@ considered the new breakpoint if the file name of frame matches."
         ;; Got the breakpoint - add count, command to it.
         ;; This updates `idlwave-shell-bp-alist' because a deep copy was
         ;; not done for bpl.
-        (idlwave-shell-set-bp-data bpl (idlwave-shell-bp-get bp 'data))
+	(idlwave-shell-set-bp-data bpl (idlwave-shell-bp-get bp 'data))
       (beep)
       (message "Failed to identify breakpoint in IDL"))))
 
