@@ -33,7 +33,7 @@
 ;; This mode is for IDL version 5 or later.  It should work on
 ;; Emacs>20.3 or XEmacs>20.4.
 ;;
-;; Runs IDL as an inferior process of Emacs, much like the emacs
+;; Runs IDL as an inferior process of Emacs, much like the Emacs
 ;; `shell' or `telnet' commands.  Provides command history and
 ;; searching.  Provides debugging commands available in buffers
 ;; visiting IDL procedure files, e.g., breakpoint setting, stepping,
@@ -1039,7 +1039,8 @@ IDL has currently stepped.")
   (setq idlwave-shell-ready nil)
   (setq idlwave-shell-bp-alist nil)
   (idlwave-shell-update-bp-overlays) ; Throw away old overlays
-  (setq idlwave-shell-sources-alist nil)
+  (setq idlwave-shell-post-command-hook nil ;clean up any old stuff
+	idlwave-shell-sources-alist nil)
   (setq idlwave-shell-default-directory default-directory)
   (setq idlwave-shell-hide-output nil)
 
@@ -1074,12 +1075,6 @@ IDL has currently stepped.")
 			(delete-region (point) (line-beginning-position)))))))
 		'append 'local)
     (add-hook 'comint-output-filter-functions 'comint-strip-ctrl-m nil 'local))
-
-  ;; Python-mode, bundled with many Emacs installs, quite cavalierly
-  ;; adds this function to the global default hook.  It interferes
-  ;; with overlay-arrows.
-  (remove-hook 'comint-output-filter-functions 'py-pdbtrack-track-stack-file)
-
 
   ;; IDLWAVE syntax, and turn on abbreviations
   (setq local-abbrev-table idlwave-mode-abbrev-table)
@@ -1317,7 +1312,7 @@ output to complete and the next prompt to arrive before returning
 \(useful if you need an answer now\). IDL is considered ready if the
 prompt is present and if `idlwave-shell-ready' is non-nil.  
 
-If SHOW-IF-ERROR is non-nil, show the output it it contains an error
+If SHOW-IF-ERROR is non-nil, show the output if it contains an error
 message, independent of what HIDE is set to."
 
 ;  (setq hide nil)  ;  FIXME: turn this on for debugging only
@@ -1610,10 +1605,10 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 	    
 	    
 ;;; Test/Debug code
-	      ;(with-current-buffer
-	      ;	  (get-buffer-create "*idlwave-shell-output*")
-	      ;	(goto-char (point-max))
-	      ;	(insert "\nReceived STRING\n===>\n" string "\n<====\n"))
+;; 	      (with-current-buffer
+;; 	      	  (get-buffer-create "*idlwave-shell-output*")
+;; 	      	(goto-char (point-max))
+;; 	      	(insert "\nReceived STRING\n===>\n" string "\n<====\n"))
 	    
 	      ;; Check for prompt in current accumulating output
 	      (when (setq idlwave-shell-ready
@@ -1639,6 +1634,11 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 			   (forward-line 0) ; Emacs 21 (beginning-of-line nil)
 			   (point))
 			 comint-last-input-end))))
+
+ ;;		(with-current-buffer
+ ;;		    (get-buffer-create "*idlwave-shell-output*")
+ ;;		  (insert "\nFull output registered:\n===>\n" 
+ ;;			  idlwave-shell-command-output "\n<====\n"))
 
 		;; Scan for state and do post commands - bracket
 		;; them with idlwave-shell-ready=nil since they may
