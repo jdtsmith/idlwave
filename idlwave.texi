@@ -1310,7 +1310,8 @@ information is supplied with IDL versions 6.2 and later.
 @cindex Eclipse-based help
 Starting with IDL 7.0, the HTML help system and associated IDL Assistant
 tool was dropped for an Eclipse-based help system, without access to the
-documentation mediated via the @samp{idlhelp} tool.
+documentation mediated via the @samp{idlhelp} tool.  In IDL 7.1, this
+access was restored.  
 
 There are a variety of options for displaying the HTML help: see below.
 Help for routines without HTML documentation is also available, by using
