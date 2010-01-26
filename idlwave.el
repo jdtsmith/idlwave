@@ -428,11 +428,11 @@ t means to show all source files."
   :type 'integer)
 
 (defcustom idlwave-library-path nil
-  "Library path for Windows and MacOS (OS9).  Not needed under Unix.
+  "Library path for Windows and MacOS (OS9).  Not needed under UNIX.
 When selecting the directories to scan for IDL user catalog routine
 info, IDLWAVE can, under UNIX, query the shell for the exact search
 path \(the value of !PATH).  However, under Windows and MacOS
-(pre-OSX), the IDLWAVE shell does not work.  In this case, this
+\(pre-OSX), the IDLWAVE shell does not work.  In this case, this
 variable can be set to specify the paths where IDLWAVE can find PRO
 files.  The shell will only be asked for a list of paths when this
 variable is nil.  The value is a list of directories.  A directory
@@ -1946,7 +1946,7 @@ The main features of this mode are
   (if (boundp 'tag-table-alist)
       (add-to-list 'tag-table-alist '("\\.pro$" . "IDLTAGS")))
   
-  ;; Font-lock additions - originally Phil Williams, then Ulrik Dickow
+  ;; Font-lock additions
   ;; Following line is for Emacs - XEmacs uses the corresponding property
   ;; on the `idlwave-mode' symbol.
   (set (make-local-variable 'font-lock-defaults) idlwave-font-lock-defaults)
@@ -3465,10 +3465,11 @@ If not found returns nil."
 
 (defun idlwave-auto-fill ()
   "Called to break lines in auto fill mode.  
-Only fills non-comment lines if `idlwave-fill-comment-line-only' is
-non-nil.  Places a continuation character at the end of the line if
-not in a comment.  Splits strings with IDL concatenation operator `+'
-if `idlwave-auto-fill-split-string' is non-nil."
+Only fills non-comment lines if `idlwave-fill-comment-line-only'
+is nil (it is t by default).  Places a continuation character at
+the end of the line if not in a comment.  Splits strings with IDL
+concatenation operator `+' if `idlwave-auto-fill-split-string' is
+non-nil."
   (if (<= (current-column) fill-column)
       nil                             ; do not to fill
     (if (or (not idlwave-fill-comment-line-only)
@@ -4390,7 +4391,7 @@ Does not run after automatic updates of buffer or the shell.")
   (idlwave-update-routine-info '(16)))
 
 (defun idlwave-rescan-asynchronously ()
-  "Dispatch another emacs instance to update the idlwave catalog.
+  "Dispatch another Emacs instance to update the idlwave catalog.
 After the process finishes normally, the first access to routine info
 will re-read the catalog."
   (interactive)
