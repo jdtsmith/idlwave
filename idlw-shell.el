@@ -2641,7 +2641,7 @@ breakpoint can not be set."
 			      (if (idlwave-shell-hide-p 'debug) 'mostly)
 			      nil t))
 
-(defun idlwave-shell-clear-bp (bp)
+(defun idlwave-shell-clear-bp (bp &optional no-query)
   "Clear breakpoint BP.
 Clears in IDL and in `idlwave-shell-bp-alist'."
   (let ((index (idlwave-shell-bp-get bp)))
@@ -2650,7 +2650,7 @@ Clears in IDL and in `idlwave-shell-bp-alist'."
           (idlwave-shell-send-command
            (concat "breakpoint,/clear," (int-to-string index))
 	   nil (idlwave-shell-hide-p 'breakpoint) nil t)
-	  (idlwave-shell-bp-query)))))
+	  (unless no-query (idlwave-shell-bp-query))))))
 
 (defun idlwave-shell-current-frame ()
   "Return a list containing the current file name and line point is in.
@@ -2690,7 +2690,10 @@ at a breakpoint."
 
 (defun idlwave-shell-toggle-enable-current-bp (&optional bp force
 							 no-update)
-  "Disable or enable current bp."
+  "Disable or enable current breakpoint or a breakpoint passed in BP.
+If FORCE is 'disable or 'enable, for that condition instead of
+toggling.  If NO-UPDATE is non-nil, don't update the breakpoint
+list after toggling."
   (interactive)
   (let* ((bp (or bp (idlwave-shell-find-current-bp)))
 	 (disabled (idlwave-shell-bp-get bp 'disabled)))
@@ -4101,7 +4104,9 @@ list elements of the form:
    idlwave-shell-bp-query
    '(progn
       (idlwave-shell-filter-bp)
-      (mapcar 'idlwave-shell-clear-bp idlwave-shell-bp-alist))
+      (mapcar (lambda (x) (idlwave-shell-clear-bp x 'no-query))
+	      idlwave-shell-bp-alist)
+      (idlwave-shell-bp-query))
    'hide))
 
 (defun idlwave-shell-list-all-bp ()
