@@ -3936,10 +3936,9 @@ Also with prefix arg, ask for the command.  You can also use the command
   (cond 
    ((equal arg '(16))
     (setq idlwave-shell-command-line-to-execute nil))
-   ((equal arg '(4))
-    (setq idlwave-shell-command-line-to-execute 
-	  (read-string "IDL> " idlwave-shell-command-line-to-execute))))
-  (idlwave-shell-reset 'hidden)
+   ((or (null idlwave-shell-command-line-to-execute) (equal arg '(4)))
+    (idlwave-shell-edit-default-command-line nil)))
+  ;;(idlwave-shell-reset 'hidden)
   (idlwave-shell-send-command 
    (or idlwave-shell-command-line-to-execute
        (with-current-buffer (idlwave-shell-buffer)
