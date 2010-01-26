@@ -1554,6 +1554,8 @@ Capitalize system variables - action only
 (define-key idlwave-mode-map "\C-c\C-m" 'idlwave-doc-modification)
 (define-key idlwave-mode-map "\C-c\C-c" 'idlwave-case)
 (define-key idlwave-mode-map "\C-c\C-d" 'idlwave-debug-map)
+
+;; A few pre-bound debug commands (which can auto-launch the shell).
 (when (and (boundp 'idlwave-shell-debug-modifiers)
 	 (listp idlwave-shell-debug-modifiers)
 	 (not (equal idlwave-shell-debug-modifiers '())))
@@ -3507,8 +3509,7 @@ non-nil."
 	  (save-excursion
 	    (end-of-line 0)
 	    ;; Indent the split line
-	    (idlwave-indent-line)
-	    )
+	    (idlwave-indent-line))
 	  (if (save-excursion
 		(beginning-of-line)
 		(looking-at idlwave-comment-line-start-skip))
