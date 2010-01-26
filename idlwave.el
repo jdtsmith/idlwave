@@ -1987,7 +1987,7 @@ The main features of this mode are
   ;; NB: `make-local-hook' needed for older/alternative Emacs compatibility
   (make-local-hook 'kill-buffer-hook)
   (add-hook 'kill-buffer-hook 'idlwave-kill-buffer-update nil 'local)
-  ;; (make-local-hook 'after-save-hook)
+  (make-local-hook 'after-save-hook)
   (add-hook 'after-save-hook 'idlwave-save-buffer-update nil 'local)
   (add-hook 'after-save-hook 'idlwave-revoke-license-to-kill nil 'local)
 
