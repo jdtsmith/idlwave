@@ -3810,17 +3810,22 @@ Existing overlays are recycled, in order to minimize consumption."
 		(setq old-buffers (delq (current-buffer) old-buffers)))
 	    (if (fboundp 'set-specifier) ;; XEmacs
 		(set-specifier left-margin-width (cons (current-buffer) 2))
-	      (setq left-margin-width 2))
-	    (if (setq win (get-buffer-window (current-buffer) t))
-		(set-window-buffer win (current-buffer))))))
+	      (if (< left-margin-width 2)
+		  (setq left-margin-width 2)))
+	    (let ((window (get-buffer-window (current-buffer) 0)))
+	      (if window
+		  (set-window-margins 
+		   window left-margin-width right-margin-width))))))
       (if use-glyph
 	  (while (setq buf (pop old-buffers))
 	    (with-current-buffer buf
 	      (if (fboundp 'set-specifier) ;; XEmacs
 		  (set-specifier left-margin-width (cons (current-buffer) 0))
 		(setq left-margin-width 0))
-	      (if (setq win (get-buffer-window buf t))
-		  (set-window-buffer win buf))))))))
+	      (let ((window (get-buffer-window buf 0)))
+		(if window
+		    (set-window-margins 
+		     window left-margin-width right-margin-width)))))))))
 
 (defun idlwave-shell-make-new-bp-overlay (&optional type disabled)
   "Make a new overlay for highlighting breakpoints.  
