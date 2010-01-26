@@ -1909,29 +1909,44 @@ the above."
     (setq string (replace-match "" t t string)))
   string)
 
+(defun idlwave-shell-check-file-spaces (file-pieces)
+  "Recursively check through file pieces combining with and without a space.
+IDL can swallow a space when splitting a file name on
+halt/breakpoint/etc.  We check all combinations for a valid file.
+This has some small chance of selecting the incorrect file, but
+there's no way around it.  FILE-PIECES is a list of file
+portions."
+  (idlwave-shell-check-file-spaces-recurs (cdr file-pieces) (car file-pieces)))
+		     
+(defun idlwave-shell-check-file-spaces-recurs (file-pieces file)
+  "Helper recursive function for check-file-spaces."
+  (if (null file-pieces) ; we've reached a leaf
+      (if (file-regular-p file) file) ; if it's a file, return it
+    (let ((list '(nil t)) newfile); not a leaf, recurs over both options
+      (while (and
+	      (not (setq newfile
+			 (idlwave-shell-check-file-spaces-recurs 
+			  (cdr file-pieces)
+			  (concat file (if (car list) " ") (car file-pieces)))))
+	      (setq list (cdr list))))
+      newfile)))
+
 (defun idlwave-shell-repair-file-name (file)
   "Repair a file name string by taking out all linebreaks.
-The last line of STRING may be garbage - we check which one makes a valid
-file name."
-  (let ((file1 "") (file2 "") (start 0))
+IDL can convert a single space to a newline, so we must check all options."
+  (let ((start 0) file-pieces)
     ;; We scan no further than to the next "^%" line
-    (if (string-match "^%" file) 
+    (if (string-match "\n%" file) 
 	(setq file (substring file 0 (match-beginning 0))))
-    ;; Take out the line breaks
-    (while (string-match "[ \t]*\n[ \t]*" file start)
-      (setq file1 (concat file1 (substring file start (match-beginning 0)))
-	    start (match-end 0)))
-    (setq file2 (concat file1 (substring file start)))
-    (cond
-     ((file-regular-p file2) file2)
-     ((file-regular-p file1) file1)
-     ;; If we cannot veryfy the existence of the file, we return the shorter
-     ;; name.  The idea behind this is that this may be a relative file name
-     ;; and our idea about the current working directory may be wrong.
-     ;; If it is a relative file name, it hopefully is short.
-     ((not (string= "" file1)) file1)
-     ((not (string= "" file2)) file2)
-     (t nil))))
+    ;; Take out the line breaks (newline followed by two spaces)
+    (while (string-match "[\t]*\n  " file start)
+      (push (substring file start (match-beginning 0)) file-pieces)
+      (setq start (match-end 0)))
+    (if file-pieces
+	(progn
+	  (push (substring file start) file-pieces)
+	  (idlwave-shell-check-file-spaces (nreverse file-pieces)))
+      file)))
 
 (defun idlwave-shell-cleanup ()
   "Do necessary cleanup for a terminated IDL process."
@@ -2158,7 +2173,7 @@ HEAP_GC, /VERBOSE"
 Change the default directory for the process buffer to concur."
   (save-excursion
     (set-buffer (idlwave-shell-buffer))
-    (if (string-match ",___cur[\n\r]+\\([^\n\r]+\\)[\n\r]"
+    (if (string-match ",___cur[\n\r ]+\\([^\n\r]+\\)[\n\r]"
 		      idlwave-shell-command-output)
 	(let ((dir (substring idlwave-shell-command-output 
 			      (match-beginning 1) (match-end 1))))
