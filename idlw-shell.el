@@ -4199,6 +4199,9 @@ Otherwise, just expand the file name."
 
 ;(define-key idlwave-shell-mode-map "\M-?" 'comint-dynamic-list-completions)
 ;(define-key idlwave-shell-mode-map "\t" 'comint-dynamic-complete)
+
+(define-key idlwave-shell-mode-map "\C-w"     'comint-kill-region)
+(define-key idlwave-shell-mode-map "\C-a"     'comint-bol-or-process-mark)
 (define-key idlwave-shell-mode-map "\t"       'idlwave-shell-complete)
 (define-key idlwave-shell-mode-map "\M-\t"    'idlwave-shell-complete)
 (define-key idlwave-shell-mode-map "\C-c\C-s" 'idlwave-shell)
