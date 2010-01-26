@@ -2677,7 +2677,10 @@ Returns nil if unable to obtain a module name."
       (widen)
       (save-excursion
         (if (idlwave-prev-index-position)
-            (upcase (idlwave-unit-name)))))))
+	    (let* ((module (idlwave-what-module))
+		   (name (idlwave-make-full-name (nth 2 module) (car module)))
+		   (type (nth 1 module)))
+	      (list (upcase name) type)))))))
 
 (defun idlwave-shell-clear-current-bp ()
   "Remove breakpoint at current line.
