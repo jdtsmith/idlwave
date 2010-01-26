@@ -4426,7 +4426,7 @@ will re-read the catalog."
 	  (not (stringp idlwave-user-catalog-file))
 	  (not (file-regular-p idlwave-user-catalog-file)))
       (error "No catalog has been produced yet"))
-  (let* ((emacs (expand-file-name (invocation-name) (invocation-directory)))
+  (let* ((emacs (concat invocation-directory invocation-name))
 	 (args (list "-batch"
 		     "-l" (expand-file-name "~/.emacs")
 		     "-l" "idlwave"
