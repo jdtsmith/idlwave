@@ -159,6 +159,15 @@ The default makes the frame splittable, so that completion works correctly."
   :type '(repeat
 	  (cons symbol sexp)))
 
+(defcustom idlwave-shell-buffer-height-frac nil
+  "The fraction of the current frame height to allocate to a
+non-dedicated shell buffer window.  Only relevant if
+`idlwave-shell-use-dedicated-frame' is nil"
+  :group 'idlwave-shell-general-setup
+  :type '(choice
+	  (const :tag "Default" nil)
+	  (float :tag "Fraction")))
+
 (defcustom idlwave-shell-raise-frame t
   "*Non-nil means, `idlwave-shell' raises the frame showing the shell window."
   :group 'idlwave-shell-general-setup
@@ -1236,7 +1245,8 @@ See also the variable `idlwave-shell-prompt-pattern'.
 	(set-buffer buf)
 	(idlwave-shell-mode)))
     (let ((window (idlwave-display-buffer (idlwave-shell-buffer) nil
-					  (idlwave-shell-shell-frame)))
+					  (idlwave-shell-shell-frame)
+					  idlwave-shell-buffer-height-frac))
 	  (current-window (selected-window)))
       (select-window window)
       (goto-char (point-max))
@@ -1575,7 +1585,8 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 		      (re-search-backward idlwave-shell-prompt-pattern nil t)
 		      (goto-char (match-end 0))
 		      (setq idlwave-shell-command-output
-		      (buffer-substring-no-properties (point-min) (point)))
+			    (buffer-substring-no-properties 
+			     (point-min) (point)))
 		      (delete-region (point-min) (point)))
 		  (setq idlwave-shell-command-output
 			(with-current-buffer (process-buffer proc)
@@ -2390,7 +2401,8 @@ matter what the settings of that variable."
 
 	;; first make sure the shell window is visible
 	(idlwave-display-buffer (idlwave-shell-buffer)
-				nil (idlwave-shell-shell-frame))
+				nil (idlwave-shell-shell-frame)
+				idlwave-shell-buffer-height-frac)
 
 	;; now display the buffer and remember which window it is.
 	(setq window (idlwave-display-buffer buffer
@@ -3230,7 +3242,8 @@ size(___,/DIMENSIONS)"
 	    
     ;; First make sure the shell window is visible
     (idlwave-display-buffer (idlwave-shell-buffer)
-			    nil (idlwave-shell-shell-frame))
+			    nil (idlwave-shell-shell-frame)
+			    idlwave-shell-buffer-height-frac)
     (if (and idlwave-shell-output-overlay process-mark)
 	(move-overlay idlwave-shell-output-overlay 
 		      output-begin output-end buffer))))
@@ -3309,9 +3322,10 @@ If there is a prefix argument, display IDL process."
 			      nil 
 			      (if (idlwave-shell-hide-p 'run) 'mostly)
 			      nil t)
-  (if n
-      (idlwave-display-buffer (idlwave-shell-buffer) 
-			      nil (idlwave-shell-shell-frame))))
+    (if n
+	(idlwave-display-buffer (idlwave-shell-buffer) 
+				nil (idlwave-shell-shell-frame)
+				idlwave-shell-buffer-height-frac))))
 
 (defun idlwave-shell-evaluate-region (beg end &optional n)
   "Send region to the IDL process.
@@ -3322,7 +3336,8 @@ Does not work for a region with multiline blocks - use
   (idlwave-shell-send-command (buffer-substring beg end))
   (if n
       (idlwave-display-buffer (idlwave-shell-buffer) 
-			      nil (idlwave-shell-shell-frame))))
+			      nil (idlwave-shell-shell-frame) 
+			      idlwave-shell-buffer-height-frac)))
 
 (defun idlwave-shell-delete-temp-files ()
   "Delete the temporary files and kill associated buffers."
@@ -3339,27 +3354,36 @@ Does not work for a region with multiline blocks - use
 	  (delete-file idlwave-shell-temp-rinfo-save-file)
 	(error nil))))
 
-(defun idlwave-display-buffer (buf not-this-window-p &optional frame)
-  (if (featurep 'xemacs)
-      ;; The XEmacs version enforces the frame
-      (display-buffer buf not-this-window-p frame)
-    ;; For Emacs, we need to force the frame ourselves.
-    (let ((this-frame (selected-frame)))
-      (save-excursion ;; make sure we end up in the same buffer
-	(if (frame-live-p frame)
-	    (select-frame frame))
-	(if (eq this-frame (selected-frame))
-	    ;; same frame:  use display buffer, to make sure the current
-	    ;; window stays.
-	    (display-buffer buf)
-	  ;; different frame
-	  (if (one-window-p)
-	      ;; only window:  switch
-	      (progn
-		(switch-to-buffer buf)
-		(selected-window))   ; must return the window.
-	    ;; several windows - use display-buffer
-	    (display-buffer buf not-this-window-p)))))))
+(defun idlwave-display-buffer (buf not-this-window-p &optional frame 
+				   buffer-height-frac)
+  "Display a buffer in a requested (optional) FRAME.
+Resize to no more than BUFFER-HEIGHT-FRAC of the frame buffer if set."
+  (let ((win
+	 (if (featurep 'xemacs)
+	     ;; The XEmacs version enforces the frame
+	     (display-buffer buf not-this-window-p frame)
+	   ;; For Emacs, we need to force the frame ourselves.
+	   (let ((this-frame (selected-frame)))
+	     (save-excursion ;; make sure we end up in the same buffer
+	       (if (frame-live-p frame)
+		   (select-frame frame))
+	       (if (eq this-frame (selected-frame))
+		   ;; same frame:  use display buffer, to make sure the current
+		   ;; window stays.
+		   (display-buffer buf)
+		 ;; different frame
+		 (if (one-window-p)
+		     ;; only window:  switch
+		     (progn
+		    (switch-to-buffer buf)
+		    (selected-window))   ; must return the window.
+		   ;; several windows - use display-buffer
+		   (display-buffer buf not-this-window-p))))))))
+    (if buffer-height-frac
+	(set-window-text-height win (round (* (frame-height) 
+					      buffer-height-frac))))
+    win))
+
 ;  (if (not (frame-live-p frame)) (setq frame nil))
 ;  (display-buffer buf not-this-window-p frame))
 
