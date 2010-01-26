@@ -4031,30 +4031,31 @@ Elements of the alist have the form:
 
   (module name . (source-file-truename idlwave-internal-filename)).")
 
-(defun idlwave-shell-module-source-query (module)
-  "Determine the source file for a given module."
+(defun idlwave-shell-module-source-query (module &optional type)
+  "Determine the source file for a given module.
+Query as a function if TYPE set to something beside 'pro."
   (if module
       (idlwave-shell-send-command 
-       (format "print,(routine_info('%s',/SOURCE)).PATH" module)
+       (format "print,(routine_info('%s',/SOURCE%s)).PATH" module
+	       (if (eq type 'pro) "" ",/FUNCTIONS"))
        `(idlwave-shell-module-source-filter ,module)
-       'hide)))
+       'hide 'wait)))
 
 (defun idlwave-shell-module-source-filter (module)
   "Get module source, and update idlwave-shell-sources-alist."
   (let ((old (assoc (upcase module) idlwave-shell-sources-alist))
 	filename)
-    (if (string-match "\.PATH *[\n\r]\\([^\r\n]+\\)[\n\r]"
+    (when (string-match "\.PATH *[\n\r]\\([^%][^\r\n]+\\)[\n\r]"
 		      idlwave-shell-command-output)
 	(setq filename (substring idlwave-shell-command-output 
 				  (match-beginning 1) (match-end 1)))
-      (error "No file matching module found."))
     (if old
 	(setcdr old (list (idlwave-shell-file-name filename) filename))
       (setq idlwave-shell-sources-alist
 	    (append idlwave-shell-sources-alist 
 		    (list (cons (upcase module)
 				(list (idlwave-shell-file-name filename) 
-				      filename))))))))
+					filename)))))))))
   
 (defun idlwave-shell-sources-query ()
   "Determine source files for all IDL compiled procedures.
