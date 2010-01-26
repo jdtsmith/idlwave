@@ -1725,7 +1725,7 @@ The 1st pair matches the file name, the second pair matches the line
 number.")
 
 (defvar idlwave-shell-other-error
-  "^% .*\n\\s-*At:\\s-*\\(.*\\),\\s-*Line\\s-*\\(.*\\)"
+  "^% .*\\(?:\n[^%].*\\)*\n\\s-*At:\\s-*\\(.*\\),\\s-*Line\\s-*\\(.*\\)"
   "A regular expression to match any IDL error.")
 
 (defvar idlwave-shell-halting-error 
@@ -1750,8 +1750,8 @@ number.")
    "\\)"                                 ; end line number group (3)
    "[ \t\n]+"                            ; white space
    "\\("                                 ; file name group (5)
-   "[^ \t\n]+"                           ; file names can contain any non-white
-   "\\([ \t]*\n[ \t]*[^ \t\n]+\\)*"      ; continuation lines file name (6)
+   "[^\t\n]+"                            ; file names can contain any non-tab/new-line
+   "\\(\n[ \t]*[^\t\n]+\\)*"             ; continuation line(s) file name (6)
    "\\)"                                 ; end line number group (5)
    )
   "*A regular expression to parse out the file name and line number.
