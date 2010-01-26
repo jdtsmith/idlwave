@@ -2747,22 +2747,29 @@ The command looks for an identifier near point and sets a breakpoint
 for the first line of the corresponding module.  If MODULE is `t', set
 in the current routine."
   (interactive)
-  (let ((module (idlwave-fix-module-if-obj_new (idlwave-what-module))))
+  (let* ((module (idlwave-fix-module-if-obj_new (idlwave-what-module)))
+	 (type (nth 1 module))
+	 (name (car module))
+	 (class (nth 2 module)))
     (if module
 	(progn 
-	  (setq module (idlwave-make-full-name (nth 2 module) (car module)))
-	  (idlwave-shell-module-source-query module)
-	  (idlwave-shell-set-bp-in-module module))
+	  (setq module (idlwave-make-full-name class name))
+	  (idlwave-shell-module-source-query module type)
+	  (idlwave-shell-set-bp-in-module name type class))
       (error "No identifier at point"))))
 
 
-(defun idlwave-shell-set-bp-in-module (module)
+(defun idlwave-shell-set-bp-in-module (name type class)
   "Set breakpoint in module.  Assumes that `idlwave-shell-sources-alist'
 contains an entry for that module."
-  (let ((source-file (car-safe 
-		      (cdr-safe
-		       (assoc (upcase module)
-			      idlwave-shell-sources-alist))))
+  (let* ((module (idlwave-make-full-name class name))
+	 (source-file 
+	 (car-safe (cdr-safe
+		    (or
+		      (assoc (upcase module)
+			    idlwave-shell-sources-alist)
+		     (nth 3 (idlwave-best-rinfo-assoc name type class 
+						      (idlwave-routines)))))))
 	buf)
     (if (or (not source-file)
 	    (not (file-regular-p source-file))
