@@ -1,13 +1,14 @@
 ;; idlwave.el --- IDL editing mode for GNU Emacs
-;; Copyright (c) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-;;    Free Software Foundation
+
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+;;   Free Software Foundation, Inc.
 
 ;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
 ;;          Carsten Dominik <dominik@science.uva.nl>
 ;;          Chris Chase <chase@att.com>
 ;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
 ;; Version: VERSIONTAG
-;; Date: $Date: 2006/08/22 05:11:48 $
+;; Date: $Date: 2008/01/25 20:31:10 $
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
