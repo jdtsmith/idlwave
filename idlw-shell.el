@@ -3376,24 +3376,26 @@ was used.  An END statement is appended to the region if necessary.
 
 If there is a prefix argument, display IDL process."
   (interactive "r\nP")
-  (let ((oldbuf (current-buffer)))
-    (save-excursion
-      (set-buffer (idlwave-find-file-noselect
-		   (idlwave-shell-temp-file 'pro) 'tmp))
-      (set (make-local-variable 'comment-start-skip) ";+[ \t]*")
-      (set (make-local-variable 'comment-start) ";")
-      (erase-buffer)
-      (insert-buffer-substring oldbuf beg end)
-      (if (not (save-excursion
-                 (idlwave-previous-statement)
-                 (idlwave-look-at "\\<end\\>")))
-          (insert "\nend\n"))
-      (save-buffer 0)))
-  (idlwave-shell-send-command (concat ".run \"" 
-				      idlwave-shell-temp-pro-file "\"")
-			      nil 
-			      (if (idlwave-shell-hide-p 'run) 'mostly)
-			      nil t)
+  (when (or (not idlwave-shell-is-stopped)
+	    (y-or-n-p "Compiling will exit stack, continue? "))
+    (let ((oldbuf (current-buffer)))
+      (save-excursion
+	(set-buffer (idlwave-find-file-noselect
+		     (idlwave-shell-temp-file 'pro) 'tmp))
+	(set (make-local-variable 'comment-start-skip) ";+[ \t]*")
+	(set (make-local-variable 'comment-start) ";")
+	(erase-buffer)
+	(insert-buffer-substring oldbuf beg end)
+	(if (not (save-excursion
+		   (idlwave-previous-statement)
+		   (idlwave-look-at "\\<end\\>")))
+	    (insert "\nend\n"))
+	(save-buffer 0)))
+    (idlwave-shell-send-command (concat ".run \"" 
+					idlwave-shell-temp-pro-file "\"")
+				nil 
+				(if (idlwave-shell-hide-p 'run) 'mostly)
+				nil t)
     (if n
 	(idlwave-display-buffer (idlwave-shell-buffer) 
 				nil (idlwave-shell-shell-frame)
