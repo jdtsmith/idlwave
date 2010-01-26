@@ -2368,12 +2368,13 @@ nil   - do nothing.
       (max (if (bolp) 0 (1+ (current-column)))
            comment-column))))
 
-(defun idlwave-split-line ()
+(defun idlwave-split-line (&optional noindent)
   "Continue line by breaking line at point and indent the lines.
-For a code line insert continuation marker. If the line is a line comment
-then the new line will contain a comment with the same indentation.
-Splits strings with the IDL operator `+' if `idlwave-split-line-string' is
-non-nil."
+For a code line insert continuation marker. Don't indent if
+NOINDENT is passed. If the line is a line comment then the new
+line will contain a comment with the same indentation.  Splits
+strings with the IDL operator `+' if `idlwave-split-line-string'
+is non-nil."
   (interactive)
   ;; Expand abbreviation, just like normal RET would.
   (and abbrev-mode (expand-abbrev))
@@ -2398,15 +2399,18 @@ non-nil."
 	    (if (not (member (char-before) '(?\  ?\t)))
 		(insert " "))
             (insert idlwave-continuation-char)
-	    (newline-and-indent)))
+	    (if (null noindent) 
+		(newline-and-indent)
+	      (newline))))
       (indent-new-comment-line))
     ;; Indent previous line
-    (setq beg (- (point-max) (point)))
-    (forward-line -1)
-    (idlwave-indent-line)
-    (goto-char (- (point-max) beg))
-    ;; Reindent new line
-    (idlwave-indent-line)))
+    (when (null noindent)
+      (setq beg (- (point-max) (point)))
+      (forward-line -1)
+      (idlwave-indent-line)
+      (goto-char (- (point-max) beg))
+      ;; Reindent new line
+      (idlwave-indent-line))))
 
 (defun idlwave-beginning-of-subprogram (&optional nomark)
   "Moves point to the beginning of the current program unit.
