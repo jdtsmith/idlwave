@@ -1474,7 +1474,7 @@ Move normally inside of blocks, unless NOBLOCK-MOVE is non-nil."
 		     (= (line-number-at-pos) (line-number-at-pos proc-pos))
 		   (= (line-number-at-pos) (line-number-at-pos (point-max))))))
 	(comint-previous-input arg)
-      (previous-line arg))))
+      (forward-line (- arg)))))
 
 (defun idlwave-shell-up-or-history (&optional arg)
 "When in last line of process buffer, move to previous input.
@@ -2862,7 +2862,8 @@ Runs to the last statement and then steps 1 statement.  Use the .out command."
 	     (or (not bp-line) (funcall closer-func cur-line bp-line)))
 	    (setq bp-line cur-line))))
     (unless bp-line (error "No further breakpoints"))
-    (goto-line bp-line)))
+    (goto-char (point-min))
+    (forward-line (1- bp-line))))
 
 ;; Examine Commands ------------------------------------------------------
 
@@ -4353,8 +4354,8 @@ Otherwise, just expand the file name."
 	  cmd (nth 2 s)
 	  electric (nth 3 s)
 	  only-buffer (nth 4 s)
-	  cannotshift (and shift (char-valid-p c2) (eq c2 (upcase c2))))
-    
+	  cannotshift (and shift (characterp c2) (eq c2 (upcase c2))))
+
     ;; The regular prefix keymap.
     (when (and idlwave-shell-activate-prefix-keybindings k1)
       (unless only-buffer

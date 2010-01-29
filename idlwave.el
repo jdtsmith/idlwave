@@ -1411,11 +1411,13 @@ Normally a space.")
   "Creates a function for abbrev hooks that ensures abbrevs are not quoted.
 Specifically, if the abbrev is in a comment or string it is unexpanded.
 Otherwise ARGS forms a list that is evaluated."
-  `(quote (lambda ()
-	    ,(prin1-to-string args)  ;; Puts the code in the doc string
-	    (if (idlwave-quoted)
-		(progn (unexpand-abbrev) nil)
-	      ,(append args)))))
+  ;; FIXME: it would probably be better to rely on the new :enable-function
+  ;; to enforce the "don't expand in comments or strings".
+  `(lambda ()
+     ,(prin1-to-string args)  ;; Puts the code in the doc string
+     (if (idlwave-quoted)
+         (progn (unexpand-abbrev) nil)
+       ,(append args))))
 
 (defvar idlwave-mode-map (make-sparse-keymap)
   "Keymap used in IDL mode.")
@@ -2124,17 +2126,16 @@ Returns point if comment found and nil otherwise."
            (point)))))
 
 (defun idlwave-region-active-p ()
-  "Is transient-mark-mode on and the region active?
-Works on both Emacs and XEmacs."
-  (if (featurep 'xemacs)
-      (and zmacs-regions (region-active-p))
-    (and transient-mark-mode mark-active)))
+  "Should we operate on an active region?"
+  (if (fboundp 'use-region-p)
+      (use-region-p)
+    (region-active-p)))
 
 (defun idlwave-show-matching-quote ()
   "Insert quote and show matching quote if this is end of a string."
   (interactive)
   (let ((bq (idlwave-in-quote))
-        (inq last-command-char))
+        (inq last-command-event))
     (if (and bq (not (idlwave-in-comment)))
         (let ((delim (char-after bq)))
           (insert inq)
@@ -2361,9 +2362,7 @@ nil   - do nothing.
 (defun idlwave-comment-hook ()
   "Compute indent for the beginning of the IDL comment delimiter."
   (if (or (looking-at idlwave-no-change-comment)
-          (if idlwave-begin-line-comment
-              (looking-at idlwave-begin-line-comment)
-	    (looking-at "^;")))
+          (looking-at (or idlwave-begin-line-comment "^;")))
       (current-column)
     (if (looking-at idlwave-code-comment)
         (if (save-excursion (skip-chars-backward " \t") (bolp))
@@ -3744,9 +3743,7 @@ constants - a double quote followed by an octal digit."
 		(while (looking-at delim)
 		  (forward-char 1)
 		  (setq found (search-forward delim eol 'lim)))
-		(if found
-		    (setq endq (- (point) 1))
-		  (setq endq (point)))
+		(setq endq (if found (1- (point)) (point)))
 		))
 	  (progn (setq bq (point)) (setq endq (point)))))
       (store-match-data data)
@@ -3754,15 +3751,14 @@ constants - a double quote followed by an octal digit."
       (if (> start bq) bq))))
 
 (defun idlwave-is-pointer-dereference (&optional limit)
-  "Determines if the character after point is a pointer dereference *."
-  (let ((pos (point)))
-    (and
-     (eq (char-after) ?\*)
-     (not (idlwave-in-quote))
-     (save-excursion
-       (forward-char)
-       (re-search-backward (concat "\\(" idlwave-idl-keywords 
-				   "\\|[[(*+-/=,^><]\\)\\s-*\\*") limit t)))))
+  "Determine if the character after point is a pointer dereference *."
+  (and
+   (eq (char-after) ?\*)
+   (not (idlwave-in-quote))
+   (save-excursion
+     (forward-char)
+     (re-search-backward (concat "\\(" idlwave-idl-keywords
+                                 "\\|[[(*+-/=,^><]\\)\\s-*\\*") limit t))))
 
 
 ;; Statement templates
@@ -4165,12 +4161,11 @@ blank lines."
 (defun idlwave-reset-sintern (&optional what)
   "Reset all sintern hashes."
   ;; Make sure the hash functions are accessible.
-  (if (or (not (fboundp 'gethash))
-	  (not (fboundp 'puthash)))
-      (progn 
-	(require 'cl)
-	(or (fboundp 'puthash)
-	    (defalias 'puthash 'cl-puthash))))
+  (unless (and (fboundp 'gethash)
+               (fboundp 'puthash))
+    (require 'cl)
+    (or (fboundp 'puthash)
+        (defalias 'puthash 'cl-puthash)))
   (let ((entries '((idlwave-sint-routines 1000 10)
 		   (idlwave-sint-keywords 1000 10)
 		   (idlwave-sint-methods   100 10)
@@ -6780,12 +6775,12 @@ accumulate information on matching completions."
 	   (not (eq t completion)))
       ;; We can add something
       (delete-region beg end)
-      (if (and (string= part dpart)
-	       (or (not (string= part ""))
-		   idlwave-complete-empty-string-as-lower-case)
-	       (not idlwave-completion-force-default-case))
-	  (insert dcompletion)
-	(insert completion))
+      (insert (if (and (string= part dpart)
+                       (or (not (string= part ""))
+                           idlwave-complete-empty-string-as-lower-case)
+                       (not idlwave-completion-force-default-case))
+                  dcompletion
+                completion))
       (if (eq t (try-completion completion list selector))
 	  ;; Now this is a unique match
 	  (idlwave-after-successful-completion type slash beg))
@@ -6969,8 +6964,8 @@ sort the list before displaying."
 							     x)))
 				 list)))
 	   (setq menu (idlwave-split-menu-xemacs menu maxpopup))
-	   (setq resp (get-popup-menu-response menu))
-	   (funcall (event-function resp) (event-object resp)))
+	   (let ((resp (get-popup-menu-response menu)))
+             (funcall (event-function resp) (event-object resp))))
 	  (t
 	   (if sort (setq list (sort list (lambda (a b) 
 					    (string< (upcase a) (upcase b))))))

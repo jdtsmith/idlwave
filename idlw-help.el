@@ -1196,8 +1196,7 @@ Useful when source code is displayed as help.  See the option
 (defun idlwave-help-get-help-buffer ()
   "Return the IDLWAVE Help buffer.  Make it first if necessary."
   (let ((buf (get-buffer "*IDLWAVE Help*")))
-    (if buf
-	nil
+    (if (not buf)
       (setq buf (get-buffer-create "*IDLWAVE Help*"))
       (with-current-buffer buf
 	(idlwave-help-mode)))
