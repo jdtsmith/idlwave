@@ -2851,10 +2851,10 @@ If the optional argument EXPAND is non-nil then the actions in
         ;; Before indenting, run action routines.
         ;;
         (if (and expand idlwave-do-actions)
-            (mapcar 'idlwave-do-action idlwave-indent-expand-table))
+            (mapc 'idlwave-do-action idlwave-indent-expand-table))
         ;;
         (if idlwave-do-actions
-            (mapcar 'idlwave-do-action idlwave-indent-action-table))
+            (mapc 'idlwave-do-action idlwave-indent-action-table))
         ;;
         ;; No longer expand abbrevs on the line.  The user can do this
         ;; manually using expand-region-abbrevs.
@@ -4265,9 +4265,9 @@ blank lines."
 
 (defun idlwave-sintern-keyword-list (kwd-list &optional set)
   "Sintern a set of keywords (file (key . link) (key2 . link2) ...)"
-  (mapcar (lambda(x)
-	    (setcar x (idlwave-sintern-keyword (car x) set)))
-	  (cdr kwd-list))
+  (mapc (lambda(x)
+	  (setcar x (idlwave-sintern-keyword (car x) set)))
+	(cdr kwd-list))
   kwd-list)
 
 (defun idlwave-sintern-rinfo-list (list &optional set default-dir)
@@ -5473,23 +5473,21 @@ directories and save the routine info.
   (widget-insert "  ")
   (widget-create 'push-button
 		 :notify 
-		 '(lambda (&rest ignore)
-		    (let ((path-list (widget-get idlwave-widget :path-dirs)))
-		      (mapcar (lambda (x)
-				(unless (memq 'lib (cdr x))
-				  (idlwave-path-alist-add-flag x 'user)))
-			      path-list)
-		      (idlwave-display-user-catalog-widget path-list)))
+		 (lambda (&rest ignore)
+                   (let ((path-list (widget-get idlwave-widget :path-dirs)))
+                     (dolist (x path-list)
+                       (unless (memq 'lib (cdr x))
+                         (idlwave-path-alist-add-flag x 'user)))
+                     (idlwave-display-user-catalog-widget path-list)))
 		 "Select All Non-Lib")
   (widget-insert "  ")
   (widget-create 'push-button
 		 :notify 
-		 '(lambda (&rest ignore)
-		    (let ((path-list (widget-get idlwave-widget :path-dirs)))
-		      (mapcar (lambda (x)
-				(idlwave-path-alist-remove-flag x 'user))
-			      path-list)
-		      (idlwave-display-user-catalog-widget path-list)))
+		 (lambda (&rest ignore)
+                   (let ((path-list (widget-get idlwave-widget :path-dirs)))
+                     (dolist (x path-list)
+                       (idlwave-path-alist-remove-flag x 'user))
+                     (idlwave-display-user-catalog-widget path-list)))
 		 "Deselect All")
   (widget-insert "  ")
   (widget-create 'push-button
@@ -5592,11 +5590,11 @@ directories and save the routine info.
     ;; Define the routine info list
     (insert "\n(setq idlwave-user-catalog-routines\n    '(")
     (let ((standard-output (current-buffer)))
-      (mapcar (lambda (x)
-		(insert "\n    ")
-		(prin1 x)
-		(goto-char (point-max)))
-	      idlwave-user-catalog-routines))
+      (mapc (lambda (x)
+	      (insert "\n    ")
+	      (prin1 x)
+	      (goto-char (point-max)))
+	    idlwave-user-catalog-routines))
     (insert (format "))\n\n;;; %s ends here\n"
 		    (file-name-nondirectory idlwave-user-catalog-file)))
     (goto-char (point-min))
@@ -5636,11 +5634,11 @@ directories and save the routine info.
     ;; Define the variable which contains a list of all scanned directories
     (insert "\n(setq idlwave-path-alist\n    '(")
     (let ((standard-output (current-buffer)))
-      (mapcar (lambda (x)
-		(insert "\n      ")
-		(prin1 x)
-		(goto-char (point-max)))
-	      idlwave-path-alist))
+      (mapc (lambda (x)
+	      (insert "\n      ")
+	      (prin1 x)
+	      (goto-char (point-max)))
+	    idlwave-path-alist))
     (insert "))\n")
     (save-buffer 0)
     (kill-buffer (current-buffer))))
@@ -6355,12 +6353,12 @@ When TYPE is not specified, both procedures and functions will be considered."
   (if (null method)
       (mapcar 'car (idlwave-class-alist))
     (let (rtn)
-      (mapcar (lambda (x)
-		(and (nth 2 x)
-		     (or (not type)
-			 (eq type (nth 1 x)))
-		     (push (nth 2 x) rtn)))
-	      (idlwave-all-assq method (idlwave-routines)))
+      (mapc (lambda (x)
+	      (and (nth 2 x)
+		   (or (not type)
+		       (eq type (nth 1 x)))
+		   (push (nth 2 x) rtn)))
+	    (idlwave-all-assq method (idlwave-routines)))
       (idlwave-uniquify rtn))))
 
 (defun idlwave-all-method-keyword-classes (method keyword &optional type)
@@ -6371,13 +6369,13 @@ When TYPE is not specified, both procedures and functions will be considered."
 	  (null keyword))
       nil
     (let (rtn)
-      (mapcar (lambda (x)
-		(and (nth 2 x)           ; non-nil class
-		     (or (not type)      ; correct or unspecified type
-			 (eq type (nth 1 x)))
-		     (assoc keyword (idlwave-entry-keywords x))
-		     (push (nth 2 x) rtn)))
-	      (idlwave-all-assq method (idlwave-routines)))
+      (mapc (lambda (x)
+	      (and (nth 2 x)		; non-nil class
+		   (or (not type)	; correct or unspecified type
+		       (eq type (nth 1 x)))
+		   (assoc keyword (idlwave-entry-keywords x))
+		   (push (nth 2 x) rtn)))
+	    (idlwave-all-assq method (idlwave-routines)))
       (idlwave-uniquify rtn))))
 
 (defun idlwave-members-only (list club)
@@ -6818,12 +6816,12 @@ accumulate information on matching completions."
       (message "Making completion list...")
       
       (unless idlwave-completion-help-links ; already set somewhere?
-	(mapcar (lambda (x)  ; Pass link prop through to highlight-linked
-		  (let ((link (get-text-property 0 'link (car x))))
-		    (if link
-			(push (cons (car x) link) 
-			      idlwave-completion-help-links))))
-		list))
+	(mapc (lambda (x)  ; Pass link prop through to highlight-linked
+		(let ((link (get-text-property 0 'link (car x))))
+		  (if link
+		      (push (cons (car x) link)
+			    idlwave-completion-help-links))))
+	      list))
       (let* ((list all-completions)
 	     ;; "complete" means, this is already a valid completion
 	     (complete (memq spart all-completions))
@@ -6869,14 +6867,14 @@ accumulate information on matching completions."
     (idlwave-complete-in-buffer 
      'class 'class (idlwave-class-alist) nil 
      "Select a class" "class"
-     '(lambda (list)  ;; Push it to help-links if system help available
-	(mapcar (lambda (x)
-		  (let* ((entry (idlwave-class-info x))
-			 (link (nth 1 (assq 'link entry))))
-		    (if link (push (cons x link) 
-				   idlwave-completion-help-links))
-		    x))
-		list)))))
+     (lambda (list) ;; Push it to help-links if system help available
+       (mapcar (lambda (x)
+                 (let* ((entry (idlwave-class-info x))
+                        (link (nth 1 (assq 'link entry))))
+                   (if link (push (cons x link)
+                                  idlwave-completion-help-links))
+                   x))
+               list)))))
 
 (defun idlwave-attach-classes (list type show-classes)
   ;; Attach the proper class list to a LIST of completion items.
@@ -7580,7 +7578,7 @@ The list is cached in `idlwave-class-info' for faster access."
 If RECORD-LINK is non-nil, the keyword text is copied and a text
 property indicating the link is added."
   (let (kwds)
-    (mapcar
+    (mapc
      (lambda (key-list) 
        (let ((file (car key-list)))
 	 (mapcar (lambda (key-cons)
@@ -8308,8 +8306,8 @@ demand _EXTRA in the keyword list."
 		 (memq (nth 2 entry) super-classes)      ; an inherited class
 		 (eq (nth 1 entry) type)                 ; correct type
 		 (eq (car entry) name)                   ; correct name
-		 (mapcar (lambda (k) (add-to-list 'keywords k))
-			 (idlwave-entry-keywords entry 'do-link))))
+		 (mapc (lambda (k) (add-to-list 'keywords k))
+		       (idlwave-entry-keywords entry 'do-link))))
       (setq keywords (idlwave-uniquify keywords)))
     
     ;; Return the final list
@@ -8467,7 +8465,7 @@ If we do not know about MODULE, just return KEYWORD literally."
 	(if (null keywords)
 	    (insert " No keywords accepted.")
 	  (setq col 9)
-	  (mapcar
+	  (mapc
 	   (lambda (x)
 	     (if (>= (+ col 1 (length (car x))) 
 		     (window-width))

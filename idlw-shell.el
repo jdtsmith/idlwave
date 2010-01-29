@@ -3580,9 +3580,9 @@ the breakpoint overlays."
 			      count nil condition disabled))))))
       (setq idlwave-shell-bp-alist (cdr idlwave-shell-bp-alist))
       ;; Update breakpoint data
-      (if (eq bp-re bp-re54) 
-	  (mapcar 'idlwave-shell-update-bp old-bp-alist)
-	(mapcar 'idlwave-shell-update-bp-command-only old-bp-alist))))
+      (if (eq bp-re bp-re54)
+	  (mapc 'idlwave-shell-update-bp old-bp-alist)
+	(mapc 'idlwave-shell-update-bp-command-only old-bp-alist))))
   ;; Update the breakpoint overlays
   (unless no-show (idlwave-shell-update-bp-overlays))
   ;; Return the new list
