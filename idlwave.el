@@ -2132,9 +2132,6 @@ Returns point if comment found and nil otherwise."
            (backward-char 1)
            (point)))))
 
-(defvar transient-mark-mode)
-(defvar zmacs-regions)
-(defvar mark-active)
 (defun idlwave-region-active-p ()
   "Is transient-mark-mode on and the region active?
 Works on both Emacs and XEmacs."
@@ -5099,6 +5096,8 @@ Cache to disk for quick recovery."
 		 idlwave-init-rinfo-when-idle-after
 		 nil 'idlwave-load-rinfo-next-step))))))
 
+(defvar idlwave-after-load-rinfo-hook nil)
+
 (defun idlwave-load-all-rinfo (&optional force)
   ;; Load and case-treat the system, user catalog, and library routine
   ;; info files.
@@ -5289,6 +5288,7 @@ Can run from `after-save-hook'."
     routine-list))
 
 (defvar idlwave-scanning-lib-dir)
+(defvar idlwave-scanning-lib)
 (defun idlwave-parse-definition (string)
   "Parse a module definition."
   (let ((case-fold-search t)
@@ -5910,6 +5910,10 @@ end
 (defvar idlwave-completion-help-links nil)
 (defvar idlwave-current-obj_new-class nil)
 (defvar idlwave-complete-special nil)
+(defvar method-selector)
+(defvar class-selector)
+(defvar type-selector)
+(defvar super-classes)
 
 (defun idlwave-complete (&optional arg module class)
   "Complete a function, procedure or keyword name at point.
@@ -6495,10 +6499,6 @@ Must accept two arguments: `apos' and `info'.")
      ;; Default as fallback
      (t class))))
 
-(defvar type-selector)
-(defvar class-selector)
-(defvar method-selector)
-(defvar super-classes)
 (defun idlwave-selector (a)
   (and (eq (nth 1 a) type-selector)
        (or (and (nth 2 a) (eq class-selector t))
@@ -6747,6 +6747,7 @@ This function is not general, can only be used for completion stuff."
   "A form to evaluate after completion selection in *Completions* buffer.")
 (defconst idlwave-completion-mark (make-marker)
   "A mark pointing to the beginning of the completion string.")
+(defvar completion-highlight-first-word-only) ;XEmacs.
 
 (defun idlwave-complete-in-buffer (type stype list selector prompt isa
 					&optional prepare-display-function
@@ -8734,6 +8735,9 @@ with this command."
   (interactive "P")
   (idlwave-list-load-path-shadows nil nil "globally"))
 
+(defvar idlwave-sort-prefer-buffer-info t
+  "Internal variable used to influence `idlwave-routine-twin-compare'.")
+
 (defun idlwave-list-load-path-shadows (arg &optional special-routines loc)
   "List the routines which are defined multiple times.
 Search the information IDLWAVE has about IDL routines for multiple
@@ -8915,11 +8919,9 @@ routines, and may have been scanned."
       (setcar entry 'builtin))
     (sort alist 'idlwave-routine-twin-compare)))
 
-(defvar type)
-(defvar class)
-(defvar idlwave-sort-prefer-buffer-info t
-  "Internal variable used to influence `idlwave-routine-twin-compare'.")
-
+;; FIXME: Dynamically scoped vars need to use the `idlwave-' prefix.
+;; (defvar type)
+;; (defvar class)
 (defmacro idlwave-xor (a b)
   `(and (or ,a ,b)
 	(not (and ,a ,b))))

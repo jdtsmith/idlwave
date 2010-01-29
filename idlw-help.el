@@ -38,7 +38,7 @@
 
 
 ;;; Code:
-(defvar idlwave-help-browse-url-available nil
+(defvar idlwave-help-browse-url-available t
   "Whether browse-url is available")
 
 (setq idlwave-help-browse-url-available
@@ -1451,3 +1451,8 @@ IDL assistant.")
 
 ;; arch-tag: d27b5505-59de-497f-ba3f-f199fd4fb911
 ;;; idlw-help.el ends here
+
+
+
+(defvar idlwave-system-routines)
+
