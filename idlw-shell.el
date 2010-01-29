@@ -1317,7 +1317,7 @@ message, independent of what HIDE is set to."
     (if (or (not (setq buf (get-buffer (idlwave-shell-buffer))))
 	    (not (setq proc (get-buffer-process buf))))
 	(if (not idlwave-shell-automatic-start)
-	    (error
+	    (error "%s"
 	     (substitute-command-keys
 	      "You need to first start an IDL shell with \\[idlwave-shell]"))
 	  (idlwave-shell-recenter-shell-window)
@@ -2167,7 +2167,7 @@ Change the default directory for the process buffer to concur."
     (idlwave-shell-strip-input)
     (if (string-match "\\([^\n\r]+\\)[\n\r]" idlwave-shell-command-output)
 	(let ((dir (match-string 1 idlwave-shell-command-output)))
-	  (message "Setting Emacs working dir to %s" dir)
+	  ;;(message "Setting Emacs working dir to %s" dir)
 	  (setq idlwave-shell-default-directory dir)
 	  (setq default-directory (file-name-as-directory dir))))))
 
