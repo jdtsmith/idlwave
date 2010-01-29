@@ -4727,7 +4727,7 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	 (params (cddr xml-entry))
 	 (syntax-vec (make-vector 3 nil)) ; procedure, function, exec command
 	 (case-fold-search t)
-	 syntax kwd klink pref-list kwds pelem ptype entry props result type)
+	 syntax kwd klink pref-list kwds pelem ptype props result type)
     (if class ;; strip out class name from class method name string
 	(if (string-match (concat class "::") name)
 	    (setq name (substring name (match-end 0)))))
@@ -4846,7 +4846,7 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 (defun idlwave-convert-xml-clean-sysvar-aliases (aliases)
   ;; Duplicate and trim original routine aliases from rinfo list
   ;; This if for, e.g. !X, !Y, !Z.
-  (let (alias remove-list new parts all-parts)
+  (let (alias remove-list)
     (loop for x in aliases do
 	  (when (setq alias (assoc (cdr x) idlwave-system-variables-alist))
 	    (unless (memq alias remove-list) (push alias remove-list))
@@ -4866,7 +4866,7 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	 (link (cdr (assq 'link nameblock)))
 	 (params (cddr xml-entry))
 	 (case-fold-search t)
-	 pelem ptype props fields tags)
+	 pelem ptype props tags)
     (while params
       (setq pelem (car params))
       (when (listp pelem)
@@ -4920,8 +4920,7 @@ Cache to disk for quick recovery."
   (let* ((catalog-file (idlwave-xml-system-routine-info-file))
 	 (elem-cnt 0)
 	 props rinfo msg-cnt elem type nelem class-result alias 
-	 routines routine-aliases statement-aliases sysvar-aliases
-	 version-string)
+	 routines routine-aliases statement-aliases sysvar-aliases)
     (if (not (file-exists-p catalog-file))
 	(error "No such XML routine info file: %s" catalog-file)
       (if (not (file-readable-p catalog-file))
@@ -4933,8 +4932,7 @@ Cache to disk for quick recovery."
     (unless rinfo (error "Failed to parse XML routine info"))
     ;;(setq rinfo (car rinfo)) ; Skip the catalog stuff.
     
-    (setq version-string (cdr (assq 'version (nth 1 rinfo)))
-	  rinfo (cddr rinfo))
+    (setq rinfo (cddr rinfo))
 
     (setq nelem (length rinfo)
 	  msg-cnt (/ nelem 20))
@@ -5679,7 +5677,7 @@ be set to nil to disable library catalog scanning."
 	       (idlwave-expand-path idlwave-library-path)
 	     (mapcar 'car idlwave-path-alist)))
 	  (old-libname "")
-	  dir-entry dir flags catalog all-routines)
+	  dir-entry dir catalog all-routines)
       (if message-base (message message-base))
       (while (setq dir (pop dirs))
 	(catch 'continue
@@ -6950,7 +6948,7 @@ accumulate information on matching completions."
 TITLE is the title to put atop the popup.  If SORT is non-nil,
 sort the list before displaying."
   (let ((maxpopup idlwave-max-popup-menu-items)
-	rtn menu resp)
+	rtn menu)
     (cond ((null list))
 	  ((= 1 (length list))
 	   (setq rtn (car list)))
@@ -7316,7 +7314,6 @@ Point is expected just before the opening `{' of the struct definition."
 (defun idlwave-find-struct-tag (tag)
   "Find a given TAG in the structure defined at point."
   (let* ((borders (idlwave-struct-borders))
-	 (beg (car borders))
 	 (end (cdr borders))
 	 (case-fold-search t))
     (re-search-forward (concat "\\(^[ \t]*\\|[,{][ \t]*\\)" tag "[ \t]*:") 
@@ -7434,8 +7431,7 @@ we search only backward."
 
 (defun idlwave-sintern-class-info (entry)
   "Sintern the class names in a class-info entry."
-  (let ((taglist (assq 'tags entry))
-	(inherits (assq 'inherits entry)))
+  (let ((inherits (assq 'inherits entry)))
     (setcar entry (idlwave-sintern-class (car entry) 'set))
     (if inherits
 	(setcdr inherits (mapcar (lambda (x) (idlwave-sintern-class x 'set))
@@ -7446,8 +7442,8 @@ we search only backward."
 If ALL-HOOK is set, find all named structure definitions in a given
 class__define routine, on which ALL-HOOK will be run.  If ALT-CLASS is
 set, look for the name__define pro, and inside of it, for the ALT-CLASS
-  (let ((case-fold-search t) end-lim list name)
 class/struct definition."
+  (let ((case-fold-search t) end-lim name)
     (when (re-search-forward
 	   (concat "^[ \t]*pro[ \t]+" (downcase class) "__define" "\\>") nil t)
       (if all-hook
@@ -7638,7 +7634,7 @@ property indicating the link is added."
 		      (idlwave-sintern-routine 
 		       (concat class-selector "__define"))
 		      nil))
-	  (let  ((idlwave-cpl-bold idlwave-current-native-class-tags))
+	  (let  ((idlwave-current-native-class-tags))
 	    (idlwave-complete-in-buffer
 	     'class-tag 'class-tag 
 	     idlwave-current-class-tags nil
@@ -7731,7 +7727,7 @@ property indicating the link is added."
 	(entry (assoc var idlwave-system-variables-alist))
 	(tags (cdr (assq 'tags entry)))
 	(main (nth 1 (assq 'link entry)))
-	target main-base)
+	target)
     (cond
      ((eq mode 'test) ; we can at least link the main
       (and (stringp word) entry main))
@@ -8189,8 +8185,7 @@ Used by `idlwave-routine-info' and `idlwave-find-module'."
 (defun idlwave-what-module-find-class ()
   "Call `idlwave-what-module' and find the inherited class if necessary."
   (let* ((module (idlwave-what-module))
-	 (class (nth 2 module))
-	 classes)
+	 (class (nth 2 module)))
     (if (and (= (length module) 3)
 	     (stringp class))
 	(list (car module)
