@@ -41,10 +41,7 @@
 (defvar idlwave-help-browse-url-available t
   "Whether browse-url is available")
 
-(setq idlwave-help-browse-url-available
-      (condition-case nil
-	  (require 'browse-url)
-	(error nil)))
+(require 'browse-url)
 
 (defgroup idlwave-online-help nil
   "Online Help options for IDLWAVE mode."
