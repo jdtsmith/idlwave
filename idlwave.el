@@ -179,6 +179,11 @@
     (defmacro defgroup (&rest args) nil)
     (defmacro defcustom (var value doc &rest args) 
       `(defvar ,var ,value ,doc))))
+(declare-function idlwave-shell-get-path-info "idlw-shell")
+(declare-function idlwave-shell-temp-file "idlw-shell")
+(declare-function idlwave-shell-is-running "idlw-shell")
+(declare-function widget-value "wid-edit" (widget))
+(declare-function comint-dynamic-complete-filename "comint" ())
 
 (defgroup idlwave nil
   "Major mode for editing IDL .pro files."
@@ -7628,6 +7633,7 @@ property indicating the link is added."
 (defvar idlwave-current-class-tags nil)
 (defvar idlwave-current-native-class-tags nil)
 (defvar idlwave-sint-class-tags nil)
+(declare-function idlwave-sintern-class-tag "idlwave" t t)
 (idlwave-new-sintern-type 'class-tag)
 (add-to-list 'idlwave-complete-special 'idlwave-complete-class-structure-tag)
 (add-hook 'idlwave-update-rinfo-hook 'idlwave-class-tag-reset)
@@ -7686,6 +7692,8 @@ property indicating the link is added."
 
 (defvar idlwave-sint-sysvars nil)
 (defvar idlwave-sint-sysvartags nil)
+(declare-function idlwave-sintern-sysvar    "idlwave" t t)
+(declare-function idlwave-sintern-sysvartag "idlwave" t t)
 (idlwave-new-sintern-type 'sysvar)
 (idlwave-new-sintern-type 'sysvartag)
 (add-to-list 'idlwave-complete-special 'idlwave-complete-sysvar-or-tag)
