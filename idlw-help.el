@@ -36,7 +36,6 @@
 ;; information, at:
 ;;
 ;;           http://idlwave.org
-;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -58,7 +57,7 @@
   :group 'idlwave-online-help
   :type 'boolean)
 
-(defvar idlwave-html-link-sep 
+(defvar idlwave-html-link-sep
   (if idlwave-html-help-pre-v6 "#" "#wp"))
 
 (defcustom idlwave-html-system-help-location   "help/"
@@ -70,7 +69,7 @@ help/online_help."
   :group 'idlwave-online-help
   :type 'directory)
 
-(defcustom idlwave-html-help-location 
+(defcustom idlwave-html-help-location
    (if (memq system-type '(ms-dos windows-nt))
       nil
     "/usr/local/etc/")
@@ -80,7 +79,7 @@ help/online_help."
   :type 'directory)
 
 (defvar idlwave-help-use-hh nil
-  "Obsolete variable.") 
+  "Obsolete variable.")
 
 (defcustom idlwave-help-use-assistant t
   "Whether to use the IDL Assistant as the help browser (<IDL v6.4)."
@@ -100,7 +99,7 @@ Defaults to `browse-url-browser-function', which see."
 
 (defvar browse-url-generic-args)
 
-(defcustom idlwave-help-browser-generic-args 
+(defcustom idlwave-help-browser-generic-args
   (if (boundp 'browse-url-generic-args)
       browse-url-generic-args "")
   "Program args to use if using browse-url-generic-program."
@@ -207,7 +206,7 @@ support."
 
 (defvar idlwave-help-activate-links-aggressively nil
   "Obsolete variable.")
-  
+
 (defvar idlwave-completion-help-info)
 
 (defvar idlwave-help-frame nil
@@ -770,7 +769,7 @@ see if a link is set for it.  Try extra help functions if necessary."
     (unless (or idlwave-help-use-eclipse-help
 		(and (stringp help-loc)
 		     (file-directory-p help-loc)))
-      (error "Invalid help request."))
+      (error "Invalid help request"))
     
     (if (not (or idlwave-help-use-eclipse-help
 		 idlwave-help-use-assistant))
@@ -1224,7 +1223,7 @@ Useful when source code is displayed as help.  See the option
   "Return the help directory where HTML files are, or nil if that is unknown."
   ;; Note that starting with IDL 7, the HTML files are not included directly,
   ;; so this becomes vestigial.
-  (let ((syshelp-dir (expand-file-name 
+  (let ((syshelp-dir (expand-file-name
 		      (if (file-directory-p idlwave-html-system-help-location)
 			  idlwave-html-system-help-location
 			(concat (file-name-as-directory 
@@ -1237,12 +1236,12 @@ Useful when source code is displayed as help.  See the option
 		      (getenv "IDLWAVE_HELP_LOCATION"))))
     (if (and syshelp-dir (file-directory-p syshelp-dir))
 	syshelp-dir
-      (if help-dir 
+      (if help-dir
 	  (progn
 	    (setq help-dir (expand-file-name "idl_html_help" help-dir))
 	    (if (file-directory-p help-dir) help-dir))))))
-      
-(defvar idlwave-help-assistant-available nil) 
+
+(defvar idlwave-help-assistant-available nil)
 (defvar idlwave-help-use-eclipse-help nil)
 (defun idlwave-help-check-locations ()
   ;; Check help locations and assistant.
@@ -1266,7 +1265,7 @@ Useful when source code is displayed as help.  See the option
 	      (message "Cannot locate IDL Assistant, enabling default browser.")
 	      (setq idlwave-help-use-assistant nil)
 	      (unless idlwave-help-browse-url-available
-		(error "browse-url is not available; install it or IDL Assistant to use HTML help."))))
+		(error "browse-url is not available; install it or IDL Assistant to use HTML help"))))
 	;; No assistant, check for and record eclipse-based help
 	;; (use new location of idl_catalog as indicator).
 	(setq idlwave-help-use-eclipse-help 
@@ -1359,7 +1358,7 @@ IDL assistant.")
       (unless (accept-process-output idlwave-help-assistant-process 15)
 	(error "Failed binding IDL_ASSISTANT socket"))
       (if (not port)
-	  (error "Unable to open IDL_ASSISTANT.")
+	  (error "Unable to open IDL_ASSISTANT")
 	(set-process-filter idlwave-help-assistant-process nil)
 	(setq idlwave-help-assistant-socket 
 	      (open-network-stream "IDL_ASSISTANT_SOCK" 
@@ -1384,7 +1383,7 @@ IDL assistant.")
     (if (string-match "\.html" link)
 	(setq topic (substring link 0 (match-beginning 0))
 	      anchor (substring link (match-end 0)))
-      (error "Malformed help link."))
+      (error "Malformed help link"))
     
     (setq file (expand-file-name (concat topic ".html") help-loc))
     (if (file-exists-p file)
