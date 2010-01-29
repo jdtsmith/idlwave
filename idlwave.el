@@ -5556,8 +5556,7 @@ directories and save the routine info.
 	  idlwave-path-alist path-alist ; for library-path instead
 	  idlwave-true-path-alist nil)
     (if idlwave-auto-write-paths (idlwave-write-paths))
-    (save-excursion
-      (set-buffer (get-buffer-create "*idlwave-scan.pro*"))
+    (with-current-buffer (get-buffer-create "*idlwave-scan.pro*")
       (idlwave-mode)
       (setq dirs-alist (reverse path-alist))
       (while (setq dir (pop dirs-alist))
@@ -5862,9 +5861,8 @@ end
 (defun idlwave-shell-compile-helper-routines (&optional wait)
   (unless (and idlwave-idlwave_routine_info-compiled
 	       (file-readable-p (idlwave-shell-temp-file 'rinfo)))
-    (save-excursion
-      (set-buffer (idlwave-find-file-noselect
-		   (idlwave-shell-temp-file 'pro)))
+    (with-current-buffer (idlwave-find-file-noselect
+                          (idlwave-shell-temp-file 'pro))
       (erase-buffer)
       (insert idlwave-routine-info.pro)
       (save-buffer 0))
@@ -7215,14 +7213,12 @@ If these don't exist, a letter in the string is automatically selected."
 
 (defun idlwave-set-local (var value &optional buffer)
   "Set the buffer-local value of VAR in BUFFER to VALUE."
-  (save-excursion
-    (set-buffer (or buffer (current-buffer)))
+  (with-current-buffer (or buffer (current-buffer))
     (set (make-local-variable var) value)))
 
 (defun idlwave-local-value (var &optional buffer)
   "Return the value of VAR in BUFFER, but only if VAR is local to BUFFER."
-  (save-excursion
-    (set-buffer (or buffer (current-buffer)))
+  (with-current-buffer (or buffer (current-buffer))
     (and (local-variable-p var (current-buffer))
 	 (symbol-value var))))
 
@@ -7238,8 +7234,7 @@ If these don't exist, a letter in the string is automatically selected."
     (apply 'display-completion-list list
 	   ':activate-callback 'idlwave-default-choose-completion
 	   cl-args))
-  (save-excursion
-    (set-buffer "*Completions*")
+  (with-current-buffer "*Completions*"
     (use-local-map
      (or idlwave-completion-map
 	 (setq idlwave-completion-map
@@ -7266,8 +7261,7 @@ If these don't exist, a letter in the string is automatically selected."
   "Display completion list and install the choose wrappers."
   (with-output-to-temp-buffer "*Completions*"
     (display-completion-list list))
-  (save-excursion
-    (set-buffer "*Completions*")
+  (with-current-buffer "*Completions*"
     (use-local-map
      (or idlwave-completion-map
 	 (setq idlwave-completion-map
@@ -7882,8 +7876,7 @@ associated TAG, if any."
 (defun idlwave-completion-fontify-classes ()
   "Goto the *Completions* buffer and fontify the class info."
   (when (featurep 'font-lock)
-    (save-excursion
-      (set-buffer "*Completions*")
+    (with-current-buffer "*Completions*"
       (save-excursion
 	(goto-char (point-min))
 	(let ((buffer-read-only nil))
@@ -8430,9 +8423,8 @@ If we do not know about MODULE, just return KEYWORD literally."
      ((null calling-seq)
       (error "Calling sequence of %s %s not available" type name))
      (t
-      (save-excursion
-	(move-marker idlwave-rinfo-marker (point))
-	(set-buffer (get-buffer-create "*Help*"))
+      (move-marker idlwave-rinfo-marker (point))
+      (with-current-buffer (get-buffer-create "*Help*")
 	(use-local-map idlwave-rinfo-map)
 	(setq buffer-read-only nil)
 	(erase-buffer)
@@ -8800,8 +8792,7 @@ can be used to detect possible name clashes during this process."
 	(apply 'idlwave-do-find-module
 	       (get-text-property (point) 'find-args))))
     (message "Compiling list...( 0%%)")
-    (save-excursion
-      (set-buffer (get-buffer-create "*Shadows*"))
+    (with-current-buffer (get-buffer-create "*Shadows*")
       (setq buffer-read-only nil)
       (erase-buffer)
       (while (setq routine (pop routines))
@@ -9410,8 +9401,7 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 	 (princ (format fmt str rpl func)))
        abbrevs)))
   ;; Make sure each abbreviation uses only one display line
-  (save-excursion
-    (set-buffer "*Help*")
+  (with-current-buffer "*Help*"
     (setq truncate-lines t)))
 
 ;; Add .pro files to speedbar for support, if it's loaded
@@ -9420,8 +9410,6 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 ;; Set an idle timer to load the routine info.
 ;; Will only work on systems which support this.
 (or idlwave-routines (idlwave-start-load-rinfo-timer))
-
-;;;###autoload (add-to-list 'auto-mode-alist '("\\.[Pp][Rr][Oo]\\'" . idlwave-mode))
 
 ;; Run the hook
 (run-hooks 'idlwave-load-hook)
