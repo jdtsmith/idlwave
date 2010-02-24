@@ -2417,6 +2417,8 @@ is used.  Does nothing if the resulting frame is nil."
 		     'idlwave-shell-pending-stop))))
 
 (defvar idlwave-shell-suppress-electric-debug nil)
+(defvar idlwave-shell-electric-debug-buffers nil)
+
 (defun idlwave-shell-display-line (frame &optional col debug)
   "Display frame file in other window with overlay arrow.
 
@@ -2435,7 +2437,8 @@ matter what the settings of that variable."
         (if idlwave-shell-stop-line-overlay
             (delete-overlay idlwave-shell-stop-line-overlay))
 	;; turn off electric debug everywhere, if it's on
-	(idlwave-shell-electric-debug-all-off))
+	(if idlwave-shell-electric-debug-buffers
+	    (idlwave-shell-electric-debug-all-off)))
     (if (not (idlwave-shell-valid-frame frame))
 	;; fixme: errors are dangerous in shell filters.  but i think i
 	;; have never encountered this one.
@@ -4399,7 +4402,6 @@ Otherwise, just expand the file name."
     (idlwave-shell-electric-debug-mode t)))
 
 (defvar idlwave-shell-electric-debug-read-only)
-(defvar idlwave-shell-electric-debug-buffers nil)
 
 (define-minor-mode idlwave-shell-electric-debug-mode
   "Toggle Electric Debug mode.
