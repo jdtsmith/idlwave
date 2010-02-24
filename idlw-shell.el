@@ -3015,7 +3015,7 @@ from `idlwave-shell-examine-alist' via mini-buffer shortcut key."
   ;; For speed: assume the helper routine hasn't been lost, e.g. with
   ;; .FULL_RESET_SESSION.  We'll recover if necessary
   (unless idlwave-idlwave_routine_info-compiled
-    (idlwave-shell-compile-helper-routines))
+    (idlwave-shell-compile-helper-routines 'wait))
   (save-excursion
     (let* ((process (get-buffer-process (current-buffer)))
 	   (process-mark (if process (process-mark process)))

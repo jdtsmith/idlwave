@@ -5852,7 +5852,7 @@ end
     (idlwave-shell-send-command
      (format "save,'idlwave_print_safe','idlwave_routine_info','idlwave_print_info_entry','idlwave_get_class_tags','idlwave_get_sysvars',FILE='%s',/ROUTINES" 
 	     (idlwave-shell-temp-file 'rinfo))
-     nil 'hide)
+     nil 'hide wait)
     (setq idlwave-idlwave_routine_info-compiled t))
 
   ;; Restore if necessary.  Must use execute to hide lame routine_info
