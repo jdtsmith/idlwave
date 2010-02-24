@@ -4596,6 +4596,7 @@ idlwave-shell-electric-debug-mode-map)
      ["Stack Up" idlwave-shell-stack-up t]
      ["Stack Down" idlwave-shell-stack-down t]
      "--"
+     ["Return to MAIN" idlwave-shell-retall t]
      ["Redisplay and Sync" idlwave-shell-redisplay t])
     ("Show Commands"
      ["Everything" (if (eq idlwave-shell-show-commands 'everything)
