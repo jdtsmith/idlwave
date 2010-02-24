@@ -1167,17 +1167,17 @@ IDL has currently stepped.")
 (defun idlwave-shell-shell-frame ()
   "Return the frame to be used for the shell buffer."
   (if idlwave-shell-use-dedicated-frame
-      ;; We want a dedicated frame
-      (if (frame-live-p idlwave-shell-idl-wframe)
-	  ;; It does exist, so we use it.
-	  idlwave-shell-idl-wframe
-	;; It does not exist.  Check if we have a source frame.
-	(if (not (frame-live-p idlwave-shell-display-wframe))
-	    ;; We do not have a source frame, so we use this one.
-	    (setq idlwave-shell-display-wframe (selected-frame)))
-	;; Return a new frame
-	(setq idlwave-shell-idl-wframe
-	      (make-frame idlwave-shell-frame-parameters)))))
+      (setq idlwave-shell-idl-wframe
+	    (cond 
+	     ((frame-live-p idlwave-shell-idl-wframe) 
+	      idlwave-shell-idl-wframe)
+
+	     ((let ((buf (get-buffer (idlwave-shell-buffer))) win)
+		(and (buffer-live-p buf)
+		     (setq win (get-buffer-window buf))
+		     (window-frame win))))
+	     
+	     (t (make-frame idlwave-shell-frame-parameters))))))
 
 ;;;###autoload
 (defun idlwave-shell (&optional arg quick)
@@ -3443,34 +3443,13 @@ Does not work for a region with multiline blocks - use
 				   buffer-height-frac)
   "Display a buffer in a requested (optional) FRAME.
 Resize to no more than BUFFER-HEIGHT-FRAC of the frame buffer if set."
-  (let ((win
-	 (if (featurep 'xemacs)
-	     ;; The XEmacs version enforces the frame
-	     (display-buffer buf not-this-window-p frame)
-	   ;; For Emacs, we need to force the frame ourselves.
-	   (let ((this-frame (selected-frame)))
-	     (save-excursion ;; make sure we end up in the same buffer
-	       (if (frame-live-p frame)
-		   (select-frame frame))
-	       (if (eq this-frame (selected-frame))
-		   ;; same frame:  use display buffer, to make sure the current
-		   ;; window stays.
-		   (display-buffer buf)
-		 ;; different frame
-		 (if (one-window-p)
-		     ;; only window:  switch
-		     (progn
-		    (switch-to-buffer buf)
-		    (selected-window))   ; must return the window.
-		   ;; several windows - use display-buffer
-		   (display-buffer buf not-this-window-p))))))))
-    (if buffer-height-frac
-	(set-window-text-height win (round (* (frame-height) 
-					      buffer-height-frac))))
-    win))
-
-;  (if (not (frame-live-p frame)) (setq frame nil))
-;  (display-buffer buf not-this-window-p frame))
+  (save-selected-window
+    (if frame (select-frame frame))
+    (let ((win (display-buffer buf not-this-window-p t)))
+      (if buffer-height-frac
+	  (set-window-text-height win (round (* (frame-height frame) 
+						buffer-height-frac))))
+      win)))
 
 (defvar idlwave-shell-bp-buffer " *idlwave-shell-bp*"
   "Scratch buffer for parsing IDL breakpoint lists and other stuff.")
