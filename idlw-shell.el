@@ -1373,6 +1373,22 @@ recognized."
 	(goto-char save-point))
       (set-buffer save-buffer))))
 
+(defun idlwave-shell-command (cmd)
+  "Send a command and immediately gather the result.
+Disables line display after state scanning."
+  (let (result)
+    ;; Only return when you've received the output
+    (idlwave-shell-send-command 
+     cmd 
+     '(progn (idlwave-shell-strip-input)
+	     (setq result idlwave-shell-command-output))
+     'hide 'wait nil 'disable)
+    (with-current-buffer ;; DEBUGXXX
+	(get-buffer-create "*idlwave-shell-output*")
+      (goto-char (point-max))
+      (insert (format "--[C.] New result: %s\n" result)))
+    result))
+
 (defun idlwave-shell-send-char (c &optional error)
   "Send one character to the shell, without a newline."
   (interactive "cChar to send to IDL: \np")
