@@ -1141,7 +1141,8 @@ IDL has currently stepped.")
 (defvar idlwave-shell-calling-stack-routine nil)
 
 (defun idlwave-shell-source-frame ()
-  "Return the frame to be used for source display."
+  "Return the frame to be used for source display.
+Will typically only apply if the buffer isn't visible."
   (if idlwave-shell-use-dedicated-frame
       ;; We want separate frames for source and shell
       (if (frame-live-p idlwave-shell-display-wframe)
@@ -1469,13 +1470,13 @@ Move normally inside of blocks, unless NOBLOCK-MOVE is non-nil."
       (forward-line (- arg)))))
 
 (defun idlwave-shell-up-or-history (&optional arg)
-"When in last line of process buffer, move to previous input.
+  "When in last line of process buffer, move to previous input.
  Otherwise just go up one line."
   (interactive "p")
   (idlwave-shell-move-or-history t arg))
 
 (defun idlwave-shell-down-or-history (&optional arg)
-"When in last line of process buffer, move to next input.
+  "When in last line of process buffer, move to next input.
  Otherwise just go down one line."
   (interactive "p")
   (idlwave-shell-move-or-history nil arg))
@@ -2573,7 +2574,6 @@ non-nil disables the breakpoint."
 
 (defun idlwave-shell-set-bp-check (bp)
   "Check for failure to set breakpoint.
-This is run on `idlwave-shell-post-command-hook'.
 Offers to recompile the procedure if we failed.  This usually fixes
 the problem with not being able to set the breakpoint."
   ;; Scan for message
@@ -2610,10 +2610,10 @@ the problem with not being able to set the breakpoint."
 
 (defun idlwave-shell-command-failure ()
   "Do any necessary clean up when an IDL command fails.
-Call this from a function attached to `idlwave-shell-post-command-hook'
-that detects the failure of a command.
-For example, this is called from `idlwave-shell-set-bp-check' when a
-breakpoint can not be set."
+Call this from a function attached to an
+`idlwave-shell-send-command' post-command-hook to detects the
+failure of a command.  For example, this is called from
+`idlwave-shell-set-bp-check' when a breakpoint can not be set."
   ;; Clear pending commands
   (setq idlwave-shell-pending-commands nil))
 
