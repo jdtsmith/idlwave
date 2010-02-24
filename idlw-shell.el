@@ -736,20 +736,8 @@ the directory stack.")
 (defvar idlwave-shell-command-output nil
   "String for accumulating current command output.")
 
-(defvar idlwave-shell-post-command-hook nil
-  "Lisp list expression or function to run when an IDL command is finished.
-The current command is finished when the IDL prompt is displayed.
-This is evaluated if it is a list or called with funcall.")
-
 (defvar idlwave-shell-sentinel-hook nil
   "Hook run when the IDL process exits.")
-
-(defvar idlwave-shell-hide-output nil
-  "If non-nil the process output is not inserted into the output buffer.")
-
-(defvar idlwave-shell-show-if-error nil
-  "If non-nil the process output is inserted into the output buffer if
-it contains an error message, even if hide-output is non-nil.")
 
 (defvar idlwave-shell-accumulation nil
   "Accumulate last line of output.")
@@ -760,13 +748,25 @@ it contains an error message, even if hide-output is non-nil.")
 
 (defvar idlwave-shell-pending-commands nil
   "List of commands to be sent to IDL.
-Each element of the list is list of \(CMD PCMD HIDE\), where CMD is a
-string to be sent to IDL and PCMD is a post-command to be placed on
-`idlwave-shell-post-command-hook'.  If HIDE is non-nil, hide the output
-from command CMD. PCMD and HIDE are optional.")
+Each element of the list is list of \(CMD PCMD HIDE SHOW-IF-ERROR
+REDISPLAY\), where CMD is a string to be sent to IDL and PCMD is
+a post-command to be called after CMD completes.  If HIDE is
+non-nil, hide the output from command CMD.  If SHOW-IF-ERROR is
+non-nil, show the full output if it contains an error.  If
+REDISPLAY is non-nil, clear the current stopped line position if
+no position is recognized (unless it is 'disable, in which case
+don't update line position unless an error is found).  PCMD,
+HIDE, and SHOW-IF-ERROR are optional.")
 
 (defvar idlwave-shell-current-command nil
-  "Current command being executed.")
+  "Current command being executed.
+A list consisting of a single element from the list of pending
+commands, `idlwave-shell-pending-commands'.")
+
+(defvar idlwave-shell-completed-command nil
+  "The most recently completed command.
+Same format as current-command.  Corresponds to command-output.")
+
 
 (defun idlwave-shell-buffer ()
   "Name of buffer associated with IDL process.
@@ -1026,8 +1026,7 @@ IDL has currently stepped.")
   (setq idlwave-shell-ready nil)
   (setq idlwave-shell-bp-alist nil)
   (idlwave-shell-update-bp-overlays) ; Throw away old overlays
-  (setq idlwave-shell-post-command-hook nil ;clean up any old stuff
-	idlwave-shell-sources-alist nil)
+  (setq idlwave-shell-sources-alist nil)
   (setq idlwave-shell-default-directory default-directory)
   (setq idlwave-shell-hide-output nil)
 
@@ -1277,21 +1276,22 @@ Return either nil or 'hide."
 
 
 (defun idlwave-shell-send-command (&optional cmd pcmd hide preempt
-					     show-if-error)
-  "Send a command to IDL process.
+					     show-if-error redisplay)
+  "Send a command to the IDL process.
 
-\(CMD PCMD HIDE\) are placed at the end of `idlwave-shell-pending-commands'.
-If IDL is ready the first command in `idlwave-shell-pending-commands',
-CMD, is sent to the IDL process.
+\(CMD PCMD HIDE SHOW-IF-ERROR REDISPLAY\) are placed at the
+end of `idlwave-shell-pending-commands'.  If IDL is ready the
+first command in `idlwave-shell-pending-commands', CMD, is sent
+to the IDL process.
 
 If optional second argument PCMD is non-nil it will be placed on
 `idlwave-shell-post-command-hook' when CMD is executed.
 
-If the optional third argument HIDE is non-nil, then hide output from
-CMD, unless it is the symbol 'mostly, in which case only output
-beginning with \"%\" is hidden, and all other output (i.e., the
-results of a PRINT command), is shown.  This helps with, e.g.,
-stepping through code with output.
+If the optional third argument HIDE is non-nil, then hide output
+from CMD, unless it is the symbol 'mostly, in which case only
+output beginning with \"%\" is hidden, and all other
+output (i.e., the results of a PRINT command), is shown.  This
+helps with, e.g., stepping through code with output.
 
 If optional fourth argument PREEMPT is non-nil CMD is put at front of
 `idlwave-shell-pending-commands'.  If PREEMPT is 'wait, wait for all
@@ -1299,15 +1299,13 @@ output to complete and the next prompt to arrive before returning
 \(useful if you need an answer now\).  IDL is considered ready if the
 prompt is present and if `idlwave-shell-ready' is non-nil.
 
-If SHOW-IF-ERROR is non-nil, show the output if it contains an error
-message, independent of what HIDE is set to."
+If SHOW-IF-ERROR is non-nil, show the output if it contains an
+error message, independent of what HIDE is set to.
 
-;  (setq hide nil)  ;  FIXME: turn this on for debugging only
-;  (if (null cmd)
-;      (progn
-;	(message "SENDING Pending commands: %s"
-;		 (prin1-to-string idlwave-shell-pending-commands)))
-;  (message "SENDING %s|||%s" cmd pcmd))
+If REDISPLAY is 'disable, disable line redisplay for all but
+errors.  If REDISPLAY is otherwise non-nil, clear the current
+line position as state is scanned if no stop line message is
+recognized."
   (if (and (symbolp idlwave-shell-show-commands)
 	   (eq idlwave-shell-show-commands 'everything))
       (setq hide nil))
@@ -1333,38 +1331,30 @@ message, independent of what HIDE is set to."
 	  (setq idlwave-shell-pending-commands
 		(if preempt
 		    ;; Put at front.
-		    (append (list (list cmd pcmd hide show-if-error))
+		    (append (list (list cmd pcmd hide show-if-error redisplay))
 			    idlwave-shell-pending-commands)
 		  ;; Put at end.
 		  (append idlwave-shell-pending-commands
-			  (list (list cmd pcmd hide show-if-error))))))
+			  (list (list cmd pcmd hide show-if-error redisplay))))))
       ;; Check if IDL ready
       (let ((save-point (point-marker)))
 	(goto-char (process-mark proc))
 	(if (and idlwave-shell-ready
 		 ;; Check for IDL prompt
 		 (prog2
-		   (forward-line 0)
-		   ;; (beginning-of-line) ; Changed for Emacs 21
-		   (looking-at idlwave-shell-prompt-pattern)
+		     (forward-line 0)
+		     (looking-at idlwave-shell-prompt-pattern)
 		   (goto-char (process-mark proc))))
 	    ;; IDL ready for command, execute it
 	    (let* ((lcmd (car idlwave-shell-pending-commands))
 		   (cmd (car lcmd))
 		   (pcmd (nth 1 lcmd))
-		   (hide (nth 2 lcmd))
-		   (show-if-error (nth 3 lcmd)))
+		   (hide (nth 2 lcmd)))
 	      ;; If this is an executive command, reset the stack pointer
 	      (if (eq (string-to-char cmd) ?.)
 		  (setq idlwave-shell-calling-stack-index 0))
-	      (setq idlwave-shell-current-command cmd)
-	      ;; Set post-command
-	      (setq idlwave-shell-post-command-hook pcmd)
-	      ;; Output hiding
-	      (setq idlwave-shell-hide-output hide)
-	      ;;Showing errors
-	      (setq idlwave-shell-show-if-error show-if-error)
-	      ;; Pop command
+	      (setq idlwave-shell-current-command lcmd)
+	      ;; Pop command off pending stack
 	      (setq idlwave-shell-pending-commands
 		    (cdr idlwave-shell-pending-commands))
 	      ;; Send command for execution
@@ -1372,7 +1362,9 @@ message, independent of what HIDE is set to."
 	      (set-marker comint-last-input-end (point))
 	      (comint-simple-send proc cmd)
 	      (setq idlwave-shell-ready nil)
-	      (if (equal preempt 'wait) ; Get all the output at once
+	      
+	      ;; If waiting, accept all output now
+	      (when (equal preempt 'wait) 
 		(while (not idlwave-shell-ready)
 		  (when (not (accept-process-output proc 6)) ; long wait
 		    (setq idlwave-shell-pending-commands nil)
@@ -1555,9 +1547,11 @@ error messages, etc."
 
 (defun idlwave-shell-filter (proc string)
   "Watch for IDL prompt and filter incoming text.
-When the IDL prompt is received executes `idlwave-shell-post-command-hook'
-and then calls `idlwave-shell-send-command' for any pending commands."
-  ;; We no longer do the cleanup here - this is done by the process sentinel
+When the IDL prompt is received executes the post command hook
+from `idlwave-shell-current-command' and then calls
+`idlwave-shell-send-command' for any pending commands on the
+command queue."
+  (put 'idlwave-shell-filter 'call-cnt (1+ (or (get 'idlwave-shell-filter 'call-cnt) 0)))
   (if (eq (process-status idlwave-shell-process-name) 'run)
       ;; OK, process is still running, so we can use it.
       (let ((data (match-data)) p full-output)
@@ -1567,7 +1561,8 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 	      (while (setq p (string-match "\C-G" string))
 		(ding)
 		(aset string p ?\C-j ))
-	      (if idlwave-shell-hide-output
+	      (if (and idlwave-shell-current-command
+		       (nth 2 idlwave-shell-current-command)) ; we're hiding
 		  (save-excursion
 		    (while (setq p (string-match "\C-M" string))
 		      (aset string p ?\  ))
@@ -1575,9 +1570,12 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 		     (get-buffer-create idlwave-shell-hidden-output-buffer))
 		    (goto-char (point-max))
 		    (insert string))
+		;; Not hiding, just put in the shell buffer
 		(idlwave-shell-comint-filter proc string))
-	      ;; Watch for magic - need to accumulate the current line
-	      ;; since it may not be sent all at once.
+
+	      ;; Watch for magic prompt after a newline - need to
+	      ;; accumulate the current line since it may not be sent
+	      ;; all at once.
 	      (if (string-match "\n" string)
 		  (progn
 		    (if idlwave-shell-use-input-mode-magic
@@ -1591,7 +1589,6 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 		(setq idlwave-shell-accumulation
 		      (concat idlwave-shell-accumulation string)))
 	    
-	    
 	      ;; Test/Debug code
 	      ;;(with-current-buffer
 	      ;; (get-buffer-create "*idlwave-shell-output*")
@@ -1599,78 +1596,76 @@ and then calls `idlwave-shell-send-command' for any pending commands."
 	      ;; (insert "\nReceived STRING\n===>\n" string "\n<====\n"))
 	    
 	      ;; Check for prompt in current accumulating output
-	      (when (setq idlwave-shell-ready
+	      (if (setq idlwave-shell-ready
 			  (string-match idlwave-shell-prompt-pattern
 					idlwave-shell-accumulation))
-		;; Gather the command output, and the input as well.
-		(if idlwave-shell-hide-output
-		    ;; Hidden output
-		    (with-current-buffer idlwave-shell-hidden-output-buffer
-		      (setq full-output (buffer-string))
-		      (goto-char (point-max))
-		      (re-search-backward idlwave-shell-prompt-pattern nil t)
-		      ;;(goto-char (match-end 0))
+		  (let ((pcmd (nth 1 idlwave-shell-current-command))
+			(hide (nth 2 idlwave-shell-current-command))
+			(show-if-error (nth 3 idlwave-shell-current-command))
+			(redisplay (nth 4 idlwave-shell-current-command)))
+		    
+		    ;; Gather the command output
+		    (if hide
+			;; Hidden output
+			(with-current-buffer idlwave-shell-hidden-output-buffer
+			  (setq full-output (buffer-string))
+			  (goto-char (point-max))
+			  (re-search-backward idlwave-shell-prompt-pattern 
+					      nil t)
+			  ;;(goto-char (match-end 0))
+			  (setq idlwave-shell-command-output
+				(buffer-substring-no-properties 
+				 (point-min) (point)))
+			  (erase-buffer))
+		      ;; In-shell output
 		      (setq idlwave-shell-command-output
-			    (buffer-substring-no-properties 
-			     (point-min) (point)))
-		      (erase-buffer))
-					;(delete-region (point-min) (point)))
-		  ;; In-shell output
-		  (setq idlwave-shell-command-output
-			(with-current-buffer (process-buffer proc)
-			(buffer-substring-no-properties
-			 (save-excursion
-			   (goto-char (process-mark proc))
-			   (forward-line 0) ; Emacs 21 (beginning-of-line nil)
-			   (point))
-			 comint-last-input-end))))
+			    (with-current-buffer (process-buffer proc)
+			      (buffer-substring-no-properties
+			       (save-excursion
+				 (goto-char (process-mark proc))
+				 (forward-line 0) 
+				 (point))
+			       comint-last-input-end))))
 
- ;;		(with-current-buffer
- ;;		    (get-buffer-create "*idlwave-shell-output*")
- ;;		  (insert "\nFull output registered:\n===>\n" 
- ;;			  idlwave-shell-command-output "\n<====\n"))
+		    ;; Scan for state (any errors?)
+		    (idlwave-shell-scan-for-state redisplay)
 
-		;; Scan for state and do post commands - bracket
-		;; them with idlwave-shell-ready=nil since they may
-		;; call idlwave-shell-send-command themselves.
-		(let ((idlwave-shell-ready nil))
-		  (idlwave-shell-scan-for-state)
-		  ;; Show the output in the shell if it contains an error
-		  (if idlwave-shell-hide-output
-		      (if (and idlwave-shell-show-if-error
+		    ;; Conditionally show some (or all) hidden output
+		    (when hide
+		      (if (and show-if-error
 			       (eq idlwave-shell-current-state 'error))
+			  ;; Show full output if it contains an error
 			  (idlwave-shell-comint-filter proc full-output)
-			;; If it's only *mostly* hidden, filter % lines,
-			;; and show anything that remains
-			(if (eq idlwave-shell-hide-output 'mostly)
+			(if (eq hide 'mostly)
+			    ;; Filter % lines, and show anything that remains
 			    (let ((filtered
-				   (idlwave-shell-filter-hidden-output
+				   (idlwave-shell-filter-hidden-output 
 				    full-output)))
 			      (if filtered
-				  (idlwave-shell-comint-filter
-				   proc filtered))))))
+				  (idlwave-shell-comint-filter proc 
+							       filtered))))))
 
-		  ;; Call the post-command hook
-		  (if (listp idlwave-shell-post-command-hook)
-		      (progn
-			;;(message "Calling list")
-			;;(prin1 idlwave-shell-post-command-hook)
-			(eval idlwave-shell-post-command-hook))
-		    ;;(message "Calling command function")
-		    (funcall idlwave-shell-post-command-hook))
+		    ;; We've fully processed all output of this
+		    ;; command now: reset accumulation to clear the
+		    ;; way for next command (which may be in the
+		    ;; post-command hook!)  Leave command-output, and
+		    ;; set completed-command, which the
+		    ;; post-command-hook may need to analyze.
+		    (setq idlwave-shell-accumulation nil
+			  idlwave-shell-completed-command
+			  idlwave-shell-current-command
+			  idlwave-shell-current-command nil)
+		    
+		  
+		    ;; Call the post-command hook, if any.
+		    (if pcmd
+			(if (listp pcmd) (eval pcmd) (funcall pcmd)))
+		    
+		    (setq idlwave-shell-command-output nil)
+		    
 
-		  ;; Reset to default state for next command.
-		  ;; Also we do not want to find this prompt again.
-		  (setq idlwave-shell-current-command nil
-			idlwave-shell-accumulation nil
-			idlwave-shell-command-output nil
-			idlwave-shell-post-command-hook nil
-			idlwave-shell-hide-output nil
-			idlwave-shell-show-if-error nil))
-		;; Done with post command.  Do pending command if
-		;; any.
-		(idlwave-shell-send-command)))
-	  (store-match-data data)))))
+		    ;; Send any pending commands
+		    (idlwave-shell-send-command))
 
 (defun idlwave-shell-sentinel (process event)
   "The sentinel function for the IDLWAVE shell process."
@@ -1752,17 +1747,20 @@ in IDL5 which inserts random linebreaks in long module and file names.")
 
 (defvar idlwave-shell-electric-debug-mode) ; defined by easy-mmode
 
-(defun idlwave-shell-scan-for-state ()
+(defun idlwave-shell-scan-for-state (&optional redisplay)
   "Scan for state info.
-Looks for messages in output from last IDL command indicating where
-IDL has stopped.  The types of messages we are interested in are
-execution halted, stepped, breakpoint, interrupted at and trace
-messages.  For breakpoint messages process any attached count or
-command parameters.  Update the stop line if a message is found.
-The variable `idlwave-shell-current-state' is set to 'error, 'halt,
-or 'breakpoint, which describes the status, or nil for none of
-the above."
+Looks for messages in output from last IDL command indicating
+where IDL has stopped.  The types of messages we are interested
+in are execution halted, stepped, breakpoint, interrupted at and
+trace messages.  For breakpoint messages process any attached
+count or command parameters.  Update the stop line if a message
+is found.  The variable `idlwave-shell-current-state' is set to
+'error, 'halt, or 'breakpoint, which describes the status, or nil
+for none of the above.  If REDISPLAY is non-nil, clear the line
+position if no recognized message is found, unless it is
+'disable, in which case no-redisplay occurs except for errors."
   (let (trace)
+
     (cond
      ;; Make sure we have output
      ((not idlwave-shell-command-output))
@@ -1792,7 +1790,8 @@ the above."
 	     (substring idlwave-shell-command-output
 			(match-beginning 2)))
 	    idlwave-shell-current-state 'error)
-      (idlwave-shell-display-line (idlwave-shell-pc-frame)))
+      (unless (eq redisplay 'disable)
+	(idlwave-shell-display-line (idlwave-shell-pc-frame))))
 
      ;; Third Priority: Various types of innocuous HALT and
      ;; TRACEBACK messages.
@@ -1807,10 +1806,11 @@ the above."
 	     (substring idlwave-shell-command-output (match-end 0))))
       (setq idlwave-shell-current-state 'halt)
       ;; Don't debug trace messages
-      (idlwave-shell-display-line
-       (idlwave-shell-pc-frame) nil
-       (if trace 'disable
-	 (if idlwave-shell-electric-debug-mode 'force))))
+      (unless (eq redisplay 'disable)
+	(idlwave-shell-display-line
+	 (idlwave-shell-pc-frame) nil
+	 (if trace 'disable
+	   (if idlwave-shell-electric-debug-mode 'force)))))
 
      ;; Fourth Priority: Breakpoints
      ((string-match idlwave-shell-break-message
@@ -1837,17 +1837,21 @@ the above."
 	  ;; set by the user...  Let's update our list.
 	  (idlwave-shell-bp-query)))
       (setq idlwave-shell-current-state 'breakpoint)
-      (idlwave-shell-display-line (idlwave-shell-pc-frame)))
+      (unless (eq redisplay 'disable)
+	(idlwave-shell-display-line (idlwave-shell-pc-frame))))
 
-     ;; Last Priority: Can't Step errors
+     ;; Last Priority: can't Step errors
      ((string-match idlwave-shell-cant-continue-error
 		    idlwave-shell-command-output)
       (setq idlwave-shell-current-state 'breakpoint))
 
-     ;; Otherwise, no particular state, display no line
+     ;; Otherwise, no particular state: remove line display if requested
      (t (setq idlwave-shell-current-state nil)
-	(unless idlwave-shell-post-command-hook
-	  (idlwave-shell-display-line nil))))))
+	(if (and redisplay 
+		 (not (eq redisplay 'disable))
+		 (not (and idlwave-shell-current-command
+			   (nth 1 idlwave-shell-current-command)))) ; pcmd hook
+	    (idlwave-shell-display-line nil))))))
 
 
 (defun idlwave-shell-parse-line (string &optional skip-main)
@@ -1981,7 +1985,7 @@ The size is given by `idlwave-shell-graphics-window-size'."
     (idlwave-shell-send-command
      (apply 'format "window,%d,xs=%d,ys=%d"
 	    n idlwave-shell-graphics-window-size)
-     nil (idlwave-shell-hide-p 'misc) nil t)))
+     nil (idlwave-shell-hide-p 'misc 'show-if-error))))
 
 (defun idlwave-shell-resync-dirs ()
   "Resync the buffer's idea of the current directory.
@@ -3105,19 +3109,20 @@ from `idlwave-shell-examine-alist' via mini-buffer shortcut key."
 
 (defun idlwave-shell-strip-input ()
   "Strip the input from command output."
-  (when idlwave-shell-current-command
-    (if (string-match idlwave-shell-prompt-pattern idlwave-shell-command-output)
+  (when idlwave-shell-completed-command
+    (let ((cmd (car idlwave-shell-completed-command)))
+      (if (string-match idlwave-shell-prompt-pattern 
+			idlwave-shell-command-output)
+	  (setq idlwave-shell-command-output 
+		(substring idlwave-shell-command-output (match-end 0))))
+      (when (eq t (compare-strings 
+		   idlwave-shell-command-output 0 (length cmd) cmd 0 nil))
 	(setq idlwave-shell-command-output 
-	      (substring idlwave-shell-command-output (match-end 0))))
-    (when (eq t (compare-strings 
-		 idlwave-shell-command-output 0 (length idlwave-shell-current-command)
-		 idlwave-shell-current-command 0 nil))
-      (setq idlwave-shell-command-output 
-	    (substring idlwave-shell-command-output 
-		       (length idlwave-shell-current-command)))
+	      (substring idlwave-shell-command-output 
+			 (length cmd)))
       (if (string-match "[ \t]*[\r\n]*" idlwave-shell-command-output)
 	  (setq idlwave-shell-command-output 
-		(substring idlwave-shell-command-output (match-end 0)))))))
+		(substring idlwave-shell-command-output (match-end 0))))))))
 
 (defun idlwave-shell-examine-display ()
   "View the examine command output in a separate buffer."
