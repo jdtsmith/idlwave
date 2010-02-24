@@ -1472,12 +1472,14 @@ when the IDL prompt gets displayed again after the current IDL command."
   "When in last line of process buffer, do `comint-previous-input'.
 Otherwise just move the line.  Move down unless UP is non-nil.
 Move normally inside of blocks, unless NOBLOCK-MOVE is non-nil."
-  (let* ((proc-pos (marker-position
-		    (process-mark (get-buffer-process (current-buffer)))))
+  (let* ((proc (get-buffer-process (current-buffer)))
+	 (proc-pos (if proc (marker-position (process-mark proc))))
 	 (arg (or arg 1))
 	 (arg (if up arg (- arg))))
+    
     (if (eq t idlwave-shell-arrows-do-history) (goto-char proc-pos))
-    (if (and idlwave-shell-arrows-do-history
+    (if (and proc
+	     idlwave-shell-arrows-do-history
 	     (or noblock-move
 		 (if up
 		     (= (line-number-at-pos) (line-number-at-pos proc-pos))
