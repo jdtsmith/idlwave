@@ -2014,16 +2014,41 @@ directory."
 			      'idlwave-shell-filter-directory
 			      'hide 'wait))
 
+(defun idlwave-shell-escape-main-program ()
+  "Escape $MAIN$ routines.
+When stopped in $MAIN$ routines, IDL does not exit them with
+RETALL, which causes the current frame to be incorrect in such a
+session.  Using .skip and .out, we can escape the routine."
+  (let* ((file (car idlwave-shell-halt-frame))
+	 (line (nth 1 idlwave-shell-halt-frame))
+	 (idlwave-shell-automatic-electric-debug nil) ;; no edebug please
+	 skiplines)
+    (when (and file (string= (nth 2 idlwave-shell-halt-frame) "$MAIN$"))
+      ;; In a $MAIN$ routine
+      (setq skiplines
+	    (- (string-to-number
+		(idlwave-shell-command 
+		 (concat "print,file_lines('" file "')")))
+	       line))
+      (while (and 
+	    (> skiplines 0)
+	    (string-match "% Can't continue from this point"
+			  (idlwave-shell-command 
+			   (concat ".skip " (number-to-string skiplines)))))
+	(setq skiplines (1- skiplines)))
+      (when (>= skiplines 0)
+	(unless (string-match "% Starting at: $MAIN$"
+			      (idlwave-shell-command ".return"))
+	  (idlwave-shell-command ".return"))
+	(idlwave-shell-send-command "help,/trace" nil 'hide)))))
+
 (defun idlwave-shell-retall (&optional arg)
-  "Return from the entire calling stack.
-Also get rid of widget events in the queue."
+  "Return from the entire calling stack."
   (interactive "P")
   (save-selected-window
-    ;;if (widget_info(/MANAGED))[0] gt 0 then for i=0,n_elements(widget_info(/MANAGED))-1 do widget_control,(widget_info(/MANAGED))[i],/clear_events &
-    (idlwave-shell-send-command "retall" nil
+    (idlwave-shell-send-command "retall" 'idlwave-shell-escape-main-program
 				(if (idlwave-shell-hide-p 'misc) 'mostly)
-				nil t)
-    (idlwave-shell-display-line nil)))
+				nil 'show-if-error 'redisplay)))
 
 (defun idlwave-shell-closeall (&optional arg)
   "Close all open files."
@@ -2056,11 +2081,7 @@ HEAP_GC, /VERBOSE"
     (message "Resetting IDL")
     (setq idlwave-shell-calling-stack-index 0)
     ;; Give widget exit handlers a chance
-    (idlwave-shell-send-command "retall" nil hidden)
-    (idlwave-shell-send-command "widget_control,/reset" nil hidden)
-    (idlwave-shell-send-command "close,/all" nil hidden)
-    ;; (idlwave-shell-send-command "obj_destroy, obj_valid()" nil hidden)
-    (idlwave-shell-send-command "heap_gc,/verbose" nil hidden)
+    (idlwave-shell-send-command ".full_reset_session" nil hidden)
     (idlwave-shell-display-line nil)))
 
 (defun idlwave-shell-path-filter ()
@@ -2341,7 +2362,7 @@ overlays."
   (setq idlwave-shell-calling-stack-index 0)
   (idlwave-shell-send-command
    "help,/trace"
-   '(idlwave-shell-display-line (idlwave-shell-pc-frame))
+   nil
    hide)
   (idlwave-shell-bp-query))
 
