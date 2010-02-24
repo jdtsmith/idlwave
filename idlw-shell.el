@@ -1788,8 +1788,7 @@ position if no recognized message is found, unless it is
 		     idlwave-shell-command-output)
        (string-match idlwave-shell-other-error
 		     idlwave-shell-command-output))
-      (with-current-buffer
-	  (get-buffer-create idlwave-shell-error-buffer)
+      (with-current-buffer (get-buffer-create idlwave-shell-error-buffer)
 	(erase-buffer)
 	(insert idlwave-shell-command-output)
 	(goto-char (point-min))
