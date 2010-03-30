@@ -4,35 +4,45 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
-Revision 6.2 (incorporating changes to version 6.1 for Emacs 22)
+Revision 6.5 
 ================================================================
    - Support for the Windows command-line IDL tool (as of version 7.1)
    - Support for the new Eclipse-based help system, including direct
      keyword linking.
-   - Structure tag completion now enabled by default.
+   - A new "help with topic" (C-M-?) command to lookup inidividual
+     help topics in the IDL help system, with completion.
+   - Fails gracefully if no help is installed (e.g. for IDL <6.1
+     without any HTML help module).
+   - Structure tag completion now enabled by default (e.g. for state
+     structures).
    - Improved fontification handling of keywords, especially in
      continued statements and routine definitions (routine keywords
      stay fontified as you edit!).
-   - Fails gracefully if no help is installed (e.g. for IDL <6.1
-     without any HTML help module).
-   - A new "help with topic" (C-M-?) to lookup inidividual help topics
-     in the IDL help system, with completion.
-   - Better handling of spaces and IDL formatting quirks for syncing
-     the current working directory.
+   - Better handling of spaces in filepaths for syncing the current
+     working directory.
    - HideShow support.  Just add `hs-minor-mode' to the mode hook (or
      type M-x hs-minor-mode), and you can quickly hide and show
-     logical blocks, entire routines, etc.  Very useful for long files
-     filled with many routines.
+     logical blocks, entire routines, etc.  Very useful for working
+     with long files filled with many routines.
    - Trim out spurious "None" superclasses in routine information of
      classes without inheritance.  You may need to rebuild your XML
      Help catalog to accomplish this (IDLWAVE->Routine Info->Rescan
      XML Help Catalog).
-   - Automatically list the enclosing routine name in the
-     ChangeLog (C-x 4 a append a new ChangeLog entry).
+   - Automatically list the enclosing routine name in ChangeLog 
+     ('C-x 4 a' appends a new ChangeLog entry).
    - Changing the break condition or repeat count on a disabled
      breakpoint now works correctly.
-   - The height of the shell buffer when it is displayed in the same
-     frame is customizable (see `idlwave-shell-buffer-height-frac') 
+   - Improved handling of windows and frames when use-dedicated-frame
+     is on, avoiding duplicate windows for an already showing buffer
+     (e.g. the *idl* buffer).
+   - Indenting now works as expected for $MAIN$ level routines (those
+     without a pro/function declaration).
+   - When retall is called (e.g. by hitting 'q' in debug mode),
+     IDLWAVE now escapes from stopped $MAIN$ level routines, skipping
+     any remaining commands.
+   - The fractional height of the shell buffer when it is displayed in
+     a non-dedicated frame is customizable (see
+     `idlwave-shell-buffer-height-frac').
    - Default command (C-c C-d C-y) prompts for the default command to
      execute, if it hasn't yet been set.  It also no longer resets IDL.
    - Direct support in the shell for multi-line commands ending in '&'
