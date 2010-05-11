@@ -2616,13 +2616,13 @@ If not in a statement just moves to end of line.  Returns position."
   (end-of-line)
   (point))
 
-(defun idlwave-next-statement ()
+(defun idlwave-next-statement (&optional eos)
   "Move point to beginning of the next IDL statement.
 Returns t if that statement is the last non-comment IDL statement
 in the file, and nil otherwise."
   (interactive)
   (let (last-statement)
-    (idlwave-end-of-statement)
+    (if eos (goto-char eos) (idlwave-end-of-statement))
     ;; skip blank lines, label lines, include lines and line comments
     (while (and (= (forward-line 1) 0)
                 ;; The current statement is the last statement until
@@ -2638,7 +2638,7 @@ in the file, and nil otherwise."
 (defun idlwave-skip-multi-commands (&optional lim)
   "Skip past multiple commands on a line (or multiple lines) (with `&')."
   (let ((save-point (point)))
-    (while (re-search-forward "[^&]*?\\(&\\)[^&]" lim t)
+    (while (re-search-forward "\\s-\\(&\\)[^&]" lim t)
       (backward-char)
       (if (and (not (idlwave-quoted))
 	       (not (eq (char-before (- (point) 1)) ?&)))
@@ -2646,7 +2646,7 @@ in the file, and nil otherwise."
     (goto-char save-point)
     save-point))
 
-(defun idlwave-skip-label-or-case ()
+(defun idlwave-skip-label-or-case (&optional eos)
   "Skip label or case statement element.
 Returns position after label.
 If there is no label point is not moved and nil is returned."
@@ -2660,7 +2660,7 @@ If there is no label point is not moved and nil is returned."
   ;; As many in this mode, this function is heuristic and not an exact
   ;; parser. 
   (let* ((start (point))
-	 (eos (save-excursion (idlwave-end-of-statement) (point)))
+	 (eos (or eos (save-excursion (idlwave-end-of-statement) (point))))
 	 (end (idlwave-find-key ":" 1 'nomark eos)))
     (if (and end
              (= (nth 0 (parse-partial-sexp start end)) 0)
@@ -2680,11 +2680,14 @@ Returns point at start of substatement modulo whitespace.
 If optional argument is non-nil move to beginning of current
 substatement."
   (let ((orig (point))
-        (eos (idlwave-end-of-statement))
-        (ifnest 0)
+        (eos (save-excursion (idlwave-end-of-statement) (point)))
+	(ifnest 0)
         st nst last)
     (idlwave-beginning-of-statement)
-    (idlwave-skip-label-or-case)
+    (setq last (point))
+    (idlwave-skip-label-or-case eos)
+    (if (and pre (> (point) orig)) ;; Previous statement isn't beyond point!
+	(goto-char last))
     (if (< (point) orig)
 	(idlwave-skip-multi-commands orig))
     (setq last (point))
@@ -2700,7 +2703,7 @@ substatement."
              (setq ifnest (1- ifnest))
              (goto-char (match-end 0)))
             (t (setq ifnest 0)
-               (idlwave-next-statement))))
+               (idlwave-next-statement eos))))
     (if pre (goto-char last))
     ;; If a continuation line starts here, move to next line
     (when (looking-at "[ \t]*\\$\\([ \t]*\\(;\\|$\\)\\)")
