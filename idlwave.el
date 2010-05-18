@@ -7395,7 +7395,7 @@ we search only backward."
 	    (and (not (eq bound 'back)) (re-search-forward re lim t)))
 	(progn
 	  (goto-char (match-beginning 3))
-	  (if name (match-string-no-properties 4)
+	  (if name (match-string-no-properties 5)
 	    t)))))
 
 (defvar idlwave-class-info nil) 
