@@ -3,10 +3,10 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
 ;;   2008, 2009, 2010  Free Software Foundation, Inc.
 
-;; Authors: J.D. Smith <jdsmith@as.arizona.edu>
-;;          Carsten Dominik <dominik@science.uva.nl>
-;;          Chris Chase <chase@att.com>
-;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
+;; Authors: J.D. Smith <jdsmith _AT_ alum.mit.edu>
+;;          Carsten Dominik <dominik _AT_ science.uva.nl>
+;;          Chris Chase <chase _AT_ att.com>
+;; Maintainer: J.D. Smith <jdsmith _AT_ alum.mit.edu>
 ;; Version: VERSIONTAG
 ;; Keywords: languages
 
