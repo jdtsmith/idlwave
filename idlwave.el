@@ -2775,7 +2775,7 @@ See `idlwave-surround'."
 		 (re-search-backward "\\(#\\)\\=" nil t)) 
 		(setq len (1+ (length (match-string 1))))
 	      (when (re-search-backward an-ops nil t)
-		;(setq begin nil) ; won't modify begin
+					;(setq begin nil) ; won't modify begin
 		(setq len (1+ (length (match-string 1))))))))
 	
 	(if (eq t idlwave-pad-keyword)  
@@ -2796,7 +2796,7 @@ See `idlwave-surround'."
 		     ) ; remove space
 		    (t))) ; leave any spaces alone
 		  (t (idlwave-surround before after len))))))))
-	      
+
 
 (defun idlwave-indent-and-action (&optional arg)
   "Call `idlwave-indent-line' and do expand actions.
@@ -2968,8 +2968,8 @@ Inserts spaces before markers at point."
 		      (goto-char beg-prev-pos)
 		      (idlwave-block-jump-out -1 'nomark) ; go to begin block
 		      (idlwave-min-current-statement-indent)))
-		      ;;		      idlwave-end-offset
-		      ;;		      idlwave-block-indent))
+		   ;;		      idlwave-end-offset
+		   ;;		      idlwave-block-indent))
 		   
 		   ;; Default to current indent
 		   ((idlwave-current-statement-indent))))))
@@ -3076,11 +3076,11 @@ routine definitions, and parenthetical groupings, are treated separately."
        ;; Parenthetical indent, either traditional or Kernighan style
        ((setq fancy-paren-indent
 	      (let* ((end-reg end-reg)
-		    (close-exp (progn
-				 (goto-char end-reg)
-				 (skip-chars-forward " \t") 
-				 (looking-at "\\s)")))
-		    indent-cons)
+		     (close-exp (progn
+				  (goto-char end-reg)
+				  (skip-chars-forward " \t") 
+				  (looking-at "\\s)")))
+		     indent-cons)
 		(catch 'loop
 		  (while (setq indent-cons (idlwave-calculate-paren-indent
 					    beg-reg end-reg close-exp))
@@ -3271,7 +3271,7 @@ Ignores matches that end in a comment or inside a string expression.
 Returns point if successful, nil otherwise.
 This function produces unexpected results if REGEXP contains quotes or
 a comment delimiter.  The search is case insensitive.
-If successful leaves point after the match, otherwise, does not move point."
+If successful, leaves point after the match, otherwise, does not move point."
   (let ((here (point))
         (case-fold-search t)
         (eos (save-excursion
@@ -3601,9 +3601,9 @@ automatically breaks the line at a previous space."
     ;; update mode-line
     (set-buffer-modified-p (buffer-modified-p))))
 
-;(defun idlwave-fill-routine-call ()
-;  "Fill a routine definition or statement, indenting appropriately."
-;  (let ((where (idlwave-where)))))
+					;(defun idlwave-fill-routine-call ()
+					;  "Fill a routine definition or statement, indenting appropriately."
+					;  (let ((where (idlwave-where)))))
 
 
 (defun idlwave-doc-header (&optional nomark)
@@ -3707,10 +3707,10 @@ if point is in a IDL string constant, nil otherwise.
 Ignores comment delimiters on the current line.
 Properly handles nested quotation marks and octal
 constants - a double quote followed by an octal digit."
-;; Treat an octal inside an apostrophe to be a normal string. Treat a
-;; double quote followed by an octal digit to be an octal constant
-;; rather than a string. Therefore, there is no terminating double
-;; quote.
+  ;; Treat an octal inside an apostrophe to be a normal string. Treat a
+  ;; double quote followed by an octal digit to be an octal constant
+  ;; rather than a string. Therefore, there is no terminating double
+  ;; quote.
   (save-excursion
     ;; Because single and double quotes can quote each other we must
     ;; search for the string start from the beginning of line.
@@ -3805,7 +3805,7 @@ unless the optional second argument NOINDENT is non-nil."
 	  (indent-region beg end nil))
       (if (stringp prompt)
 	  (message "%s" prompt)))))
-  
+
 (defun idlwave-rw-case (string)
   "Make STRING have the case required by `idlwave-reserved-word-upcase'."
   (if idlwave-reserved-word-upcase
@@ -4073,7 +4073,7 @@ you specify /."
 					       "sh" nil errbuf nil "-c"
 					       (concat cmd append item)))
 					0
-  	                                1)))
+				      1)))
 		    ;;
 		    ;; Append additional tags
 		    (setq append " --append ")
@@ -4175,16 +4175,16 @@ blank lines."
 
     ;; Make sure these are lists
     (loop for entry in entries
-      for var = (car entry)
-      do (if (not (consp (symbol-value var))) (set var (list nil))))
+	  for var = (car entry)
+	  do (if (not (consp (symbol-value var))) (set var (list nil))))
 
     ;; Reset the system & library hash
     (when (or (eq what t) (eq what 'syslib)
 	      (null (cdr idlwave-sint-routines)))
       (loop for entry in entries
-	for var = (car entry) for size = (nth 1 entry)
-	do (setcdr (symbol-value var) 
-		   (make-hash-table ':size size ':test 'equal)))
+	    for var = (car entry) for size = (nth 1 entry)
+	    do (setcdr (symbol-value var) 
+		       (make-hash-table ':size size ':test 'equal)))
       (setq idlwave-sint-dirs nil
 	    idlwave-sint-libnames nil))
 
@@ -4192,9 +4192,9 @@ blank lines."
     (when (or (eq what t) (eq what 'bufsh)
 	      (null (car idlwave-sint-routines)))
       (loop for entry in entries
-	for var = (car entry) for size = (nth 1 entry)
-	do (setcar (symbol-value var) 
-		   (make-hash-table ':size size ':test 'equal))))))
+	    for var = (car entry) for size = (nth 1 entry)
+	    do (setcar (symbol-value var) 
+		       (make-hash-table ':size size ':test 'equal))))))
 
 (defun idlwave-sintern-routine-or-method (name &optional class set)
   (if class
@@ -4539,7 +4539,7 @@ information updated immediately, leave NO-CONCATENATE nil."
 				    (idlwave-shell-is-running)))
 	     (ask-shell (and shell-is-running
 			     idlwave-query-shell-for-routine-info)))
-      
+	
 	;; Load the library catalogs again, first re-scanning the path
 	(when arg 
 	  (if shell-is-running
@@ -4561,7 +4561,7 @@ information updated immediately, leave NO-CONCATENATE nil."
 	    ;;    Therefore, we do a concatenation now, even though
 	    ;;    the shell might do it again.
 	    (idlwave-concatenate-rinfo-lists nil 'run-hooks))
-      
+	
 	(when ask-shell
 	  ;; Ask the shell about the routines it knows of.
 	  (message "Querying the shell")
@@ -4622,7 +4622,7 @@ information updated immediately, leave NO-CONCATENATE nil."
     (if (file-directory-p (expand-file-name "online_help" dir))
 	(setq dir (expand-file-name "online_help" dir)))
     (expand-file-name "idl_catalog.xml" dir)))
-  
+
 
 (defun idlwave-xml-system-routine-info-up-to-date()
   (let* ((catalog-file (idlwave-xml-system-routine-info-file)))
@@ -4638,9 +4638,9 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
   "Alist of system variables and their help files.")
 (defvar idlwave-help-special-topic-words nil)
 
-		
+
 (defun idlwave-shorten-syntax (syntax name &optional class)
-  ;; From a list of syntax statments, shorten with %s and group with "or"
+  ;; From a list of syntax statements, shorten with %s and group with "or"
   (let ((case-fold-search t))
     (mapconcat 
      (lambda (x)
@@ -4718,7 +4718,7 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	      (list class (append '(inherits) inherits) (list 'link link))
 	    (list class (list 'link link))))
     (cons class-entry methods-entry)))
-    
+
 (defun idlwave-xml-create-rinfo-list (xml-entry &optional class extra-kws)
   ;; Create correctly structured list elements from ROUTINE or METHOD
   ;; XML list structures.  Return a list of list elements, with more
@@ -4809,7 +4809,7 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	    linkfiles
  	  (cons master-elt (delq master-elt linkfiles)))
       (push (list master-link) linkfiles))))
-      
+
 (defun idlwave-convert-xml-clean-statement-aliases (aliases)
   ;; Clean up the syntax of routines which are actually aliases by
   ;; removing the "OR" from the statements
@@ -4881,7 +4881,7 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 		      (cdr
 		       (idlwave-split-link-target (cdr (assq 'link props)))))
 		tags))))
-	(setq params (cdr params)))
+      (setq params (cdr params)))
     (delq nil
 	  (list sysvar (if tags (cons 'tags tags)) (list 'link link)))))
 
@@ -4974,12 +4974,12 @@ Cache to disk for quick recovery."
 	  (setq class-result (idlwave-xml-create-class-method-lists elem))
 	  (push (car class-result) idlwave-system-class-info)
 	  (setq idlwave-system-routines
-	  (nconc idlwave-system-routines (cdr class-result))))
+		(nconc idlwave-system-routines (cdr class-result))))
 
 	 ((eq type 'STATEMENT)
 	  (push (cons (cdr (assq 'name props))
 		      (cdr (assq 'link props)))
-	  idlwave-help-special-topic-words)
+		idlwave-help-special-topic-words)
 	  ;; Save the links to those which are statement aliases (not routines)
 	  (if (setq alias (assq 'alias_to props))
 	      (unless (member (cdr alias) statement-aliases)
@@ -5000,8 +5000,8 @@ Cache to disk for quick recovery."
     (setq idlwave-xml-routine-info-file catalog-file)
     (idlwave-save-routine-info)
     (message "Converting XML routine info...done")))
-      
-    
+
+
 ;; ("ROUTINE" type class
 ;;  (system) | (lib pro_file dir "LIBNAME") | (user pro_file dir "USERLIB") |
 ;;  (buffer pro_file dir) | (compiled pro_file dir)
@@ -5181,9 +5181,9 @@ Cache to disk for quick recovery."
   (or idlwave-class-alist
       (let (class)
 	(loop for x in idlwave-routines do
-	  (when (and (setq class (nth 2 x))
-		     (not (assq class idlwave-class-alist)))
-	    (push (list class) idlwave-class-alist)))
+	      (when (and (setq class (nth 2 x))
+			 (not (assq class idlwave-class-alist)))
+		(push (list class) idlwave-class-alist)))
 	idlwave-class-alist)))      
 
 ;; Three functions for the hooks
@@ -5314,12 +5314,12 @@ Can run from `after-save-hook'."
 	  class
 	  (cond ((not (boundp 'idlwave-scanning-lib))
 		 (list  'buffer (buffer-file-name)))
-;		((string= (downcase 
-;			   (file-name-sans-extension
-;			    (file-name-nondirectory (buffer-file-name))))
-;			  (downcase name))
-;		 (list 'lib))
-;		(t (cons 'lib (file-name-nondirectory (buffer-file-name))))
+					;		((string= (downcase 
+					;			   (file-name-sans-extension
+					;			    (file-name-nondirectory (buffer-file-name))))
+					;			  (downcase name))
+					;		 (list 'lib))
+					;		(t (cons 'lib (file-name-nondirectory (buffer-file-name))))
 		(t (list 'user (file-name-nondirectory (buffer-file-name))
 			 idlwave-scanning-lib-dir "UserLib")))
 	  (concat 
@@ -5373,7 +5373,7 @@ as last time - so no widget will pop up."
     (error "`idlwave-user-catalog-file' does not point to a file in an accessible directory"))
   
   (cond
-    ;; Rescan the known directories
+   ;; Rescan the known directories
    ((and arg idlwave-path-alist
 	 (consp (car idlwave-path-alist)))
     (idlwave-scan-user-lib-files idlwave-path-alist))
@@ -5439,7 +5439,7 @@ directories and save the routine info.
   (require 'widget)
   (require 'wid-edit)
   (unless dirs-list
-      (error "Don't know IDL's search path"))
+    (error "Don't know IDL's search path"))
 
   (kill-buffer (get-buffer-create "*IDLWAVE Widget*"))
   (switch-to-buffer (get-buffer-create "*IDLWAVE Widget*"))
@@ -5503,7 +5503,7 @@ directories and save the routine info.
   (widget-setup)
   (goto-char (point-min))
   (delete-other-windows))
-  
+
 (defun idlwave-delete-user-catalog-file (&rest ignore)
   (if (yes-or-no-p
        (format "Delete file %s " idlwave-user-catalog-file))
@@ -5615,7 +5615,7 @@ directories and save the routine info.
     ;; Define the variable which knows the value of "!DIR"
     (insert (format "\n(setq idlwave-system-directory \"%s\")\n"
 		    idlwave-system-directory))
-  
+    
     ;; Define the variable which contains a list of all scanned directories
     (insert "\n(setq idlwave-path-alist\n    '(")
     (let ((standard-output (current-buffer)))
@@ -5877,7 +5877,7 @@ end
   ;; FILE is set, only update routine info for routines in that file.
 
   (idlwave-shell-compile-helper-routines wait)
-  ; execute the routine_info procedure, and analyze the output
+					; execute the routine_info procedure, and analyze the output
   (idlwave-shell-send-command
    (format "idlwave_routine_info%s" (if file (concat ",'" file "'") ""))
    `(progn
@@ -6304,7 +6304,7 @@ syslib files."
     (car twins)))
 
 (defun idlwave-best-rinfo-assoc (name type class list &optional with-file 
-				     keep-system)
+				      keep-system)
   "Like `idlwave-best-rinfo-assq', but sintern strings first."
   (idlwave-best-rinfo-assq
    (idlwave-sintern-routine-or-method name class)

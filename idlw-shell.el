@@ -1671,7 +1671,7 @@ command queue."
 		    ;; set completed-command, which the
 		    ;; post-command-hook may need to analyze.
 		    (setq idlwave-shell-accumulation nil
-			  idlwave-shell-completed-command
+			  idlwave-shell-completed-command 
 			  idlwave-shell-current-command
 			  idlwave-shell-current-command nil)
 		    
@@ -1777,7 +1777,7 @@ is found.  The variable `idlwave-shell-current-state' is set to
 'error, 'halt, or 'breakpoint, which describes the status, or nil
 for none of the above.  If REDISPLAY is non-nil, clear the line
 position if no recognized message is found, unless it is
-'disable, in which case no-redisplay occurs except for errors."
+'disable, in which case no redisplay occurs except for errors."
   (let (trace)
 
     (cond
