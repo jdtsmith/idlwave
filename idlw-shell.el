@@ -1682,9 +1682,9 @@ command queue."
 		    
 		    (setq idlwave-shell-command-output nil)
 		    
-
 		    ;; Send any pending commands
-		    (idlwave-shell-send-command))
+		    (idlwave-shell-send-command)))
+	      (store-match-data data))))))
 
 (defun idlwave-shell-sentinel (process event)
   "The sentinel function for the IDLWAVE shell process."
