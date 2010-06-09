@@ -1581,12 +1581,10 @@ command queue."
 		(ding)
 		(aset string p ?\C-j ))
 	      (if (and idlwave-shell-current-command
-		       (nth 2 idlwave-shell-current-command)) ; we're hiding
-		  (save-excursion
-		    (while (setq p (string-match "\C-M" string))
-		      (aset string p ?\  ))
-		    (set-buffer
-		     (get-buffer-create idlwave-shell-hidden-output-buffer))
+		       (nth 2 idlwave-shell-current-command)) 
+		  ;; We're hiding output
+		  (with-current-buffer 
+		      (get-buffer-create idlwave-shell-hidden-output-buffer)
 		    (goto-char (point-max))
 		    (insert string))
 		;; Not hiding, just put in the shell buffer
@@ -1607,17 +1605,17 @@ command queue."
 	 				    (match-end 0)))))
 		(setq idlwave-shell-accumulation
 		      (concat idlwave-shell-accumulation string)))
-	    
+	      	    
 	      ;; Test/Debug code
 	      ;;(with-current-buffer
 	      ;; (get-buffer-create "*idlwave-shell-output*")
 	      ;; (goto-char (point-max))
 	      ;; (insert "\nReceived STRING\n===>\n" string "\n<====\n"))
-	    
+
 	      ;; Check for prompt in current accumulating output
 	      (if (setq idlwave-shell-ready
-			  (string-match idlwave-shell-prompt-pattern
-					idlwave-shell-accumulation))
+			(string-match idlwave-shell-prompt-pattern
+				      idlwave-shell-accumulation))
 		  (let ((pcmd (nth 1 idlwave-shell-current-command))
 			(hide (nth 2 idlwave-shell-current-command))
 			(show-if-error (nth 3 idlwave-shell-current-command))
@@ -1627,6 +1625,10 @@ command queue."
 		    (if hide
 			;; Hidden output
 			(with-current-buffer idlwave-shell-hidden-output-buffer
+			  (goto-char (point-min))
+			  ;; Remove pesky C-M's from text
+			  (while (re-search-forward "\r+$" nil t)
+			    (replace-match "" t t))
 			  (setq full-output (buffer-string))
 			  (goto-char (point-max))
 			  (re-search-backward idlwave-shell-prompt-pattern 
