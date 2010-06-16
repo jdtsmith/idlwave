@@ -96,6 +96,7 @@
 ;;    Paul Sorenson <aardvark62_at_msn.com>
 ;;    Phil Sterne <sterne_at_dublin.llnl.gov>
 ;;    Phil Williams <williams_at_irc.chmcc.org>
+;;    Nathaniel Cunningham
 ;;
 ;; CUSTOMIZATION:
 ;; =============
