@@ -3549,7 +3549,7 @@ the breakpoint overlays."
     (let ((old-bp-alist idlwave-shell-bp-alist)
 	  ;; Searching the breakpoints
 	  ;; In IDL 5.5, the breakpoint reporting format changed.
-	  (bp-re54 "^[ \t]*\\([0-9]+\\)[ \t]+\\(\\S-+\\)?[ \t]+\\([0-9]+\\)[ \t]+\\(\\S-+\\)")
+	  (bp-re54 "^[ \t]*\\([0-9]+\\)[ \t]+\\(\\S-+\\)?[ \t]+\\([0-9]+\\)[ \t]+\\([^\t\n\r]*\\S-\\)\\s-*$")
 	  (bp-re55
 	   (concat
 	    "^\\s-*\\([0-9]+\\)"    ; 1 index
@@ -3560,7 +3560,7 @@ the breakpoint overlays."
 	    "\\(\\s-*,\\s-*\\(BreakOnce\\)\\)?"            ; 9-10 BreakOnce
 	    "\\(\\s-*,\\s-*\\(Condition='\\(.*\\)'\\)\n?\\)?" ; 11-13 Condition
 	    "\\(\\s-*,\\s-*\\(Disabled\\)\n?\\)?"          ; 14-15 Disabled
-	    "\\s-+\\(\\S-+\\)"))                           ; 16 File name
+	    "\\s-+\\([^\t\n\r]*\\S-\\)\\s-*$"))            ; 16 File name
 	  file line index module
 	  count condition disabled
 	  bp-re indmap)
