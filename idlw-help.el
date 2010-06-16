@@ -325,7 +325,7 @@ Here are all keybindings.
   (set (make-local-variable 'idlwave-help-def-pos) nil)
   (set (make-local-variable 'idlwave-help-args) nil)
   (set (make-local-variable 'idlwave-help-in-header) nil)
-  (run-hooks 'idlwave-help-mode-hook))
+  (run-mode-hooks 'idlwave-help-mode-hook))
 
 (defvar idlwave-current-obj_new-class)
 (defvar idlwave-help-diagnostics)
