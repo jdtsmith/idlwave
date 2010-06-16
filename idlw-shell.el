@@ -2270,11 +2270,14 @@ keywords."
      ((and
        (setq exec-cmd (idlwave-shell-executive-command))
        (cdr exec-cmd)
-       (member (upcase (cdr exec-cmd))
+       (member (upcase (cadr exec-cmd))
 	       '(".R" ".RU" ".RUN" ".RN" ".RNE" ".RNEW"
 		 ".COM" ".COMP" ".COMPI" ".COMPIL" ".COMPILE")))
       ;; We are in a command line with an executive command
-      (idlwave-shell-complete-filename))
+      (save-restriction
+	;; Avoid matching the command and following space itself.
+	(narrow-to-region (car (cddr exec-cmd)) (point))
+	(idlwave-shell-complete-filename)))
 
      ((car-safe exec-cmd)
       (setq idlwave-completion-help-info
@@ -2327,8 +2330,8 @@ args of an executive .run, .rnew or .compile."
   (save-excursion
     (idlwave-beginning-of-statement)
     (cons (looking-at "[ \t]*\\.")
-	  (if (looking-at "[ \t]*[.]\\([^ \t\n\r]+\\)[ \t]")
-	      (match-string 1)))))
+	  (if (looking-at "[ \t]*\\([.][^ \t\n\r]+\\)[ \t]+")
+	      (list (match-string 1) (match-end 0))))))
 
 (defun idlwave-shell-filename-string ()
   "Return t if in a string and after what could be a file name."
