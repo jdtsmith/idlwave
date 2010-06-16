@@ -500,14 +500,17 @@ line where IDL is stopped.  See also `idlwave-shell-mark-stop-line'."
   :group 'idlwave-shell-highlighting-and-faces
   :type 'string)
 
+(defface idlwave-shell-electric-stop-line
+  `((((class color))
+     :background ,idlwave-shell-electric-stop-color
+     :box (:line-width -1 :style released-button))
+    (t
+     :box (:line-width -1 :style released-button)))
+  "The default face for `idlwave-shell-stop-line-overlay' when in
+electric debug mode.")
+
 (defcustom idlwave-shell-electric-stop-line-face
-  (prog1
-      (copy-face 'modeline 'idlwave-shell-electric-stop-line)
-    (set-face-background 'idlwave-shell-electric-stop-line
-			 idlwave-shell-electric-stop-color)
-    (condition-case nil
-	(set-face-foreground 'idlwave-shell-electric-stop-line nil)
-      (error nil)))
+  'idlwave-shell-electric-stop-line
   "*The face for `idlwave-shell-stop-line-overlay' when in electric debug mode.
 Allows you to choose the font, color and other properties for the line
 where IDL is stopped, when in Electric Debug Mode."
