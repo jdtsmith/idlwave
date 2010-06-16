@@ -327,7 +327,6 @@ Here are all keybindings.
   (set (make-local-variable 'idlwave-help-in-header) nil)
   (run-hooks 'idlwave-help-mode-hook))
 
-
 (defvar idlwave-current-obj_new-class)
 (defvar idlwave-help-diagnostics)
 (defvar idlwave-experimental)
@@ -1196,7 +1195,7 @@ Useful when source code is displayed as help.  See the option
 (defun idlwave-help-get-help-buffer ()
   "Return the IDLWAVE Help buffer.  Make it first if necessary."
   (let ((buf (get-buffer "*IDLWAVE Help*")))
-    (if (not buf)
+    (when (not buf)
       (setq buf (get-buffer-create "*IDLWAVE Help*"))
       (with-current-buffer buf
 	(idlwave-help-mode)))
