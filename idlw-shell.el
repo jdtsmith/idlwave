@@ -1870,10 +1870,7 @@ position if no recognized message is found, unless it is
 
      ;; Otherwise, no particular state: remove line display if requested
      (t (setq idlwave-shell-current-state nil)
-	(if (and redisplay 
-		 (not (eq redisplay 'disable))
-		 (not (and idlwave-shell-current-command
-			   (nth 1 idlwave-shell-current-command)))) ; pcmd hook
+	(if redisplay 
 	    (idlwave-shell-display-line nil))))))
 
 
