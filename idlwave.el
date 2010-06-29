@@ -8745,7 +8745,7 @@ can be used to detect possible name clashes during this process."
 		      km-prop keymap
 		      'help-echo "Mouse2: Find source"))      
 	 (nroutines (length (or special-routines routines)))
-	 (step (/ nroutines 100))
+	 (step (max 1 (/ nroutines 100)))
 	 (n 0)
 	 (cnt 0)
 	 (idlwave-sort-prefer-buffer-info nil)
