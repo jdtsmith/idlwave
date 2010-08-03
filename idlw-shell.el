@@ -2274,10 +2274,7 @@ keywords."
 	       '(".R" ".RU" ".RUN" ".RN" ".RNE" ".RNEW"
 		 ".COM" ".COMP" ".COMPI" ".COMPIL" ".COMPILE")))
       ;; We are in a command line with an executive command
-      (save-restriction
-	;; Avoid matching the command and following space itself.
-	(narrow-to-region (car (cddr exec-cmd)) (point))
-	(idlwave-shell-complete-filename)))
+      (idlwave-shell-complete-filename (not (idlwave-in-quote))))
 
      ((car-safe exec-cmd)
       (setq idlwave-completion-help-info
@@ -2316,13 +2313,16 @@ keywords."
       (if entry (setq link (cdr entry)))) ;; setting dynamic variable!!!
      (t (error "This should not happen")))))
 
-(defun idlwave-shell-complete-filename (&optional arg)
+(defun idlwave-shell-complete-filename (&optional nospace)
   "Complete a file name at point if after a file name.
 We assume that we are after a file name when completing one of the
 args of an executive .run, .rnew or .compile."
   ;; CWD might have changed, resync, to set default directory
   (idlwave-shell-resync-dirs)
-  (let ((comint-file-name-chars idlwave-shell-file-name-chars))
+  (let ((comint-file-name-chars 
+	 (if (and nospace (string-match "[ ]" idlwave-shell-file-name-chars))
+	     (replace-match "" nil t idlwave-shell-file-name-chars)
+	   idlwave-shell-file-name-chars)))
     (comint-dynamic-complete-as-filename)))
 
 (defun idlwave-shell-executive-command ()
