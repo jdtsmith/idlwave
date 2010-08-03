@@ -3286,6 +3286,60 @@ If successful, leaves point after the match, otherwise, does not move point."
     (if (not found) (goto-char here))
     found))
 
+(defun idlwave-commented-paragraph-beg-end ()
+  "Find and return the beginning and end position of a commented paragraph.
+End is calculated as distance from end of buffer, to accommodate
+additions from filling."
+  (let (pre diff fill-prefix-reg bcl start end)
+    (beginning-of-line)
+    (setq bcl (point))
+    (re-search-forward
+     (concat "^[ \t]*" comment-start "+")
+     (save-excursion (end-of-line) (point))
+     t)
+    ;; Get the comment leader on the line and its length
+    (setq pre (current-column))
+    ;; the comment leader is the indentation plus exactly the
+    ;; number of consecutive ";".
+    (setq fill-prefix-reg
+	  (concat
+	   (setq fill-prefix
+		 (regexp-quote
+		  (buffer-substring (save-excursion
+				      (beginning-of-line) (point))
+				    (point))))
+	   "[^;]"))
+	
+    ;; Mark the beginning and end of the paragraph
+    (goto-char bcl)
+    (while (and (looking-at fill-prefix-reg)
+		(not (looking-at paragraph-separate))
+		(not (bobp)))
+      (forward-line -1))
+    ;; Move to first line of paragraph
+    (if (and (/= (point) bcl) (not (bobp)))
+	(forward-line 1))
+    (setq start (point))
+    (goto-char bcl)
+    (while (and (looking-at fill-prefix-reg)
+		(not (looking-at paragraph-separate))
+		(not (eobp)))
+      (forward-line 1))
+    (beginning-of-line)
+    (if (or (not (looking-at fill-prefix-reg))
+	    (looking-at paragraph-separate))
+	(forward-line -1))
+    (end-of-line)
+    ;; if at end of buffer add a newline (need this because
+    ;; fill-region needs END to be at the beginning of line after
+    ;; the paragraph or it will add a line).
+    (if (eobp)
+	(progn (insert ?\n) (backward-char 1)))
+    ;; Set END to the beginning of line after the paragraph
+    ;; N.B. END is calculated as distance from end of buffer
+    (setq end (- (point-max) (point) 1))
+    (list start end pre)))
+
 (defun idlwave-fill-paragraph (&optional nohang)
   "Fill paragraphs in comments.
 A paragraph is made up of all contiguous lines having the same comment
@@ -3307,8 +3361,7 @@ ignored."
         (looking-at comment-start))
       (let
           ((indent 999)
-           pre here diff fill-prefix-reg bcl first-indent
-           hang start end)
+           first-indent hang here pre start end)
         ;; Change tabs to spaces in the surrounding paragraph.
         ;; The surrounding paragraph will be the largest containing block of
         ;; contiguous line comments. Thus, we may be changing tabs in
@@ -3325,54 +3378,11 @@ ignored."
           (setq end (point)))
         (untabify start end)
         ;;
-        (setq here (point))
-        (beginning-of-line)
-        (setq bcl (point))
-        (re-search-forward
-         (concat "^[ \t]*" comment-start "+")
-         (save-excursion (end-of-line) (point))
-         t)
-        ;; Get the comment leader on the line and its length
-        (setq pre (current-column))
-        ;; the comment leader is the indentation plus exactly the
-        ;; number of consecutive ";".
-        (setq fill-prefix-reg
-              (concat
-               (setq fill-prefix
-                     (regexp-quote
-                      (buffer-substring (save-excursion
-                                          (beginning-of-line) (point))
-                                        (point))))
-               "[^;]"))
-	
-        ;; Mark the beginning and end of the paragraph
-        (goto-char bcl)
-        (while (and (looking-at fill-prefix-reg)
-                    (not (looking-at paragraph-separate))
-                    (not (bobp)))
-          (forward-line -1))
-        ;; Move to first line of paragraph
-        (if (/= (point) bcl)
-            (forward-line 1))
-        (setq start (point))
-        (goto-char bcl)
-        (while (and (looking-at fill-prefix-reg)
-                    (not (looking-at paragraph-separate))
-                    (not (eobp)))
-          (forward-line 1))
-        (beginning-of-line)
-        (if (or (not (looking-at fill-prefix-reg))
-                (looking-at paragraph-separate))
-            (forward-line -1))
-        (end-of-line)
-        ;; if at end of buffer add a newline (need this because
-        ;; fill-region needs END to be at the beginning of line after
-        ;; the paragraph or it will add a line).
-        (if (eobp)
-            (progn (insert ?\n) (backward-char 1)))
-        ;; Set END to the beginning of line after the paragraph
-        ;; END is calculated as distance from end of buffer
-        (setq end (- (point-max) (point) 1))
+	(setq here (point)
+	      start (idlwave-commented-paragraph-beg-end)
+	      end (cadr start)
+	      pre (car (cddr start))
+	      start (car start))
         ;;
         ;; Calculate the indentation for the paragraph.
         ;;
@@ -3527,7 +3537,8 @@ non-nil."
 		  (let ((here (- (point-max) (point)))
 			(indent
 			 (save-excursion
-			   (forward-line -1)
+			   (goto-char 
+			    (car (idlwave-commented-paragraph-beg-end)))
 			   (idlwave-calc-hanging-indent))))
 		    (if indent
 			(progn
