@@ -2049,7 +2049,7 @@ session.  Using .skip and .out, we can escape the routine."
   "Return from the entire calling stack."
   (interactive "P")
   (save-selected-window
-    (idlwave-shell-send-command "retall" 'idlwave-shell-escape-main-program
+    (idlwave-shell-send-command "retall" nil ;'idlwave-shell-escape-main-program
 				(if (idlwave-shell-hide-p 'misc) 'mostly)
 				nil 'show-if-error 'redisplay)))
 
