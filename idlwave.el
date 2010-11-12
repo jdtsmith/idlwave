@@ -1131,26 +1131,27 @@ As a user, you should not set this to t.")
 (defvar idlwave-idl-keywords
   ;; To update this regexp, update the list of keywords and 
   ;; evaluate the form.
-  ;;	(insert 
-  ;;	 (prin1-to-string
-  ;;	  (concat 
-  ;;	   "\\<\\("
-  ;;	   (regexp-opt 
-  ;;	    '("||" "&&" "and" "or" "xor" "not"
-  ;;	      "eq" "ge" "gt" "le" "lt" "ne" 
-  ;;	      "for" "do" "endfor"
-  ;;	      "if" "then" "endif" "else" "endelse" 
-  ;;	      "case" "of" "endcase"
-  ;;	      "switch" "break" "continue" "endswitch"
-  ;;	      "begin" "end"
-  ;;	      "repeat" "until" "endrep"
-  ;;	      "while" "endwhile" 
-  ;;	      "goto" "return"
-  ;;	      "inherits" "mod"
-  ;;	      "compile_opt" "forward_function"
-  ;;	      "on_error" "on_ioerror"))  ; on_error is not officially reserved
-  ;;	   "\\)\\>")))
-  "\\<\\(&&\\|and\\|b\\(egin\\|reak\\)\\|c\\(ase\\|o\\(mpile_opt\\|ntinue\\)\\)\\|do\\|e\\(lse\\|nd\\(case\\|else\\|for\\|if\\|rep\\|switch\\|while\\)?\\|q\\)\\|for\\(ward_function\\)?\\|g\\(oto\\|[et]\\)\\|i\\(f\\|nherits\\)\\|l[et]\\|mod\\|n\\(e\\|ot\\)\\|o\\(n_\\(error\\|ioerror\\)\\|[fr]\\)\\|re\\(peat\\|turn\\)\\|switch\\|then\\|until\\|while\\|xor\\|||\\)\\>")
+  	;; (insert 
+  	;;  (prin1-to-string
+  	;;   (concat 
+  	;;    "\\<\\("
+  	;;    (regexp-opt 
+  	;;     '("||" "&&" "and" "or" "xor" "not"
+  	;;       "eq" "ge" "gt" "le" "lt" "ne" 
+  	;;       "for" "do" "endfor" "foreach" "endforeach"
+  	;;       "if" "then" "endif" "else" "endelse" 
+  	;;       "case" "of" "endcase"
+  	;;       "switch" "break" "continue" "endswitch"
+  	;;       "begin" "end"
+  	;;       "repeat" "until" "endrep"
+  	;;       "while" "endwhile" 
+  	;;       "goto" "return"
+  	;;       "inherits" "mod"
+  	;;       "compile_opt" "forward_function"
+  	;;       "on_error" "on_ioerror"))  ; on_error is not officially reserved
+  	;;    "\\)\\>")))
+
+  "\\<\\(\\(?:&&\\|and\\|b\\(?:egin\\|reak\\)\\|c\\(?:ase\\|o\\(?:mpile_opt\\|ntinue\\)\\)\\|do\\|e\\(?:lse\\|nd\\(?:case\\|else\\|for\\(?:each\\)?\\|if\\|rep\\|switch\\|while\\)?\\|q\\)\\|for\\(?:each\\|ward_function\\)?\\|g\\(?:oto\\|[et]\\)\\|i\\(?:f\\|nherits\\)\\|l[et]\\|mod\\|n\\(?:e\\|ot\\)\\|o\\(?:n_\\(?:\\(?:io\\)?error\\)\\|[fr]\\)\\|re\\(?:peat\\|turn\\)\\|switch\\|then\\|until\\|while\\|xor\\|||\\)\\)\\>")
 
 
 (let* (;; Procedure declarations.  Fontify keyword plus procedure name.
@@ -1294,7 +1295,7 @@ case does not matter. The search skips matches in comments.")
   "Regular expression to match a continued line.")
 
 (defconst idlwave-end-block-reg
-  "\\<end\\(\\|case\\|switch\\|else\\|for\\|if\\|rep\\|while\\)\\>"
+  "\\<end\\(\\|case\\|switch\\|else\\|for\\|foreach\\|if\\|rep\\|while\\)\\>"
   "Regular expression to find the end of a block. 
 The case does not matter. The search skips matches found in
 comments.")
@@ -1305,6 +1306,7 @@ comments.")
     ("case"     . "endcase")
     ("else"     . "endelse")
     ("for"      . "endfor")
+    ("foreach"  . "endforeach")
     ("then"     . "endif")
     ("repeat"   . "endrep")
     ("switch"   . "endswitch")
@@ -1317,7 +1319,7 @@ This is used to check for the correct END type, to close blocks and
 to expand generic end statements to their detailed form.")
 
 (defconst idlwave-block-match-regexp
-  "\\<\\(else\\|for\\|then\\|repeat\\|while\\)\\>"
+  "\\<\\(else\\|for\\|foreach\\|then\\|repeat\\|while\\)\\>"
 "Regular expression matching reserved words which can stand before
 blocks starting with a BEGIN statement.  The matches must have associations
 `idlwave-block-matches'.")
@@ -1347,6 +1349,7 @@ blocks starting with a BEGIN statement.  The matches must have associations
    (cons 'end (list idlwave-end-block-reg nil))
    '(if . ("if\\>" "then"))
    '(for . ("for\\>" "do"))
+   '(foreach . ("foreach\\>" "do"))
    '(begin . ("begin\\>" nil))
    '(pdef . ("pro\\>\\|function\\>" nil))
    '(while . ("while\\>" "do"))
@@ -1665,6 +1668,7 @@ If NOPREFIX is non-nil, don't prepend prefix character.  Installs into
 (idlwave-define-abbrev "c"   "" (idlwave-code-abbrev idlwave-case))
 (idlwave-define-abbrev "sw"  "" (idlwave-code-abbrev idlwave-switch))
 (idlwave-define-abbrev "f"   "" (idlwave-code-abbrev idlwave-for))
+(idlwave-define-abbrev "fe"  "" (idlwave-code-abbrev idlwave-foreach))
 (idlwave-define-abbrev "fu"  "" (idlwave-code-abbrev idlwave-function))
 (idlwave-define-abbrev "pr"  "" (idlwave-code-abbrev idlwave-procedure))
 (idlwave-define-abbrev "r"   "" (idlwave-code-abbrev idlwave-repeat))
@@ -1745,6 +1749,7 @@ If NOPREFIX is non-nil, don't prepend prefix character.  Installs into
 (idlwave-define-abbrev "endcase"    "endcase"   'idlwave-show-begin-check t)
 (idlwave-define-abbrev "endelse"    "endelse"   'idlwave-show-begin-check t)
 (idlwave-define-abbrev "endfor"     "endfor"    'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endforeach" "endforeach" 'idlwave-show-begin-check t)
 (idlwave-define-abbrev "endif"      "endif"     'idlwave-show-begin-check t)
 (idlwave-define-abbrev "endrep"     "endrep"    'idlwave-show-begin-check t)
 (idlwave-define-abbrev "endswitch"  "endswitch" 'idlwave-show-begin-check t)
@@ -3854,6 +3859,14 @@ unless the optional second argument NOINDENT is non-nil."
   (idlwave-template 
    (idlwave-rw-case "for")
    (idlwave-rw-case " do begin\n\nendfor")
+   "Loop expression"))
+
+(defun idlwave-foreach ()
+  "Build skeleton IDL for loop statement."
+  (interactive)
+  (idlwave-template 
+   (idlwave-rw-case "foreach")
+   (idlwave-rw-case " do begin\n\nendforeach")
    "Loop expression"))
 
 (defun idlwave-if ()
