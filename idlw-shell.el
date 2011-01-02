@@ -964,7 +964,8 @@ IDL has currently stepped.")
 \\{idlwave-shell-mode-map}"
 
   (interactive)
-  (idlwave-setup) ; Make sure config files and paths, etc. are available.
+  ; Make sure config files and paths, etc. are available.
+  (idlwave-setup)
   (unless (file-name-absolute-p idlwave-shell-command-history-file)
     (setq idlwave-shell-command-history-file
 	  (expand-file-name idlwave-shell-command-history-file

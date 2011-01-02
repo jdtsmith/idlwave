@@ -2002,11 +2002,6 @@ The main features of this mode are
   ;; Update the routine info with info about current buffer?
   (idlwave-new-buffer-update)
 
-  (if idlwave-complete-structure-tags
-      (add-hook 'idlwave-mode-hook 
-		(lambda ()
-		  (require 'idlw-complete-structtag))))
-
   ;; Run the mode hook
   (run-mode-hooks 'idlwave-mode-hook))
 
@@ -2031,7 +2026,9 @@ The main features of this mode are
     (idlwave-read-paths)  ; we may need these early
 
     (idlwave-help-check-locations)
-
+    
+    (if idlwave-complete-structure-tags
+	(require 'idlw-complete-structtag))
     (setq idlwave-setup-done t)))
 
 (defun idlwave-font-lock-fontify-region (beg end &optional verbose)
