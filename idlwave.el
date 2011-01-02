@@ -7711,6 +7711,7 @@ property indicating the link is added."
 (idlwave-new-sintern-type 'sysvartag)
 (add-to-list 'idlwave-complete-special 'idlwave-complete-sysvar-or-tag)
 (add-hook 'idlwave-update-rinfo-hook 'idlwave-sysvars-reset)
+(add-hook 'idlwave-update-rinfo-hook 'idlwave-class-add-init-special)
 (add-hook 'idlwave-after-load-rinfo-hook 'idlwave-sintern-sysvar-alist)
 
 
@@ -7834,6 +7835,23 @@ associated TAG, if any."
 	     (throw 'exit cl))	       
 	   (setq tags (cdr tags))))))))
 
+
+(defun idlwave-class-add-init-special ()
+  ;; Create special entries for Class::Init() methods as Class() (IDL >=8)
+  (idlwave-routines)
+  (setcdr (last idlwave-routines)
+	  (idlwave-sintern-rinfo-list
+	   (mapcar
+	    (lambda (entry)
+	      (let ((new-entry (copy-sequence entry)))
+		(setcar new-entry (nth 2 entry))
+		(setcar (cddr new-entry) nil)
+		new-entry))
+	    (idlwave-all-assq (idlwave-sintern-method "Init")
+			      idlwave-routines))
+	   'set)))
+	 
+	
 
 (defun idlwave-sysvars-reset ()
   (if (and (fboundp 'idlwave-shell-is-running)
