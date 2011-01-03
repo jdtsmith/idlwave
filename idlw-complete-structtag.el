@@ -3,7 +3,7 @@
 ;;               2009, 2010  Free Software Foundation, Inc.
 ;;
 ;; Author: Carsten Dominik <dominik _AT_ astro.uva.nl>
-;; Maintainer: J.D. Smith <jdtsmith _AT_ gmail.com>
+;; Maintainer: J.D. Smith <jdsmith _AT_ alum.mit.edu>
 ;; Version: 1.2
 ;; Keywords: languages
 
@@ -78,7 +78,9 @@
 ;; Notes
 ;; -----
 ;;  - The structure definition assignment "state = {...}" must use the
-;;    same variable name as the completion location "state.*".
+;;    same variable name as the completion location "state.*". (except
+;;    in the Shell, where structure tags will be determined
+;;    interactively).
 ;;  - The structure definition must be in the same file.
 ;;  - The structure definition is searched backwards and then forward
 ;;    from the current position, until a definition with tags is found.

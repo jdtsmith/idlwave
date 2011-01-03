@@ -1,7 +1,7 @@
 ;; idlwave.el --- IDL editing mode for GNU Emacs
 
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-;;   2008, 2009, 2010  Free Software Foundation, Inc.
+;;   2008, 2009, 2010, 2011  Free Software Foundation, Inc.
 
 ;; Authors: J.D. Smith <jdsmith _AT_ alum.mit.edu>
 ;;          Carsten Dominik <dominik _AT_ science.uva.nl>
@@ -93,6 +93,7 @@
 ;;    Bob Portmann <portmann_at_al.noaa.gov>
 ;;    Patrick M. Ryan <pat_at_jaameri.gsfc.nasa.gov>
 ;;    Marty Ryba <ryba_at_ll.mit.edu>
+;;    Matthew Savoie <savoie_at_nsidc.org>
 ;;    Paul Sorenson <aardvark62_at_msn.com>
 ;;    Phil Sterne <sterne_at_dublin.llnl.gov>
 ;;    Phil Williams <williams_at_irc.chmcc.org>
@@ -4957,7 +4958,7 @@ Cache to disk for quick recovery."
 	  (let ((xml-validating-parser t))
 	    (condition-case nil
 		(xml-parse-file catalog-file)
-	      (error ;; Deal with XML.el bug: underscores in ATTLIST/ELEMENT names hang
+	      (error ;; Deal with XML.el bug
 	       (setq xml-validating-parser nil)
 	       (with-temp-buffer 
 		 (insert-file-contents catalog-file)
@@ -5936,9 +5937,10 @@ end
 (defvar super-classes)
 
 (defun idlwave-complete (&optional arg module class)
-  "Complete a function, procedure or keyword name at point.
-This function is smart and figures out what can be completed
-at this point.
+  "Complete a function, procedure (method) or keyword name at point.
+This function is smart and figures out what can be completed at
+this point.  Extensions are supported. 
+
 - At the beginning of a statement it completes procedure names.
 - In the middle of a statement it completes function names.
 - After a `(' or `,' in the argument list of a function or procedure,
@@ -7835,23 +7837,21 @@ associated TAG, if any."
 	     (throw 'exit cl))	       
 	   (setq tags (cdr tags))))))))
 
-
 (defun idlwave-class-add-init-special ()
-  ;; Create special entries for Class::Init() methods as Class() (IDL >=8)
+  ;; Create special entries for Class::Init() methods as Class() 
+  ;; (syntactic sugar in IDL >=8).
   (idlwave-routines)
   (setcdr (last idlwave-routines)
 	  (idlwave-sintern-rinfo-list
 	   (mapcar
 	    (lambda (entry)
 	      (let ((new-entry (copy-sequence entry)))
-		(setcar new-entry (nth 2 entry))
-		(setcar (cddr new-entry) nil)
+		(setcar new-entry (nth 2 entry)) ;; Function is class name
+		(setcar (cddr new-entry) nil) ;; No class
 		new-entry))
 	    (idlwave-all-assq (idlwave-sintern-method "Init")
 			      idlwave-routines))
 	   'set)))
-	 
-	
 
 (defun idlwave-sysvars-reset ()
   (if (and (fboundp 'idlwave-shell-is-running)
