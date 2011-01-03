@@ -4619,25 +4619,12 @@ information updated immediately, leave NO-CONCATENATE nil."
 (defun idlwave-load-system-routine-info ()
   ;; Load the system routine info from the cached routine info file,
   ;; which, if necessary, will be re-created from the XML file on
-  ;; disk.  As a last fallback, load the (likely outdated) idlw-rinfo
-  ;; file distributed with older IDLWAVE versions (<6.0)
-  (unless (and (load idlwave-xml-system-rinfo-converted-file 
+  ;; disk.
+  (unless (and (load idlwave-xml-system-rinfo-converted-file
 		     'noerror 'nomessage)
 	       (idlwave-xml-system-routine-info-up-to-date))
     ;; See if we can create it from XML source
-    (condition-case nil
-	(idlwave-convert-xml-system-routine-info)
-      (error 
-       (unless (load idlwave-xml-system-rinfo-converted-file 
-		     'noerror 'nomessage)
-	 (if idlwave-system-routines
-	     (message 
-	      "Failed to load converted routine info, using old conversion.")
-	   (message 
-	    "Failed to convert XML routine info, falling back on idlw-rinfo.")
-	   (if (not (load "idlw-rinfo" 'noerror 'nomessage))
-	       (message 
-		"Could not locate any system routine information."))))))))
+    (idlwave-convert-xml-system-routine-info)))
 
 (defun idlwave-xml-system-routine-info-file()
   (let* ((dir (file-name-as-directory 
@@ -5054,7 +5041,6 @@ Cache to disk for quick recovery."
 	  (when (not (aref arr 0))
 	    (message "Loading system routine info in idle time...")
 	    (idlwave-load-system-routine-info)
-	    ;;(load "idlw-rinfo" 'noerror 'nomessage)
 	    (message "Loading system routine info in idle time...done")
 	    (aset arr 0 t)
 	    (throw 'exit t))
@@ -5127,7 +5113,6 @@ Cache to disk for quick recovery."
 
   ;; System
   (when (or force (not (aref idlwave-load-rinfo-steps-done 0)))
-    ;;(load "idlw-rinfo" 'noerror 'nomessage))
     (idlwave-load-system-routine-info))
   (when (or force (not (aref idlwave-load-rinfo-steps-done 1)))
     (message "Normalizing idlwave-system-routines...")
