@@ -4831,6 +4831,33 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	    (while (string-match " +or +" (setq syntax (nth 4 entry)))
 	      (setf (nth 4 entry) (replace-match ", " t t syntax)))))))
 
+(defun idlwave-convert-xml-add-link-path-information ()
+  ;; Add path information missing from idl_catalog.xml since IDL 8
+  (let* ((alias-file (expand-file-name "help/online_help/IDL/Data/Alias.xml" 
+				       (idlwave-sys-dir))))
+    (if (file-exists-p alias-file)
+	(let ((aliases (cdar (xml-parse-file alias-file))) elem alias-list)
+	  (while aliases
+	    (setq elem (car aliases)
+		  aliases (cdr aliases))
+	    (when (and (listp elem) (eq (car elem) 'Map))
+	      (setq elem (cadr elem))
+	      (let* ((link (cdr (assoc 'Link elem)))
+		     (file (file-name-nondirectory link)))
+		(push (cons file link) alias-list))))
+	  ;; Change the links appropriately
+	  (mapc
+	   (lambda (x)
+	     (let ((kwd_blocks (nthcdr 5 x)) link)
+	       (while kwd_blocks
+		 (setq link (car kwd_blocks)
+		       kwd_blocks (cdr kwd_blocks))
+		 (let* ((linkfile (car link))
+			(alias (assoc linkfile alias-list)))
+		   (if alias
+		       (setcar link (cdr alias)))))))
+	   idlwave-system-routines)))))
+
 (defun idlwave-convert-xml-clean-routine-aliases (aliases)
   ;; Duplicate and trim original routine aliases from rinfo list
   ;; This if for, e.g. OPENR/OPENW/OPENU 
@@ -5018,6 +5045,7 @@ Cache to disk for quick recovery."
 	    (push (idlwave-xml-create-sysvar-alist elem) 
 		  idlwave-system-variables-alist)))
 	 (t))))
+    (idlwave-convert-xml-add-link-path-information)
     (idlwave-convert-xml-clean-routine-aliases routine-aliases)
     (idlwave-convert-xml-clean-statement-aliases statement-aliases)
     (idlwave-convert-xml-clean-sysvar-aliases sysvar-aliases)
