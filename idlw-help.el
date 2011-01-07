@@ -52,8 +52,7 @@
   :group 'idlwave-online-help
   :type 'boolean)
 
-(defvar idlwave-html-link-sep
-  (if idlwave-html-help-pre-v6 "#" "#wp"))
+(defvar idlwave-html-link-sep "#")
 
 (defcustom idlwave-html-system-help-location   "help/"
   "The directory, relative to idlwave-system-directory, where the

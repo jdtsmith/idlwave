@@ -7627,8 +7627,7 @@ property indicating the link is added."
 			  (concat 
 			   file 
 			   (if link 
-			       (concat idlwave-html-link-sep
-				       (number-to-string link))))
+			       (concat idlwave-html-link-sep link)))
 			  key))
 		     (push (list key) kwds)))
 		 (cdr key-list))))
@@ -7647,7 +7646,7 @@ property indicating the link is added."
 			   (if (and file (cdr kwd))
 			       (concat file 
 				       idlwave-html-link-sep
-				       (number-to-string (cdr kwd)))
+				       (cdr kwd))
 			     (cdr kwd))))
 	   (throw 'exit kwd))))
      (nthcdr 5 entry))))
@@ -7797,9 +7796,9 @@ property indicating the link is added."
 
 (defun idlwave-split-link-target (link)
   "Split a given LINK into link file and anchor."
-  (if (string-match idlwave-html-link-sep link)
+  (if (and (stringp link) (string-match idlwave-html-link-sep link))
       (cons (substring link 0 (match-beginning 0))
-	    (string-to-number (substring link (match-end 0))))))
+	    (substring link (match-end 0)))))
 
 (defun idlwave-substitute-link-target (link target)
   "Substitute the TARGET anchor for the given LINK."
@@ -7808,7 +7807,7 @@ property indicating the link is added."
 			(substring link 0 (match-beginning 0))
 		      link))
     (if target
-	(concat main-base idlwave-html-link-sep (number-to-string target))
+	(concat main-base idlwave-html-link-sep target)
       link)))
 
 ;; Fake help in the source buffer for class structure tags.
