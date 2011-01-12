@@ -4998,8 +4998,8 @@ Cache to disk for quick recovery."
 
     (while rinfo
       (setq elem (car rinfo)
-	    rinfo (cdr rinfo))
-      (incf elem-cnt)
+	    rinfo (cdr rinfo)
+	    elem-cnt (1+ elem-cnt))
       (when (listp elem)
 	(setq type (car elem)
 	      props (car (cdr elem)))
