@@ -1033,8 +1033,6 @@ IDL has currently stepped.")
   (setq idlwave-shell-default-directory default-directory)
   (setq idlwave-shell-hide-output nil)
 
-  ;; NB: `make-local-hook' needed for older/alternative Emacs compatibility
-  (make-local-hook 'kill-buffer-hook)
   (add-hook 'kill-buffer-hook 'idlwave-shell-kill-shell-buffer-confirm
 	    nil 'local)
   (add-hook 'kill-buffer-hook 'idlwave-shell-delete-temp-files nil 'local)
@@ -1071,8 +1069,6 @@ IDL has currently stepped.")
   (set (make-local-variable 'comment-start) ";")
   (setq abbrev-mode t)
 
-  ;; NB: `make-local-hook' needed for older/alternative Emacs compatibility
-  (make-local-hook 'post-command-hook)
   (add-hook 'post-command-hook 'idlwave-command-hook nil t)
 
   ;; Read the command history?
