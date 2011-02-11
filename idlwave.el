@@ -4954,7 +4954,21 @@ Cache to disk for quick recovery."
       (if (not (file-readable-p catalog-file))
 	  (error "Cannot read XML routine info file: %s" catalog-file)))
     (message "Reading XML routine info...")   
-    (setq rinfo (xml-parse-file catalog-file))
+    (require 'xml)
+    (setq rinfo 
+	  (let ((xml-validating-parser t))
+	    (condition-case nil
+		(xml-parse-file catalog-file)
+	      (error ;; Deal with XML.el bug: underscores in ATTLIST/ELEMENT names hang
+	       (setq xml-validating-parser nil)
+	       (with-temp-buffer 
+		 (insert-file-contents catalog-file)
+		 (while 
+		     (re-search-forward 
+		      "^\\s-*<!\\(ATTLIST\\|ELEMENT\\) * [A-Z]+_[A-Z]+.*>\\s-*[\r\n]"
+		      nil t)
+		   (replace-match ""))
+		 (xml-parse-region (point-min) (point-max)))))))
     (message "Reading XML routine info...done")
     (setq rinfo (assq 'CATALOG rinfo))
     (unless rinfo (error "Failed to parse XML routine info"))
