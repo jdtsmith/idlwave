@@ -4644,7 +4644,8 @@ information updated immediately, leave NO-CONCATENATE nil."
 (defun idlwave-xml-system-routine-info-file()
   (let* ((dir (file-name-as-directory 
 	       (expand-file-name "help/" (idlwave-sys-dir)))))
-    (if (file-directory-p (expand-file-name "online_help" dir))
+    (if (and (not (file-exists-p (expand-file-name "idl_catalog.xml" dir)))
+	     (file-directory-p (expand-file-name "online_help" dir)))
 	(setq dir (expand-file-name "online_help" dir)))
     (expand-file-name "idl_catalog.xml" dir)))
 
