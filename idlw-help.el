@@ -48,16 +48,18 @@
   :group 'idlwave)
 
 (defcustom idlwave-html-help-pre-v6 nil
-  "Whether pre or post-v6.0 IDL help documents are being used."
+  "Whether pre or post-v6.0 IDL help documents are being used.
+OBSOLETE.  The full link anchor is now stored."
   :group 'idlwave-online-help
   :type 'boolean)
 
 (defvar idlwave-html-link-sep "#")
 
-(defcustom idlwave-html-system-help-location   "help/"
+(defcustom idlwave-html-system-help-location  nil
   "The directory, relative to idlwave-system-directory, where the
-idl HTML help files live, for IDL 7.0 and later.  This location,
-if found, is used in preference to the old
+idl HTML help files live, for IDL 7.0 and later.  By default,
+this location is discovered automatically from the installation.
+This location, if found, is used in preference to the old
 idlwave-html-help-location.  Note that IDL v6.3-v7.0 used
 help/online_help."
   :group 'idlwave-online-help
@@ -67,8 +69,8 @@ help/online_help."
    (if (memq system-type '(ms-dos windows-nt))
       nil
     "/usr/local/etc/")
-  "The directory where the idl_html_help/ dir lives.  Obsolete for IDL
-6.2 or later (see idlwave-html-system-help-location)."
+  "The directory where the idl_html_help/ dir lives.
+OBSOLETE (see idlwave-html-system-help-location)."
   :group 'idlwave-online-help
   :type 'directory)
 
@@ -732,7 +734,6 @@ Either loads an HTML link, if LINK is non-nil, or gets special-help on
 the optional arguments, if any special help is defined.  If LINK is
 `t', first look up the optional arguments in the routine info list to
 see if a link is set for it.  Try extra help functions if necessary."
-
   ;; Lookup link
   (if (eq link t) 
       (let ((entry (idlwave-best-rinfo-assoc name type class 
@@ -1241,62 +1242,50 @@ Useful when source code is displayed as help.  See the option
 	(idlwave-help-html-link (concat topic ".html")))))
 
 
-
 (defun idlwave-html-help-location ()
   "Return the help directory where HTML files are, or nil if that is unknown."
-  ;; Note that starting with IDL 7, the HTML files are not included directly,
-  ;; so this becomes vestigial.
-  (let ((syshelp-dir (expand-file-name
-		      (if (file-directory-p idlwave-html-system-help-location)
-			  idlwave-html-system-help-location
-			(concat (file-name-as-directory 
-				 idlwave-html-system-help-location)
-				"online_help"))
-		      (idlwave-sys-dir)))
-	(help-dir (or (and (stringp idlwave-html-help-location)
-			   (> (length idlwave-html-help-location) 0)
-			   idlwave-html-help-location)
-		      (getenv "IDLWAVE_HELP_LOCATION"))))
-    (if (and syshelp-dir (file-directory-p syshelp-dir))
-	syshelp-dir
-      (if help-dir
-	  (progn
-	    (setq help-dir (expand-file-name "idl_html_help" help-dir))
-	    (if (file-directory-p help-dir) help-dir))))))
+  ;; Note that starting with IDL 7, the HTML files are not included
+  ;; directly, so this becomes vestigial, except that with IDL 8.0,
+  ;; HTML files were included again.
+  (let ((sys-dir (idlwave-sys-dir)) help-dir)
 
-(defvar idlwave-help-assistant-available nil)
+    (cond ((and (stringp idlwave-html-system-help-location)
+		(> (length idlwave-html-system-help-location) 0)
+		(file-exists-p (setq help-dir
+				     (expand-file-name
+				      idlwave-system-html-help-location 
+				      sys-dir))))
+	   help-dir) ;; And explicitly specified directory
+
+	  ((file-exists-p (setq help-dir 
+				(expand-file-name 
+				 "help/online_help/IDL/Content" sys-dir)))
+	   help-dir) ;; IDL 8.0
+
+	  ((file-exists-p (setq help-dir 
+				(expand-file-name "help/online_help/" sys-dir)))
+	   help-dir) ;; IDL 6.3-7.0
+
+	  ((file-exists-p (setq help-dir 
+				(expand-file-name "help/" sys-dir)))
+	   help-dir)))) ;; IDL <6.3
+
+
 (defvar idlwave-help-use-eclipse-help nil)
 (defun idlwave-help-check-locations ()
   ;; Check help locations and assistant.
-  (let ((sys-dir (idlwave-sys-dir))
-	idl_uses_assistant)
-    (if (not (file-directory-p sys-dir))
-	(message "IDL system directory not found: try setting `idlwave-system-directory' or IDL_DIR.")
-      (setq idl_uses_assistant  ; "online_help/" only existed for the 
-	    (file-directory-p   ;  IDL Assistant-based versions of IDL
-	     (expand-file-name "online_help" 
-			       (concat (file-name-as-directory sys-dir) 
-				       "help"))))
-      (if idl_uses_assistant
-	  (let ((help-loc (idlwave-html-help-location)))
-	    (if (or (not help-loc)
-		    (not (file-directory-p help-loc)))
-		(message "HTML help location not found: try setting `idlwave-html-help-location'."))
-	    ;; see if we have the assistant
-	    (when (and idlwave-help-use-assistant
-		       (not (eq (idlwave-help-assistant-available) t)))
-	      (message "Cannot locate IDL Assistant, enabling default browser.")
-	      (setq idlwave-help-use-assistant nil)
-	      (unless idlwave-help-browse-url-available
-		(error "browse-url is not available; install it or IDL Assistant to use HTML help"))))
-	;; No assistant, check for and record eclipse-based help
-	;; (use new location of idl_catalog as indicator).
-	(setq idlwave-help-use-eclipse-help 
-	      (file-exists-p (expand-file-name "idl_catalog.xml" 
-					       (expand-file-name 
-						"help" sys-dir))))))))
+  (if (not (file-directory-p (idlwave-sys-dir)))
+      (message "IDL system directory not found: try setting `idlwave-system-directory' or IDL_DIR."))
 
-
+  ;; see if we have the assistant or eclipse (or nothing)
+  (setq idlwave-help-use-assistant 
+	(file-executable-p (idlwave-help-assistant-command))
+	idlwave-help-use-eclipse-help
+	(and (file-executable-p (idlwave-help-eclipse-help-command))
+	     (file-exists-p (expand-file-name "idl_catalog.xml" 
+					      (expand-file-name 
+					       "help" (idlwave-sys-dir))))
+	     (not (file-directory-p (idlwave-html-help-location))))))
 
 ;;---- Control the idlhelp Eclipse-based help front-end, which shipped
 ;;---- with IDL v7.0
@@ -1304,7 +1293,7 @@ Useful when source code is displayed as help.  See the option
 ;; The Windows version does not have a !DIR/bin/* set of front-end
 ;; scripts, but instead only links directly to bin.x86.  As a result,
 ;; we must pass the -profile argument as well.
-(defvar idlwave-help-eclipse-help-command 
+(defvar idlwave-help-eclipse-help-command
   (if (memq system-type '(ms-dos windows-nt))
       "idlde/idlhelp.exe"
     "bin/idlhelp")
