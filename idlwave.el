@@ -8502,7 +8502,7 @@ If we do not know about MODULE, just return KEYWORD literally."
 	(setq beg (point))
 	(insert (if class
 		    (format calling-seq class name class name class name)
-		  (format calling-seq name name name name))
+		  (format calling-seq name name name name name name name))
 		"\n")
 	(add-text-properties beg (point) props)
 	
