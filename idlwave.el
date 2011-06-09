@@ -2190,7 +2190,7 @@ Also checks if the correct END statement has been used."
 	  (cond
 	   ((null end1)) ; no-operation
 	   ((string= (downcase end) (downcase end1))
-	    (sit-for 1))
+	    (sit-for 0.75))
 	   ((string= (downcase end) "end")
 	    ;; A generic end
 	    (if idlwave-expand-generic-end
