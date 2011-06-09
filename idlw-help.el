@@ -1329,14 +1329,6 @@ the idlhelp script.")
   "The command, rooted at idlwave-system-directory, which invokes the
 IDL assistant.")
 
-(defun idlwave-help-assistant-available ()
-  (if idlwave-help-assistant-available
-      (eq idlwave-help-assistant-available t)
-    (setq idlwave-help-assistant-available
-	  (if (file-executable-p (idlwave-help-assistant-command))
-	      t
-	    'not-available))))
-
 (defun idlwave-help-assistant-command ()
   (expand-file-name idlwave-help-assistant-command (idlwave-sys-dir)))
 
