@@ -1086,10 +1086,10 @@ IDL has currently stepped.")
   ;; Run the hooks.
   (run-mode-hooks 'idlwave-shell-mode-hook)
   (idlwave-shell-send-command idlwave-shell-initial-commands nil 'hide)
-  ;; Turn off IDL's ^d interpreting, and define a system
+  ;; Turn off IDL's paging, and define a system
   ;; variable which knows the version of IDLWAVE
   (idlwave-shell-send-command
-   (format "defsysv,'!idlwave_version','%s',1" idlwave-mode-version)
+   (format "!MORE=0 & defsysv,'!idlwave_version','%s',1" idlwave-mode-version)
    nil 'hide)
   ;; Read the paths, and save if they changed
   (idlwave-shell-send-command idlwave-shell-path-query
