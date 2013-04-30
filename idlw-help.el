@@ -728,7 +728,7 @@ if passed as a function.  See `idlwave-help-use-dedicated-frame'."
 	   (not (eq (selected-frame) idlwave-help-return-frame)))
       (select-frame idlwave-help-return-frame)))
 
-(defun idlwave-online-help (link &optional name type class keyword)
+(defun idlwave-online-help (link &optional name type class keyword entry)
   "Display HTML or other special help on a certain topic.  
 Either loads an HTML link, if LINK is non-nil, or gets special-help on
 the optional arguments, if any special help is defined.  If LINK is
@@ -736,8 +736,9 @@ the optional arguments, if any special help is defined.  If LINK is
 see if a link is set for it.  Try extra help functions if necessary."
   ;; Lookup link
   (if (eq link t) 
-      (let ((entry (idlwave-best-rinfo-assoc name type class 
-					     (idlwave-routines) nil t)))
+      (let ((entry (or entry
+		       (idlwave-best-rinfo-assoc name type class 
+						 (idlwave-routines) nil t))))
 	(if entry
 	    (cond
 	     ;; Try keyword link
