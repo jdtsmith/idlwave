@@ -4733,6 +4733,7 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
   (let* ((nameblock (nth 1 xml-entry))
 	 (name (cdr (assq 'name nameblock)))
 	 (link (cdr (assq 'link nameblock)))
+	 (link-dir (file-name-directory link))
 	 (params (cddr xml-entry))
 	 (syntax-vec (make-vector 3 nil)) ; procedure, function, exec command
 	 (case-fold-search t)
@@ -4747,19 +4748,28 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	      props (car (cdr pelem)))
 	(cond
 	 ((eq ptype 'SYNTAX)
-	  (setq syntax (cdr (assq 'name props)))
-	  (if (string-match "-&gt;" syntax)
-	      (setq syntax (replace-match "->" t nil syntax)))
-	  (setq type (cdr (assq 'type props)))
-	  (push syntax
-		(aref syntax-vec (cond
-				  ((string-match "^pro" type) 0)
-				  ((string-match "^fun" type) 1)
-				  ((string-match "^exec" type) 2)
-				  (t 0)))))
+	  (setq syntax (cdr (assq 'name props))
+		type (cdr (assq 'type props)))
+	  (unless (and (string-match "Keyword" syntax)
+		       (string-match "^pro" type))
+	    (if (string-match "-&gt;" syntax)
+		(setq syntax (replace-match "->" t nil syntax)))
+	    (push syntax
+		  (aref syntax-vec (cond
+				    ((or
+				      (string-match "^exec" type)
+				      (string= (substring name 0 1) ".")) 2)
+				    ((string-match "^pro" type) 0)
+				    ((string-match "^fun" type) 1)
+				    
+				    (t 0))))))
+
 	 ((eq ptype 'KEYWORD)
 	  (setq kwd (cdr (assq 'name props))
 		klink (cdr (assq 'link props)))
+	  (if (not (string= (file-name-directory klink)
+			    link-dir))
+	      (setq klink (concat link-dir "/" klink)))
 	  (if (string-match "^\\[XY\\(Z?\\)\\]" kwd)
 	      (progn 
 		(setq pref-list 
@@ -4827,10 +4837,74 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	    (while (string-match " +or +" (setq syntax (nth 4 entry)))
 	      (setf (nth 4 entry) (replace-match ", " t t syntax)))))))
 
+(defun idlwave-recursive-find-file (dir file)
+  (catch 'found
+    (let (found)
+      (mapc (lambda (name)
+	      (if (file-directory-p (concat dir "/" name)) ;directory
+		  (when (not (string= (substring name 0 1) "."))
+		    (setq found 
+			  (idlwave-recursive-find-file 
+			   (concat dir "/" name) file))
+		    (if found (throw 'found found)))
+		(if (string= name file)
+		    (throw 'found (concat dir "/" name)))))
+	    (directory-files dir))
+    nil)))
+      
+(defun idlwave-alias-path (file alias-list content-path)
+  ;; Search the alias information to link to the help content
+  (let (alias lfroot (linkfile file))
+    (if (and linkfile (> (length linkfile) 0)
+	     (not (file-exists-p ;; not already there?
+		   (expand-file-name linkfile content-path))))
+	(if (setq alias (assoc-ignore-case linkfile alias-list))
+	    (setq linkfile (cdr alias))
+	  ;; Not found in the alias list, look for it!
+	  (cond 
+	   ;; Eliminate any leading ../'s
+	   ((string-match "^\\(\.\./\\)+" linkfile)
+	    (setq linkfile (replace-match "" t t linkfile)))
+	     
+	   ;; Search for root name alias if it has underscores
+	   ;; (e.g. method calls reference the same directory as the
+	   ;; class)
+	   ((and (not (string= 
+		       linkfile
+		       (setq lfroot
+			     (replace-regexp-in-string 
+			      "_+[^_]*\.html" ".html" 
+			      linkfile))))
+		 (setq alias 
+		       (assoc-ignore-case lfroot alias-list)))
+	    (setq linkfile 
+		  (concat (file-name-directory (cdr alias))
+			  "/" linkfile)))
+	   
+	   ;; Otherwise, just look under the alphabetized list
+	   (t 
+	    (setq linkfile (concat "Reference Material" 
+			       "/" (upcase (substring linkfile 0 1)) "/" 
+			       linkfile))))
+	  
+	  (when (not (file-exists-p (expand-file-name linkfile content-path)))
+	    ;; Didn't find it... try a brute-force directory search!
+	    (message "searching for %s" file)
+	    (setq linkfile (idlwave-recursive-find-file content-path file))
+	    (if (and linkfile (file-exists-p linkfile))
+		(setq linkfile (file-relative-name linkfile content-path))
+	      (message "Could not locate %s" file)
+	      (setq linkfile nil)))))
+    linkfile))
+
+
 (defun idlwave-convert-xml-add-link-path-information ()
   ;; Add path information missing from idl_catalog.xml since IDL 8
-  (let* ((alias-file (expand-file-name "help/online_help/IDL/Data/Alias.xml" 
-				       (idlwave-sys-dir))))
+  (let* ((help-path  (expand-file-name "help/online_help/IDL/"
+				       (idlwave-sys-dir)))
+	 (content-path (expand-file-name "Content" help-path))
+	 (alias-file (expand-file-name "Data/Alias.xml" help-path)))
+    (message "Linking help file info...")
     (if (file-exists-p alias-file)
 	(let ((aliases (cdar (xml-parse-file alias-file))) elem alias-list)
 	  (while aliases
@@ -4841,18 +4915,36 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 	      (let* ((link (cdr (assoc 'Link elem)))
 		     (file (file-name-nondirectory link)))
 		(push (cons file link) alias-list))))
-	  ;; Change the links appropriately
+
+	  ;; Alias all paths for routines
 	  (mapc
 	   (lambda (x)
-	     (let ((kwd_blocks (nthcdr 5 x)) link)
+	     (let ((kwd_blocks (nthcdr 5 x)) link linkfile)
 	       (while kwd_blocks
 		 (setq link (car kwd_blocks)
 		       kwd_blocks (cdr kwd_blocks))
-		 (let* ((linkfile (car link))
-			(alias (assoc linkfile alias-list)))
-		   (if alias
-		       (setcar link (cdr alias)))))))
-	   idlwave-system-routines)))))
+		 (if (setq linkfile (idlwave-alias-path 
+				     (car link) alias-list content-path))
+		     (setcar link linkfile)))))
+	   idlwave-system-routines)
+
+	  ;; And for executive commands/special topics
+	   (mapc 
+	    (lambda (x)
+	      (let ((alias (assoc-ignore-case (cdr x) alias-list)))
+		(if alias 
+		    (setcdr x (cdr alias)))))
+	    (append idlwave-help-special-topic-words
+		    idlwave-executive-commands-alist))
+
+	   (mapc 
+	    (lambda (x)
+	      (let ((alias (assoc-ignore-case (nth 1 (assq 'link x)) 
+					      alias-list)))
+		(if alias 
+		    (setcar (cdr (assq 'link x)) (cdr alias)))))
+	    idlwave-system-class-info)))
+    (message "Linking help file info...done")))
 
 (defun idlwave-convert-xml-clean-routine-aliases (aliases)
   ;; Duplicate and trim original routine aliases from rinfo list
@@ -4931,6 +5023,11 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 ;; Automatically generated from source file: 
 ;;  " idlwave-xml-routine-info-file "
 ;; on " (current-time-string) "
+;; " (format "%d routines, %d classes, %d sysvars, %d exec commands"
+	     (length idlwave-system-routines) 
+	     (length idlwave-system-class-info) 
+	     (length idlwave-system-variables-alist) 
+	     (length idlwave-executive-commands-alist)) "
 ;; Do not edit."))
 	(insert (format "\n(setq idlwave-xml-routine-info-file \n    \"%s\")"
 			idlwave-xml-routine-info-file))
@@ -5008,8 +5105,9 @@ Cache to disk for quick recovery."
 		     (/ (* elem-cnt 100) nelem)))
 	(cond 
 	 ((eq type 'ROUTINE)
-	  (if (setq alias (assq 'alias_to props))
-	      (push (cons (cdr (assq 'name props)) (cdr alias)) 
+	  (if (and (setq alias (cdr (assq 'alias_to props)))
+		   (not (string= "" alias)))
+	      (push (cons (cdr (assq 'name props)) alias) 
 		    routine-aliases)
 	    (setq routines (idlwave-xml-create-rinfo-list elem))
 	    (if (listp (cdr routines))
@@ -5029,12 +5127,14 @@ Cache to disk for quick recovery."
 		      (cdr (assq 'link props)))
 		idlwave-help-special-topic-words)
 	  ;; Save the links to those which are statement aliases (not routines)
-	  (if (setq alias (assq 'alias_to props))
-	      (unless (member (cdr alias) statement-aliases)
-		(push (cdr alias) statement-aliases))))
+	  (if (and (setq alias (cdr (assq 'alias_to props)))
+		   (not (string= "" alias)))
+	      (unless (member alias statement-aliases)
+		(push alias statement-aliases))))
 
 	 ((eq type 'SYSVAR)
-	  (if (setq alias (cdr (assq 'alias_to props)))
+	  (if (and (setq alias (cdr (assq 'alias_to props)))
+		   (not (string= "" alias)))
 	      (push (cons (substring (cdr (assq 'name props)) 1) 
 			  (substring alias 1))
 		    sysvar-aliases)
