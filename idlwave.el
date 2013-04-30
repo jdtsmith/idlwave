@@ -1503,7 +1503,7 @@ Otherwise ARGS forms a list that is evaluated."
     (define-key map "\C-c?"      'idlwave-routine-info)
     (define-key map "\M-?"       'idlwave-context-help)
     (define-key map [(control meta ?\?)]
-      'idlwave-help-assistant-help-with-topic)
+      'idlwave-help-with-topic)
     ;; Pickup both forms of Esc/Meta binding
     (define-key map [(meta tab)] 'idlwave-complete)
     (define-key map [?\e?\t] 'idlwave-complete)
