@@ -153,7 +153,6 @@
 
 ;;; Code:
 
-
 (eval-when-compile (require 'cl))
 (require 'idlw-help)
 
@@ -4157,16 +4156,20 @@ blank lines."
 ;; system hash.  The former is re-scanned, and the latter takes case
 ;; precedence.
 ;;
-;; Since these cased versions are really lisp objects, we can use `eq'
-;; to search, which is a large performance boost.  All new strings
-;; need to be "sinterned".  We do this as early as possible after
-;; getting these strings from completion or buffer substrings.  So
-;; most of the code can simply assume to deal with "sinterned"
-;; strings.  The only exception is that the functions which scan whole
-;; buffers for routine information do not intern the grabbed strings.
-;; This is only done afterwards.  Therefore in these functions it is
-;; *not* safe to assume the strings can be compared with `eq' and be
-;; fed into the routine assq functions.
+;; Since these cased versions are really individual lisp objects, we
+;; can use `eq' to search (or assq to find in an association list),
+;; which is a large performance boost.  All new strings need to be
+;; "sinterned".  We do this as early as possible after getting these
+;; strings from completion or buffer substrings.  So most of the code
+;; can simply assume to deal with "sinterned" strings.  The only
+;; exception is that the functions which scan whole buffers for
+;; routine information do not intern the grabbed strings.  This is
+;; only done afterwards.  Therefore in these functions it is *not*
+;; safe to assume the strings can be compared with `eq' and be fed
+;; into the routine assq functions.
+
+;; Note that this does not employ the normal obarray/intern method
+;; Emacs uses.
 
 ;; Here we define the hashing functions.
 
@@ -4352,7 +4355,7 @@ This defines the function `idlwave-sintern-TAG' and the variable
 
 ;; The variables which hold the information
 (defvar idlwave-system-routines nil
-  "Holds the routine-info obtained by scanning buffers.")
+  "Holds the routine-info obtained from the XML catalog.")
 (defvar idlwave-buffer-routines nil
   "Holds the routine-info obtained by scanning buffers.")
 (defvar idlwave-compiled-routines nil
@@ -4360,9 +4363,9 @@ This defines the function `idlwave-sintern-TAG' and the variable
 (defvar idlwave-unresolved-routines nil
   "Holds the unresolved routine-info obtained by asking the shell.")
 (defvar idlwave-user-catalog-routines nil
-  "Holds the procedure routine-info from the user scan.")
+  "Holds the routine-info from the user scan.")
 (defvar idlwave-library-catalog-routines nil
-  "Holds the procedure routine-info from the .idlwave_catalog library files.")
+  "Holds the routine-info from the .idlwave_catalog library files.")
 (defvar idlwave-library-catalog-libname nil
   "Name of library catalog loaded from .idlwave_catalog files.")
 (defvar idlwave-path-alist nil
@@ -4636,10 +4639,10 @@ information updated immediately, leave NO-CONCATENATE nil."
      idlwave-xml-system-rinfo-converted-file
      catalog-file)))
 
-(defvar idlwave-system-class-info nil) ; Gathered from idlw-rinfo
+(defvar idlwave-system-class-info nil)
 (defvar idlwave-system-variables-alist nil
   "Alist of system variables and the associated structure tags.
-Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
+Gets set in cached XML rinfo.")
 (defvar idlwave-executive-commands-alist nil
   "Alist of system variables and their help files.")
 (defvar idlwave-help-special-topic-words nil)
@@ -4761,7 +4764,6 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 				      (string= (substring name 0 1) ".")) 2)
 				    ((string-match "^pro" type) 0)
 				    ((string-match "^fun" type) 1)
-				    
 				    (t 0))))))
 
 	 ((eq ptype 'KEYWORD)
@@ -4807,8 +4809,9 @@ Gets set in cached XML rinfo, or `idlw-rinfo.el'.")
 
 
 (defun idlwave-rinfo-group-keywords (kwds master-link)
-  ;; Group keywords by link file, as a list with elements 
-  ;; (linkfile ( ("KWD1" . link1) ("KWD2" . link2))
+  ;; Group keywords by link file, as a list with elements (linkfile (
+  ;; ("KWD1" . link1) ("KWD2" . link2)) master-link specifies the link
+  ;; for the parent routine.
   (let (kwd link anchor linkfiles block master-elt)
     (while kwds
       (setq kwd (car kwds)
