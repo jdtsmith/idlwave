@@ -4769,9 +4769,9 @@ Gets set in cached XML rinfo.")
 	 ((eq ptype 'KEYWORD)
 	  (setq kwd (cdr (assq 'name props))
 		klink (cdr (assq 'link props)))
-	  (if (not (string= (file-name-directory klink)
-			    link-dir))
-	      (setq klink (concat link-dir "/" klink)))
+	  (if (and link-dir klink 
+		   (not (string= (file-name-directory klink) link-dir)))
+	      (setq klink (concat link-dir klink)))
 	  (if (string-match "^\\[XY\\(Z?\\)\\]" kwd)
 	      (progn 
 		(setq pref-list 
