@@ -77,11 +77,6 @@ OBSOLETE (see idlwave-html-system-help-location)."
 (defvar idlwave-help-use-hh nil
   "Obsolete variable.")
 
-(defcustom idlwave-help-use-assistant t
-  "Whether to use the IDL Assistant as the help browser (<IDL v6.4)."
-  :group 'idlwave-online-help
-  :type 'boolean)
-
 (defcustom idlwave-help-browser-function browse-url-browser-function
   "Function to use to display html help.
 Defaults to `browse-url-browser-function', which see."
@@ -798,18 +793,12 @@ see if a link is set for it.  Try extra help functions if necessary."
 		     (file-directory-p help-loc)))
       (error "Invalid help request"))
     
-    (if (not (or idlwave-help-use-eclipse-help
-		 idlwave-help-use-assistant))
-	(setq 
-	 full-link (browse-url-file-url (expand-file-name link help-loc))))
+    (setq full-link (browse-url-file-url (expand-file-name link help-loc)))
 
     ;; Select the browser
     (cond
      (idlwave-help-use-eclipse-help
       (idlwave-help-eclipse-help-open-link link))
-     
-     (idlwave-help-use-assistant
-      (idlwave-help-assistant-open-link link))
 
      ((or idlwave-help-browser-is-local
 	  (string-match "w3" (symbol-name idlwave-help-browser-function)))
@@ -1269,14 +1258,12 @@ Useful when source code is displayed as help.  See the option
 
 (defvar idlwave-help-use-eclipse-help nil)
 (defun idlwave-help-check-locations ()
-  ;; Check help locations and assistant.
+  ;; Check help locations, etc. 
   (if (not (file-directory-p (idlwave-sys-dir)))
       (message "IDL system directory not found: try setting `idlwave-system-directory' or IDL_DIR."))
 
-  ;; see if we have the assistant or eclipse (or nothing)
-  (setq idlwave-help-use-assistant 
-	(file-executable-p (idlwave-help-assistant-command))
-	idlwave-help-use-eclipse-help
+  ;; see if we have eclipse (or nothing)
+  (setq idlwave-help-use-eclipse-help
 	(and (file-executable-p (idlwave-help-eclipse-help-command))
 	     (file-exists-p (expand-file-name "idl_catalog.xml" 
 					      (expand-file-name 
@@ -1315,106 +1302,6 @@ the idlhelp script.")
   (let ((command (idlwave-help-eclipse-help-command)))
     (call-process command nil 0 nil "-command" "shutdown")))
 
-
-;;----- Control the IDL Assistant, which shipped with IDL v6.2
-(defvar idlwave-help-assistant-process nil)
-(defvar idlwave-help-assistant-socket nil)
-
-;; The Windows version does not have a !DIR/bin/* set of front-end
-;; scripts, but instead only links directly to bin.x86.  As a result,
-;; we must pass the -profile argument as well.
-(defvar idlwave-help-assistant-command 
-  (if (memq system-type '(ms-dos windows-nt))
-      "bin/bin.x86/idl_assistant.exe"
-    "bin/idl_assistant")
-  "The command, rooted at idlwave-system-directory, which invokes the
-IDL assistant.")
-
-(defun idlwave-help-assistant-command ()
-  (expand-file-name idlwave-help-assistant-command (idlwave-sys-dir)))
-
-(defun idlwave-help-assistant-start (&optional full-link)
-  "Start the IDL Assistant, loading link FULL-LINK, if passed."
-  (when (or (not idlwave-help-assistant-socket)
-	    (not (eq (process-status idlwave-help-assistant-socket) 'open)))
-    (let* ((help-loc (idlwave-html-help-location))
-	   (command (idlwave-help-assistant-command))
-	   (extra-args 
-	    (nconc
-	     (if (memq system-type '(ms-dos windows-nt))
-		 `("-profile" ,(expand-file-name "idl.adp" help-loc)))
-	     (if full-link `("-file" ,full-link))))
-	   port)
-      (if idlwave-help-assistant-socket 
-	  (delete-process idlwave-help-assistant-socket))
-	
-      (setq idlwave-help-assistant-process 
-	    (apply 'start-process 
-		   "IDL_ASSISTANT_PROC" nil command "-server" extra-args))
-      
-      (set-process-filter idlwave-help-assistant-process
-			  (lambda (proc string)
-			    (setq port (string-to-number string))))
-      (unless (accept-process-output idlwave-help-assistant-process 15)
-	(error "Failed binding IDL_ASSISTANT socket"))
-      (if (not port)
-	  (error "Unable to open IDL_ASSISTANT")
-	(set-process-filter idlwave-help-assistant-process nil)
-	(setq idlwave-help-assistant-socket 
-	      (open-network-stream "IDL_ASSISTANT_SOCK" 
-				   nil "localhost" port))
-	(if (eq (process-status idlwave-help-assistant-socket) 'open)
-	    (progn
-	      (process-send-string  idlwave-help-assistant-socket
-				    (concat "setHelpPath " help-loc "\n"))
-	      t)
-	  (idlwave-help-assistant-close)
-	  (error "Cannot communicate with IDL_ASSISTANT"))))))
-
-(defun idlwave-help-assistant-raise ()
-  (idlwave-help-assistant-start)
-  (process-send-string idlwave-help-assistant-socket "raise\n"))
-
-(defun idlwave-help-assistant-open-link (&optional link)
-  ;; Open a link (file name with anchor, no leading path) in the assistant.
-  (let ((help-loc (idlwave-html-help-location))
-	topic anchor file just-started exists full-link)
-    
-    (if (string-match "\.html" link)
-	(setq topic (substring link 0 (match-beginning 0))
-	      anchor (substring link (match-end 0)))
-      (error "Malformed help link"))
-    
-    (setq file (expand-file-name (concat topic ".html") help-loc))
-    (if (file-exists-p file)
-	(setq exists t)
-      (setq file (expand-file-name 
-		  (concat (upcase topic) ".html") help-loc))
-      (setq exists (file-exists-p file)))
-    
-    (setq full-link    (concat file anchor)
-	  just-started (idlwave-help-assistant-start (if exists full-link)))
-    (if exists
-	(progn
-	  (if (not just-started)
-	      (process-send-string idlwave-help-assistant-socket
-				   (concat "openLink " full-link "\n")))
-	  (process-send-string idlwave-help-assistant-socket
-			       (concat "searchIndexNoOpen " topic "\n")))
-      (process-send-string idlwave-help-assistant-socket
-			   (concat "searchIndexAndOpen " topic "\n"))))
-  (idlwave-help-assistant-raise))
-
-(defun idlwave-help-assistant-close ()
-  (when (and idlwave-help-assistant-process
-	     (eq (process-status idlwave-help-assistant-process) 'run))
-    (when idlwave-help-assistant-socket
-      (process-send-string idlwave-help-assistant-socket "quit\n")
-      (delete-process idlwave-help-assistant-socket))
-    (stop-process idlwave-help-assistant-process)
-    (delete-process idlwave-help-assistant-process)
-    (setq idlwave-help-assistant-socket nil
-	  idlwave-help-assistant-process nil)))
 
 
 (provide 'idlw-help)
