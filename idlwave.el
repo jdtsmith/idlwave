@@ -1,7 +1,7 @@
 ;; idlwave.el --- IDL editing mode for GNU Emacs
 
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-;;   2008, 2009, 2010, 2011  Free Software Foundation, Inc.
+;;   2008, 2009, 2010, 2011, 2012, 2013  Free Software Foundation, Inc.
 
 ;; Authors: J.D. Smith <jdsmith _AT_ alum.mit.edu>
 ;;          Carsten Dominik <dominik _AT_ science.uva.nl>
@@ -28,20 +28,12 @@
 ;;; Commentary:
 
 ;; IDLWAVE enables feature-rich development and interaction with IDL,
-;; the Interactive Data Language, produced by Research Systems, Inc.
-;; It provides a compelling, full-featured alternative to the IDLDE
-;; development environment bundled with IDL.
+;; the Interactive Data Language.  It provides a compelling,
+;; full-featured alternative to the IDLDE development environment
+;; bundled with IDL.  
 
-;; In the remotely distant past, based on pascal.el, though bears
-;; little resemblance to it now.
-;;
-;; Incorporates many ideas, such as abbrevs, action routines, and
-;; continuation line indenting, from wave.el.
-;; wave.el original written by Lubos Pochman, Precision Visuals, Boulder.
-;;
-;; See the mode description ("C-h m" in idlwave-mode or "C-h f idlwave-mode")
-;; for features, key bindings, and info.
-;; Also, Info format documentation is available with `M-x idlwave-info'
+;; See the mode description ("C-h m" in idlwave-mode or "C-h f
+;; idlwave-mode") for features, key bindings, and info.  
 ;;
 ;; New versions of IDLWAVE, documentation, and more information
 ;; available from:
@@ -62,23 +54,31 @@
 ;; SOURCE
 ;; ======
 ;;
-;; The newest version of this file is available from the maintainer's
+;; The newest version of IDLWAVE is available from the maintainer's
 ;; Webpage:
 ;;
-;;   http://idlwave.org
+;;   http://github.com/jdtsmith/idlwave
 ;;
 ;; DOCUMENTATION
 ;; =============
 ;;
-;; IDLWAVE is documented online in info format.  A printable version
-;; of the documentation is available from the maintainers webpage (see
-;; SOURCE).
+;; Info format documentation is available, also accessible with `M-x
+;; idlwave-info'.  IDLWAVE is documented online in info format.  A
+;; printable version of the documentation is available from the
+;; maintainers webpage (see SOURCE).
 ;;
 ;; 
 ;; ACKNOWLEDGMENTS
 ;; ===============
 ;;
-;;  Thanks to the following people for their contributions and comments:
+;; In the remotely distant past, based on pascal.el.
+;;
+;; Incorporates many ideas, such as abbrevs, action routines, and
+;; continuation line indenting, from wave.el, originally written by
+;; Lubos Pochman, Precision Visuals, Boulder.
+;;
+;; Thanks to the following people for their contributions and
+;; comments:
 ;;
 ;;    Ulrik Dickow <dickow_at_nbi.dk>
 ;;    Eric E. Dors <edors_at_lanl.gov>
@@ -135,11 +135,6 @@
 ;;   may be an undesirable side-effect.  Replacing tabs with spaces is
 ;;   limited to comments only and occurs only when a comment
 ;;   paragraph is filled via `idlwave-fill-paragraph'.
-;;
-;;   Muti-statement lines (using "&") on block begin and end lines can
-;;   ruin the formatting.  For example, multiple end statements on a
-;;   line: endif & endif.  Using "&" outside of block begin/end lines
-;;   should be okay.
 ;;
 ;;   Determining the expression at point for printing and other
 ;;   examination commands is somewhat rough: currently only fairly

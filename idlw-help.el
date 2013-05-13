@@ -1,7 +1,7 @@
 ;;; idlw-help.el --- HTML Help code for IDLWAVE
 
 ;; Copyright (c) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
-;;               2009, 2010 Free Software Foundation, Inc.
+;;               2009, 2010, 2012, 2013 Free Software Foundation, Inc.
 ;;
 ;; Authors: J.D. Smith <jdtsmith _AT_ gmail.com>
 ;;          Carsten Dominik <dominik _AT_ science.uva.nl>
@@ -681,7 +681,6 @@ Those words in `idlwave-completion-help-links' have links.  The
 	 (select-window (previous-window)))
 	(t (kill-buffer (idlwave-help-get-help-buffer)))))
 
-
 (defvar default-toolbar-visible-p)
 
 (defun idlwave-help-display-help-window (&optional pos-or-func)
@@ -777,7 +776,6 @@ see if a link is set for it.  Try extra help functions if necessary."
 	(idlwave-help-display-help-window help-pos)
       (idlwave-help-error name type class keyword))
     (select-window cw)))
-
 
 (defun idlwave-help-html-link (link)
   "Get html help on a given LINK."
@@ -914,7 +912,6 @@ This function can be used as `idlwave-extra-help-function'."
       (idlwave-help-error name type class keyword))
 
     (point)))
-
 
 (defun idlwave-help-find-routine-definition (name type class keyword)
   "Find the definition of routine CLASS::NAME in current buffer.
@@ -1205,6 +1202,7 @@ Useful when source code is displayed as help.  See the option
 (defvar idlwave-help-with-topic-history nil
   "The history of help topics selected with the minibuffer.")
 
+;; XXX
 (defun idlwave-help-with-topic (&optional topic)
   "Prompt for and provide help with TOPIC."
   (interactive)

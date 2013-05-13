@@ -73,7 +73,8 @@
 ;; and offers the tags for completion.
 ;;
 ;; In the idlwave shell, idlwave sends a "print,tag_names()" for the
-;; variable to idl and determines the current tag list dynamically.
+;; variable to idl and determines the current tag list dynamically for
+;; completion.
 ;;
 ;; Notes
 ;; -----
@@ -243,5 +244,3 @@ an up-to-date completion list."
 (provide 'idlw-complete-structtag)
 
 ;;; idlw-complete-structtag.el ends here
-
-
