@@ -4464,10 +4464,7 @@ idlwave-shell-electric-debug-mode-map)
    (add-to-list 'idlwave-shell-electric-debug-buffers (current-buffer))
    (if idlwave-shell-stop-line-overlay
        (overlay-put idlwave-shell-stop-line-overlay 'face
-		    idlwave-shell-electric-stop-line-face))
-   (if (facep 'fringe)
-       (set-face-foreground 'fringe idlwave-shell-electric-stop-color
-			    (selected-frame)))))
+		    idlwave-shell-electric-stop-line-face))))
 
 (add-hook
  'idlwave-shell-electric-debug-mode-off-hook
@@ -4480,8 +4477,7 @@ idlwave-shell-electric-debug-mode-map)
    (if idlwave-shell-stop-line-overlay
        (overlay-put idlwave-shell-stop-line-overlay 'face
 		    idlwave-shell-stop-line-face)
-     (if (facep 'fringe)
-	 (set-face-foreground 'fringe (face-foreground 'default))))))
+     )))
 
 ;; easy-mmode defines electric-debug-mode for us, so we need to advise it.
 (defadvice idlwave-shell-electric-debug-mode (after print-enter activate)
