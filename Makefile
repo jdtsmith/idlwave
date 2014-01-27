@@ -68,7 +68,8 @@ CP = cp -p
 ##----------------------------------------------------------------------
 
 # The following variables need to be defined by the maintainer
-LISPFILES  = idlwave.el idlw-help.el idlw-shell.el\
+LISPFILES  = idlwave.el idlw-variables.el  idlw-help.el idlw-shell.el idlw-scan.el\
+	     idlw-routine.el idlw-complete.el idlw-bindings.el idlw-menus.el\
 	     idlw-toolbar.el idlw-complete-structtag.el idlw-roprompt.el 
 ELCFILES   = $(LISPFILES:.el=.elc)
 TEXIFILES  = idlwave.texi
