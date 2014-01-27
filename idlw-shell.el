@@ -2255,7 +2255,8 @@ Change the default directory for the process buffer to concur."
 	      (match-string 1 idlwave-shell-command-output)))))
 
 (defvar idlwave-sint-sysvars nil)
-(idlwave-new-sintern-type 'execcomm)
+(add-hook 'idlwave-load-hook
+	  (lambda () (idlwave-new-sintern-type 'execcomm)))
 
 (defun idlwave-shell-complete (&optional arg)
   "Do completion in the idlwave-shell buffer.
