@@ -250,7 +250,7 @@ It collects and prints the diagnostics messages."
 			     tag)))))
        
        ;; A regular structure tag -- only in text, and if
-       ;; optional `complete-structtag' loaded.
+       ;; `complete-structtag' loaded.
        (structtag
 	(let ((var (match-string 1 this-word))
 	      (tag (substring this-word (match-end 0))))
@@ -1017,8 +1017,8 @@ Useful when source code is displayed as help.  See the option
 (defun idlwave-html-help-location ()
   "Return the help directory where HTML files are, or nil if that is unknown."
   ;; Note that starting with IDL 7, the HTML files are not included
-  ;; directly, so this becomes vestigial, except that with IDL 8.0,
-  ;; HTML files were included again.
+  ;; directly, so this becomes vestigial.... except that starting with
+  ;; IDL 8.0, HTML files were included again, i.e. re-non-vestigial.
   (let ((sys-dir (idlwave-sys-dir)) help-dir)
 
     (cond ((and (stringp idlwave-html-system-help-location)
