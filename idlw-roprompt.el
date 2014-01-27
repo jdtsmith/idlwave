@@ -32,7 +32,7 @@
 ;;
 ;; New versions of IDLWAVE, documentation, and more information
 ;; available from:
-;;                 http://idlwave.org
+;;                 http://github.com/jdtsmith/idlwave
 ;;
 ;; INSTALLATION:
 ;; =============
@@ -51,7 +51,7 @@
 ;;   The newest version of this file can be found on the maintainers
 ;;   web site.
 ;; 
-;;     http://idlwave.org
+;;     http://github.com/jdtsmith/idlwave
 ;; 
 ;; DOCUMENTATION
 ;; =============

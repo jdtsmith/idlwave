@@ -16,7 +16,7 @@
 @set DATE June, 2009
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set MAINTAINER J.D. Smith
-@set IDLWAVEHOMEPAGE http://idlwave.org/
+@set IDLWAVEHOMEPAGE http://github.com/jdtsmith/idlwave
 @c %**end of header
 @finalout
 
