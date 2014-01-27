@@ -111,7 +111,6 @@
 (add-hook 'idlwave-update-rinfo-hook 'idlwave-structtag-reset)
 
 ;;; The main code follows below
-(defvar idlwave-completion-help-info)
 (defun idlwave-complete-structure-tag ()
   "Complete a structure tag.
 This works by looking in the current file for a structure assignment to a
@@ -225,9 +224,6 @@ an up-to-date completion list."
 
 
 ;; Fake help in the source buffer for structure tags.
-;; kwd and name are global-variables here.
-(defvar name)
-(defvar kwd)
 (defvar idlwave-help-do-struct-tag)
 (defun idlwave-complete-structure-tag-help (mode word)
   (cond
@@ -237,7 +233,7 @@ an up-to-date completion list."
 	(not (equal idlwave-current-tags-buffer
 		    (get-buffer (idlwave-shell-buffer))))))
    ((eq mode 'set)
-    (setq kwd word
+    (setq kwd word ;; dynamic var
 	  idlwave-help-do-struct-tag idlwave-structtag-struct-location))
    (t (error "This should not happen"))))
 

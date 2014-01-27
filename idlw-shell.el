@@ -700,15 +700,16 @@ the directory stack.")
   ;; So who can display faces?
   (when (or (featurep 'xemacs)            ; XEmacs can do also ttys
 	    (fboundp 'tty-defined-colors) ; Emacs 21 as well
-	    window-system)                ; Window systems always
+	    (display-graphic-p))                ; Window systems always
     (progn
       (setq idlwave-shell-stop-line-overlay (make-overlay 1 1))
       (overlay-put idlwave-shell-stop-line-overlay
 		   'face idlwave-shell-stop-line-face))))
 
  (t
-  ;; IDLWAVE may decide.  Will use a face on window systems, arrow elsewhere
-  (if window-system
+  ;; IDLWAVE may decide.  Will use a face plus arrow on window systems, 
+  ;; just arrow elsewhere
+  (if (display-graphic-p)
       (progn
 	(setq idlwave-shell-stop-line-overlay (make-overlay 1 1))
 	(overlay-put idlwave-shell-stop-line-overlay
@@ -3841,10 +3842,8 @@ Existing overlays are recycled, in order to minimize consumption."
 	  (when use-glyph
 	    (if old-buffers
 		(setq old-buffers (delq (current-buffer) old-buffers)))
-	    (if (fboundp 'set-specifier) ;; XEmacs
-		(set-specifier left-margin-width (cons (current-buffer) 2))
-	      (if (< left-margin-width 2)
-		  (setq left-margin-width 2)))
+	    (if (< left-margin-width 2)
+		(setq left-margin-width 2))
 	    (let ((window (get-buffer-window (current-buffer) 0)))
 	      (if window
 		  (set-window-margins
@@ -3852,9 +3851,7 @@ Existing overlays are recycled, in order to minimize consumption."
       (if use-glyph
 	  (while (setq buf (pop old-buffers))
 	    (with-current-buffer buf
-	      (if (fboundp 'set-specifier) ;; XEmacs
-		  (set-specifier left-margin-width (cons (current-buffer) 0))
-		(setq left-margin-width 0))
+	      (setq left-margin-width 0)
 	      (let ((window (get-buffer-window buf 0)))
 		(if window
 		    (set-window-margins
@@ -3904,7 +3901,7 @@ only for glyphs)."
 	(overlay-put ov 'mouse-face 'highlight)
 	(overlay-put ov 'keymap idlwave-shell-debug-line-map))
       (cond
-       (window-system
+       ((display-graphic-p)
 	(if use-glyph
 	    (let ((image-props (cdr (assq type idlwave-shell-bp-glyph)))
 		  string)
@@ -4389,7 +4386,7 @@ Otherwise, just expand the file name."
 	(define-key idlwave-shell-mode-prefix-map k1 cmd))
       (define-key idlwave-mode-prefix-map k1 cmd))
     ;; The debug modifier map
-    (when (and mod window-system)
+    (when (and mod (display-graphic-p))
       (if (char-or-string-p c2)
 	  (setq k2 (vector (append mod-noshift
 				   (list (if shift (upcase c2) c2)))))

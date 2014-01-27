@@ -157,20 +157,6 @@
 (require 'idlw-menus)
 (require 'idlw-scan)
 
-;; For XEmacs
-(unless (fboundp 'line-beginning-position)
-  (defalias 'line-beginning-position 'point-at-bol))
-(unless (fboundp 'line-end-position)
-  (defalias 'line-end-position 'point-at-eol))
-(unless (fboundp 'char-valid-p)
-  (defalias 'char-valid-p 'characterp))
-(unless (fboundp 'match-string-no-properties)
-  (defalias 'match-string-no-properties 'match-string))
-
-(if (not (fboundp 'cancel-timer))
-    (condition-case nil
-	(require 'timer)
-      (error nil)))
 
 (declare-function idlwave-shell-get-path-info "idlw-shell")
 (declare-function idlwave-shell-temp-file "idlw-shell")

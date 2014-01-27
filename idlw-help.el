@@ -52,11 +52,6 @@
   "Face for highlighting links into IDLWAVE online help."
   :group 'idlwave-online-help)
 
-(defvar idlwave-help-activate-links-aggressively nil
-  "Obsolete variable.")
-
-(defvar idlwave-completion-help-info)
-
 (defvar idlwave-help-frame nil
   "The frame for display of IDL online help.")
 (defvar idlwave-help-frame-width 102
