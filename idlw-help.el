@@ -568,19 +568,23 @@ see if a link is set for it.  Try extra help functions if necessary."
 
 (defun idlwave-help-html-link (link)
   "Get html help on a given LINK."
-  (let ((browse-url-browser-function idlwave-help-browser-function)
-	(browse-url-generic-program idlwave-help-browser-generic-program)
-	;(browse-url-generic-args idlwave-help-browser-generic-args)
-	(help-loc (idlwave-html-help-location))
-	full-link)
-    
+  (let* ((browse-url-browser-function idlwave-help-browser-function)
+	 (browse-url-generic-program idlwave-help-browser-generic-program)
+	 (help-loc (idlwave-html-help-location))
+	 (alternate (expand-file-name "idl.htm" (file-name-directory help-loc)))
+	 full-link)
+
     ;; Just a regular file name (+ anchor name)
     (unless (or idlwave-help-use-eclipse-help
 		(and (stringp help-loc)
 		     (file-directory-p help-loc)))
       (error "Invalid help request"))
     
-    (setq full-link (browse-url-file-url (expand-file-name link help-loc)))
+    ;; If possible, subsume as anchor under idl.htm
+    (if (file-exists-p alternate)
+	(setq help-loc (concat alternate "#")))
+
+    (setq full-link (browse-url-file-url (concat help-loc link)))
 
     ;; Select the browser
     (cond
