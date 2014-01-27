@@ -2526,13 +2526,13 @@ matter what the settings of that variable."
                                  idlwave-shell-stop-line-face))
 		  (move-overlay idlwave-shell-stop-line-overlay
 				(point) (save-excursion (end-of-line) (point))
-				(current-buffer)))
-	      ;; use the arrow instead, but only if marking is wanted.
-	      (if idlwave-shell-mark-stop-line
-		  (setq overlay-arrow-string idlwave-shell-overlay-arrow))
-              (or overlay-arrow-position  ; create the marker if necessary
-                  (setq overlay-arrow-position (make-marker)))
-	      (set-marker overlay-arrow-position (point) buffer)))
+				(current-buffer))))
+	    ;; Always use the arrow 
+	    (if idlwave-shell-mark-stop-line
+		(setq overlay-arrow-string idlwave-shell-overlay-arrow))
+	    (or overlay-arrow-position  ; create the marker if necessary
+		(setq overlay-arrow-position (make-marker)))
+	    (set-marker overlay-arrow-position (point) buffer))
 
 	  ;; if the point is outside the restriction, widen the buffer.
           (if (or (< pos (point-min)) (> pos (point-max)))
