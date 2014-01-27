@@ -3,7 +3,7 @@
 ;; Format for all routine info user catalog, library catalogs, etc.:
 ;;
 ;; ("ROUTINE" type class
-;;  (system) | (lib pro_file dir "LIBNAME") | (user pro_file dir "USERLIB") |
+;;  (system nil nil nil) | (lib pro_file dir "LIBNAME") | (user pro_file dir "USERLIB") |
 ;;  (buffer pro_file dir) | (compiled pro_file dir)
 ;;   "calling_string" ("LINKFILE" (("KWD1" . anchorlink1) ...)) 
 ;;                    ("LINKFILE2" (("KWD2" . ancorlink2) ...)) ...)
@@ -14,6 +14,19 @@
 ;; be nil, as can LINKFILE, etc., if no HTML help is available for
 ;; that routine.  Since keywords can be referenced in multiples files
 ;; (e.g. Graphics Keywords), there are multiple keyword link lists.
+
+
+;;----------------------------------------------------
+;; Convenience Routines for routine info lists
+
+(defun idlwave-routine-routine-name (x)
+  (car x))
+
+(defun idlwave-routine-class-name (x)
+  (nth 2 x))
+
+(defun idlwave-routine-first-link-file (x)
+  (car (nth 5 x)))
 
 
 ;;----------------------------------------------------
@@ -493,13 +506,12 @@ When TYPE is not specified, both procedures and functions will be considered."
       (idlwave-uniquify rtn))))
 
 (defun idlwave-make-full-name (class &optional name)
-  (let (class)
-    (when (listp class)
-      ;; a routine info or idlwave-what-module entry
-      (setq name (car class)
-	    class (nth 2 class)))
-    ;; Make a fully qualified module name including the class name
-    (concat (if class (format "%s::" class) "") name)))
+  (when (and (listp class) (not (null class)))
+    ;; a routine info or idlwave-what-module entry
+    (setq name (car class)
+	  class (nth 2 class)))
+  ;; Make a fully qualified module name including the class name
+  (concat (if class (format "%s::" class) "") name))
 
 (defun idlwave-determine-class (cw-list type)
   ;; Determine the class of a routine call.  CW-LIST is the `cw-list'
