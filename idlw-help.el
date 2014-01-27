@@ -991,7 +991,6 @@ Useful when source code is displayed as help.  See the option
 (defvar idlwave-help-with-topic-history nil
   "The history of help topics selected with the minibuffer.")
 
-;; XXX
 (defun idlwave-help-with-topic (&optional topic)
   "Prompt for and provide help with TOPIC."
   (interactive)
@@ -999,19 +998,22 @@ Useful when source code is displayed as help.  See the option
     (unless topic
       (idlwave-routines)
       (setq list (append (mapcar (lambda (x)
-				   (concat (nth 2 x) (car x)))
+				   (cons (idlwave-make-full-name x) 
+					 (idlwave-routine-first-link-file x)))
 				 idlwave-system-routines)
 			 (mapcar (lambda (x)
-				   (concat "." (car x)))
+				   (cons (concat "." (car x)) (cdr x)))
 				 idlwave-executive-commands-alist)
-			 idlwave-system-class-info))
-      (setq topic 
-	    (idlwave-completing-read 
-	     "Help Topic: " list
-	     nil nil nil
-	     'idlwave-help-with-topic-history)))
-    (if (and topic (not (string= topic "")))
-	(idlwave-help-html-link (concat topic ".html")))))
+			 (mapcar (lambda (x) 
+				   (cons (car x) (nth 1 (assq 'link x))))
+				 idlwave-system-class-info))
+	    topic  (idlwave-completing-read 
+		    "Help Topic: " list
+		    nil nil nil
+		    'idlwave-help-with-topic-history)))
+    (if (and topic (not (string= topic ""))
+	     (setq topic (assoc-string topic list t)))
+      (idlwave-help-html-link (cdr topic)))))
 
 
 (defun idlwave-html-help-location ()
