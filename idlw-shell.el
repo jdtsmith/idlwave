@@ -1253,6 +1253,7 @@ See also the variable `idlwave-shell-prompt-pattern'.
 		   (get 'idlwave-path-alist 'from-shell))
 		  (idlwave-write-paths)))))
 
+;;;###autoload
 (defun idlwave-shell-recenter-shell-window (&optional arg)
   "Run `idlwave-shell', but make sure the current window stays selected."
   (interactive "P")
@@ -1276,7 +1277,7 @@ Return either nil or 'hide."
 	      (add-to-list'idlwave-shell-show-commands type)))
     (setq idlwave-shell-show-commands (list type))))
 
-
+;;;###autoload
 (defun idlwave-shell-send-command (&optional cmd pcmd hide preempt
 					     show-if-error redisplay)
   "Send a command to the IDL process.
@@ -2593,6 +2594,7 @@ Uses IDL's stepover executive command which does not enter called functions."
    (concat ".so " (if (integerp arg) (int-to-string arg) arg))
    nil (if (idlwave-shell-hide-p 'debug) 'mostly) nil t))
 
+;;;###autoload
 (defun idlwave-shell-break-here (&optional count cmd condition disabled
 					   no-show)
   "Set breakpoint at current line.
@@ -3422,6 +3424,7 @@ condition - any condition to apply to the breakpoint.
 
 disabled - whether the bp is disabled.")
 
+;;;###autoload
 (defun idlwave-shell-run-region (beg end &optional n)
   "Compile and run the region using the IDL process.
 Copies the region to a temporary file `idlwave-shell-temp-pro-file'
@@ -3998,6 +4001,7 @@ Also with prefix arg, ask for the command.  You can also use the command
 	 (ring-ref comint-input-ring 0)))
    '(idlwave-shell-redisplay 'hide)))
 
+;;;###autoload
 (defun idlwave-shell-save-and-run ()
   "Save file and run it in IDL.
 Runs `save-buffer' and sends a '.RUN' command for the associated file to IDL.
