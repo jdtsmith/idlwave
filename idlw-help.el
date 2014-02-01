@@ -580,7 +580,7 @@ see if a link is set for it.  Try extra help functions if necessary."
 		     (file-directory-p help-loc)))
       (error "Invalid help request"))
     
-    ;; If possible, subsume as anchor under idl.htm
+    ;; If possible, subsume as anchor under idl.htm, new as of IDL 8.3
     (if (file-exists-p alternate)
 	(setq help-loc (concat alternate "#")))
 

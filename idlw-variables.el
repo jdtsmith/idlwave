@@ -373,10 +373,6 @@ completions."
   :group 'idlwave-completion
   :type 'boolean)
 
-(defvar idlwave-default-completion-case-is-down nil
-  "Obsolete variable.  See `idlwave-complete-empty-string-as-lower-case' and
-`idlwave-completion-case'.")
-
 (defcustom idlwave-buffer-case-takes-precedence nil
   "*Non-nil means, the case of tokens in buffers dominates over system stuff.
 To make this possible, we need to re-case everything each time we update
@@ -427,7 +423,7 @@ The value of this variable may be nil to inhibit display, or an integer to
 indicate the maximum number of classes to display.
 
 On XEmacs, a full list of classes will also be placed into a `help-echo'
-property on the competion items, so that the list of classes for the current
+property on the completion items, so that the list of classes for the current
 item is displayed in the echo area.  If the value of this variable is a
 negative integer, the `help-echo' property will be suppressed."
   :group 'idlwave-completion
@@ -575,7 +571,7 @@ or even '?'.  '.' is not a good choice because it can make structure
 field names act like abbrevs in certain circumstances.
 
 Changes to this in `idlwave-mode-hook' will have no effect.  Instead a user
-must set it directly using `setq' in the .emacs file before idlwave.el
+must set it directly using `setq' in the init file before idlwave.el
 is loaded."
   :group 'idlwave-abbrev-and-indent-action
   :type 'string)
@@ -1119,7 +1115,7 @@ As a user, you should not set this to t.")
        (common-blocks
 	'("\\<\\(common\\)\\>[ \t]*\\(\\sw+\\)?[ \t]*,?"
 	  (1 font-lock-keyword-face)	          ; "common"
-	  (2 font-lock-reference-face nil t)      ; block name
+	  (2 font-lock-constant-face nil t)      ; block name
 	  ("[ \t]*\\(\\sw+\\)[ ,]*"
 	   ;; Start with point after block name and comma
 	   (goto-char (match-end 0))  ; needed for XEmacs, could be nil 
@@ -1137,20 +1133,20 @@ As a user, you should not set this to t.")
 
        ;; Labels
        (label
-	'("^[ \t]*\\([a-zA-Z]\\sw*:\\)" (1 font-lock-reference-face)))
+	'("^[ \t]*\\([a-zA-Z]\\sw*:\\)" (1 font-lock-constant-face)))
 
        ;; The goto statement and its label
        (goto
 	'("\\(goto\\)[ \t]*,[ \t]*\\([a-zA-Z]\\sw*\\)"
 	  (1 font-lock-keyword-face)
-	  (2 font-lock-reference-face)))
+	  (2 font-lock-constant-face)))
 
        ;; Tags in structure definitions.  Note that this definition
        ;; actually collides with labels, so we have to use the same
        ;; face.  It also matches named subscript ranges,
        ;; e.g. vec{bottom:top].  No good way around this.
        (structtag
-	'("\\<\\([a-zA-Z][a-zA-Z0-9_]*:\\)[^:]" (1 font-lock-reference-face)))
+	'("\\<\\([a-zA-Z][a-zA-Z0-9_]*:\\)[^:]" (1 font-lock-constant-face)))
 
        ;; Structure names
        (structname
@@ -1163,7 +1159,7 @@ As a user, you should not set this to t.")
        ;; fontification.  Slow, use it only in fancy fontification.
        (keyword-parameters
 	'("\\(,\\|[a-zA-Z0-9_](\\)[ \t]*\\(\\$[ \t]*\\(;.*\\)?\n\\([ \t]*\\(;.*\\)?\n\\)*[ \t]*\\)?\\(/[a-zA-Z_]\\sw*\\|[a-zA-Z_]\\sw*[ \t]*=\\)"
-	  (6 font-lock-reference-face)))
+	  (6 font-lock-constant-face)))
        
        ;; System variables start with a bang.
        (system-variables

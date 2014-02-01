@@ -44,7 +44,7 @@
 ;;
 ;; Follow the instructions in the INSTALL file of the distribution.
 ;; In short, put this file on your load path and add the following
-;; lines to your .emacs file:
+;; lines to your init file:
 ;;
 ;; (autoload 'idlwave-mode "idlwave" "IDLWAVE Mode" t)
 ;; (autoload 'idlwave-shell "idlw-shell" "IDLWAVE Shell" t)
@@ -107,9 +107,8 @@
 ;; idlwave-customize'.
 ;;
 ;; You can set your own preferred values with Customize, or with Lisp
-;; code in .emacs.  For an example of what to put into .emacs, check
-;; the TexInfo documentation or see a complete .emacs available at the
-;; website.
+;; code in your init file.  For an example of what to put into your
+;; init file, check the TexInfo documentation.
 ;;
 ;; KNOWN PROBLEMS:
 ;; ==============
@@ -311,7 +310,6 @@ The main features of this mode are
   (set (make-local-variable 'comment-start-skip) ";+[ \t]*")
   (set (make-local-variable 'comment-start) ";")
   (set (make-local-variable 'comment-add) 1) ; ";;" for new and regions
-  (set (make-local-variable 'require-final-newline) t)
   (set (make-local-variable 'abbrev-all-caps) t)
   (set (make-local-variable 'indent-tabs-mode) nil)
   (set (make-local-variable 'completion-ignore-case) t)
@@ -524,7 +522,7 @@ If prefix ARG < 0 then move forward to enclosing block end."
 (defun idlwave-down-block (&optional arg)
   "Go down a block.
 With ARG: ARG >= 0 go forwards, ARG < 0 go backwards.
-Returns non-nil if successfull."
+Returns non-nil if successful."
   (interactive "p")
   (let (status)
     (if (< arg 0)
@@ -2544,7 +2542,7 @@ If PATTERN is omitted, it defaults to \"[ \\f\\t\\n\\r\\v]+\"."
     (setq ret_string (concat ret_string (substring string start last)))))
 
 (defun idlwave-downcase-safe (string)
-  "Donwcase if string, else return unchanged."
+  "Downcase if string, else return unchanged."
   (if (stringp string)
       (downcase string)
     string))
@@ -2813,13 +2811,13 @@ force class query for object methods."
 (defvar idlwave-last-context-help-pos nil)
 (defun idlwave-context-help (&optional arg)
   "Display IDL Online Help on context.
-If point is on a keyword, help for that keyword will be shown.  If
-point is on a routine name or in the argument list of a routine, help
-for that routine will be displayed.  Works for system routines and
-keywords, it pulls up text help.  For other routies and keywords,
-visits the source file, finding help in the header (if
-`idlwave-help-source-try-header' is non-nil) or the routine definition
-itself."
+If point is on a keyword, help for that keyword will be shown.
+If point is on a routine name or in the argument list of a
+routine, help for that routine will be displayed.  Works for
+system routines and keywords, it pulls up text help.  For other
+routines and keywords, visits the source file, finding help in
+the header (if `idlwave-help-source-try-header' is non-nil) or
+the routine definition itself."
   (interactive "P")
   (idlwave-do-context-help arg))
 
@@ -2827,7 +2825,7 @@ itself."
   "Display online help about the completion at point."
   (interactive "eP")
   ;; Restore last-command for next command, to make
-  ;; scrolling/cancelling of completions work.
+  ;; scrolling/canceling of completions work.
   (setq this-command last-command)
   (idlwave-do-mouse-completion-help ev))
 
