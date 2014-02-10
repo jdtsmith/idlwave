@@ -1,26 +1,13 @@
 This is the README file for the IDLWAVE distribution, version VERSIONTAG 
 
-Your kit should contain the following files:
+IDLWAVE is an add-on mode for GNU Emacs which enables feature-rich
+development and interaction with IDL, the Interactive Data Language.
+It provides a compelling, full-featured alternative to the IDLDE
+development environment bundled with IDL.
 
-README              This file
-INSTALL             A brief installation guide, including help installation
-CHANGES             The package history
-ChangeLog           Detailed list of changes to the code
-COPYING             The GNU General Public License
-Makefile            The Makefile to compile and install IDLWAVE
-lpath.el            A file needed to compile the lisp files
 
-idlwave.el          The Lisp code for idlwave-mode
-idlw-shell.el       The Lisp code for idlwave-shell-mode
-idlw-help.el        The Lisp code for the help system
-idlw-toolbar.el     The Lisp code for the toolbar
-idlw-complete-structtag.el 
-		    The Lisp code for optional structure tag completion
-idlw-roprompt.el    The Lisp code for the optional read-only prompt 
-		    (unnecessary with Emacs >= 22)
-
-idlwave.texi        The TeX-Info documentation source
-idlwave             The Info files (the documentation in Info format)
+In addition to the Emacs package and its documentation, this
+repository also includes:
 
 idlwave_catalog     A Perl program to produce your own library catalog 
                     ".idlwave_catalog" files.
@@ -28,8 +15,4 @@ idlwave_catalog     A Perl program to produce your own library catalog
 tutorial.pro        Intentionally buggy practice source code for the 
 		    tutorial.  See the`Getting Started' section in the 
 	            manual.
-
-The most recent version of IDLWAVE and associated help files are
-available at:
-
-    http://idlwave.org
+CHANGES             The package history
