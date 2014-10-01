@@ -1,6 +1,7 @@
 ;; IDLWAVE Routine Information code and variables
 
-;; Format for all routine info user catalog, library catalogs, etc.:
+;; The list format for all routine info user catalog, library
+;; catalogs, etc.:
 ;;
 ;; ("ROUTINE" type class
 ;;  (system nil nil nil) | (lib pro_file dir "LIBNAME") | (user pro_file dir "USERLIB") |
@@ -9,11 +10,12 @@
 ;;                    ("LINKFILE2" (("KWD2" . ancorlink2) ...)) ...)
 ;;
 ;; DIR will be supplied dynamically while loading library catalogs,
-;; and is sinterned to save space, as is LIBNAME.  PRO_FILE can be a
-;; complete filepath, in which case DIR is unnecessary.  HELPFILE can
-;; be nil, as can LINKFILE, etc., if no HTML help is available for
-;; that routine.  Since keywords can be referenced in multiples files
-;; (e.g. Graphics Keywords), there are multiple keyword link lists.
+;; and is sinterned (hashed to an internal symbol) to save space, as
+;; is LIBNAME.  PRO_FILE can be a complete filepath, in which case DIR
+;; is unnecessary.  HELPFILE can be nil, as can LINKFILE, etc., if no
+;; HTML help is available for that routine.  Since keywords can be
+;; referenced in multiples files (e.g. Graphics Keywords), there are
+;; multiple keyword link lists.
 
 
 ;;----------------------------------------------------
@@ -159,6 +161,10 @@ ENTRY will also be returned, as the first item of this list."
 	(push candidate twins))
     (cons entry (nreverse twins))))
 
+
+;; Bound in idlwave-study-twins,idlwave-routine-entry-compare-twins.
+(defvar idlwave-class)
+
 (defun idlwave-study-twins (entries)
   "Return dangerous twins of first entry in ENTRIES.  
 Dangerous twins are routines with same name, but in different files on
@@ -169,7 +175,7 @@ routines, and may have been scanned."
   (let* ((entry (car entries))
 	 (name (car entry))      ; 
 	 (type (nth 1 entry))    ; Must be bound for
-	 (class (nth 2 entry))   ;  idlwave-routine-twin-compare
+	 (idlwave-class (nth 2 entry))   ;  idlwave-routine-twin-compare
 	 (cnt 0)
 	 source type type-cons file alist syslibp key)
     (while (setq entry (pop entries))
@@ -237,7 +243,9 @@ names and path locations."
 (defun idlwave-routine-entry-compare-twins (a b)
   "Compare two routine entries, under the assumption that they are twins.
 This basically calls `idlwave-routine-twin-compare' with the correct args."
-  (let* ((name (car a)) (type (nth 1 a)) (class (nth 2 a)) ; needed outside
+  (let* ((name (car a)) 
+	 (type (nth 1 a)) 
+	 (idlwave-class (nth 2 a)) ; needed outside
 	 (asrc (nth 3 a))
 	 (atype (car asrc))
 	 (bsrc (nth 3 b))
@@ -253,9 +261,6 @@ This basically calls `idlwave-routine-twin-compare' with the correct args."
        (list btype bfile (list btype))))
     ))
 
-;; Bound in idlwave-study-twins,idlwave-routine-entry-compare-twins.
-;; FIXME: Dynamically scoped vars need to use the `idlwave-' prefix.
-(defvar class)
 
 (defun idlwave-routine-twin-compare (a b)
   "Compare two routine twin entries for sorting.
@@ -293,16 +298,19 @@ This expects NAME TYPE CLASS to be bound to the right values."
 	 ;; Look at file names
 	 (aname (if (stringp afile) (downcase (file-name-nondirectory afile)) ""))
 	 (bname (if (stringp bfile) (downcase (file-name-nondirectory bfile)) ""))
-	 (fname-re (if class (format "\\`%s__\\(%s\\|define\\)\\.pro\\'"
-				     (regexp-quote (downcase class))
-				     (regexp-quote (downcase name)))
+	 (fname-re (if idlwave-class (format "\\`%s__\\(%s\\|define\\)\\.pro\\'"
+					     (regexp-quote 
+					      (downcase idlwave-class))
+					     (regexp-quote (downcase name)))
 		     (format "\\`%s\\.pro" (regexp-quote (downcase name)))))
 	 ;; Is file name derived from the routine name?
 	 ;; Method file or class definition file?
 	 (anamep (string-match fname-re aname))
-	 (adefp (and class anamep (string= "define" (match-string 1 aname))))
+	 (adefp (and idlwave-class anamep 
+		     (string= "define" (match-string 1 aname))))
 	 (bnamep (string-match fname-re bname))
-	 (bdefp (and class bnamep (string= "define" (match-string 1 bname)))))
+	 (bdefp (and idlwave-class bnamep 
+		     (string= "define" (match-string 1 bname)))))
 
     ;; Now: follow JD's ideas about sorting.  Looks really simple now,
     ;; doesn't it?  The difficult stuff is hidden above...
@@ -314,7 +322,7 @@ This expects NAME TYPE CLASS to be bound to the right values."
      ((idlwave-xor acompp bcompp)      acompp)	; Compiled entries
      ((idlwave-xor apathp bpathp)      apathp)	; Library before non-library
      ((idlwave-xor anamep bnamep)      anamep)	; Correct file names first
-     ((and class anamep bnamep                  ; both file names match ->
+     ((and idlwave-class anamep bnamep          ; both file names match ->
 	   (idlwave-xor adefp bdefp))  bdefp)	; __define after __method
      ((> anpath bnpath)                t)	; Who is first on path?
      (t                                nil))))	; Default

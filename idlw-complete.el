@@ -914,8 +914,7 @@ Restore the pre-completion window configuration if possible."
 	     t)) ; return t to skip other completions
 	  (t nil))))
 
-(defvar link) ;dynamic variables set by help callback
-(defvar props)
+(defvar idlwave-link) ;dynamic variables set by help callback
 (defun idlwave-complete-sysvar-help (mode word)
   (let ((word (or (nth 1 idlwave-completion-help-info) word))
 	(entry (assoc word idlwave-system-variables-alist)))
@@ -923,7 +922,7 @@ Restore the pre-completion window configuration if possible."
      ((eq mode 'test)
       (and (stringp word) entry (nth 1 (assq 'link entry))))
      ((eq mode 'set)
-      (if entry (setq link (nth 1 (assq 'link entry))))) ;; setting dynamic!!!
+      (if entry (setq idlwave-link (nth 1 (assq 'link entry))))) ;; setting dynamic!!!
      (t (error "This should not happen")))))
 
 (defun idlwave-complete-sysvar-tag-help (mode word)
@@ -990,8 +989,6 @@ keywords."
       ;; Default completion of modules and keywords
       (idlwave-complete arg)))))
 
-;; Get rid of opaque dynamic variable passing of link?
-(defvar link) ;dynamic variable
 (defun idlwave-shell-complete-execcomm-help (mode word)
   (let ((word (or (nth 1 idlwave-completion-help-info) word))
 	(entry (assoc-string word idlwave-executive-commands-alist t)))
@@ -999,7 +996,7 @@ keywords."
      ((eq mode 'test)
       (and (stringp word) entry (cdr entry)))
      ((eq mode 'set)
-      (if entry (setq link (cdr entry)))) ;; setting dynamic variable!!!
+      (if entry (setq idlwave-link (cdr entry)))) ;; setting dynamic variable!!!
      (t (error "This should not happen")))))
 
 (defun idlwave-shell-complete-filename (&optional nospace)
