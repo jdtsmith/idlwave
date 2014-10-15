@@ -84,7 +84,7 @@ would yield:
   :group 'idlwave-code-formatting
   :type 'boolean)
 
-(defcustom idlwave-indent-parens-nested t
+(defcustom idlwave-indent-parens-nested nil
   "*Non-nil means, indent continuation lines with parens by nesting
 lines at consecutively deeper levels."
  :group 'idlwave-code-formatting
