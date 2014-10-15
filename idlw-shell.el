@@ -2413,6 +2413,7 @@ matter what the settings of that variable."
 	(setq idlwave-shell-is-stopped nil)
         (if idlwave-shell-stop-line-overlay
             (delete-overlay idlwave-shell-stop-line-overlay))
+	(setq overlay-arrow-position nil)
 	;; turn off electric debug everywhere, if it's on
 	(if idlwave-shell-electric-debug-buffers
 	    (idlwave-shell-electric-debug-all-off)))

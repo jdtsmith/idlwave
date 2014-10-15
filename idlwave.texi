@@ -9,11 +9,11 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 6.2
-@set EDITION 6.2
-@set IDLVERSION 7.1
-@set NSYSROUTINES 4346
-@set DATE June, 2009
+@set VERSION 6.5
+@set EDITION 6.5
+@set IDLVERSION 8.3
+@set NSYSROUTINES 2611
+@set DATE Februare, 2014
 @set AUTHOR J.D. Smith & Carsten Dominik
 @set MAINTAINER J.D. Smith
 @set IDLWAVEHOMEPAGE http://github.com/jdtsmith/idlwave
@@ -28,7 +28,7 @@ This is edition @value{EDITION} of the IDLWAVE User Manual for IDLWAVE
 @value{VERSION}
 
 Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 
-          2006, 2007, 2009 Free Software Foundation, Inc.
+          2006, 2007, 2009, 2013, 2014 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.2 or
@@ -59,7 +59,7 @@ This is edition @value{EDITION} of the @cite{IDLWAVE User Manual} for
 IDLWAVE version @value{VERSION}, @value{DATE}.
 @sp 2
 Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 
-          2006, 2007, 2009 Free Software Foundation, Inc.
+          2006, 2007, 2009, 2013, 2014 Free Software Foundation, Inc.
 @sp 2
 @cindex Copyright, of IDLWAVE
 Permission is granted to copy, distribute and/or modify this document
