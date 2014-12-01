@@ -3962,11 +3962,17 @@ one of the save-and-.. commands."
   (interactive)
   (idlwave-shell-save-and-action 'batch))
 
+(defvar idlwave-shell-master-file nil 
+  "File local variable to compile instead of this file.
+Useful for e.g. top level routines which @include others.")
+(make-variable-buffer-local 'idlwave-shell-master-file)
+
 (defun idlwave-shell-save-and-action (action)
   "Save file and compile it in IDL.
-Runs `save-buffer' and sends a '.RUN' command for the associated file to IDL.
-When called from the shell buffer, re-compile the file which was last
-handled by this command."
+Runs `save-buffer' and sends a '.RUN' command for the associated
+file to IDL.  When called from the shell buffer, re-compile the
+file which was last handled by this command.  If the
+file-local-variable idlwave-shell-master-file is set, act on it instead."
   ;; Remove the stop overlay.
   (if idlwave-shell-stop-line-overlay
       (delete-overlay idlwave-shell-stop-line-overlay))
@@ -3978,7 +3984,11 @@ handled by this command."
     (cond
      ((eq major-mode 'idlwave-mode)
       (save-buffer)
-      (setq idlwave-shell-last-save-and-action-file (buffer-file-name)))
+      (setq idlwave-shell-last-save-and-action-file 
+	    (if idlwave-shell-master-file 
+		(expand-file-name idlwave-shell-master-file 
+				  (file-name-directory (buffer-file-name)))
+	      (buffer-file-name))))
      (idlwave-shell-last-save-and-action-file
       (if (setq buf (idlwave-get-buffer-visiting
 		     idlwave-shell-last-save-and-action-file))
@@ -4004,6 +4014,18 @@ handled by this command."
 		       idlwave-shell-last-save-and-action-file)))
       (setq idlwave-shell-last-save-and-action-file nil)
       (error msg))))
+
+(defun idlwave-shell-set-master-file () 
+  "Set the master file locally for this file"
+  (interactive)
+  (if (eq major-mode 'idlwave-mode)
+      (let* ((master (read-file-name "Select IDL Master file: " nil nil t))
+	     (master-rel (file-relative-name 
+			  master 
+			  (file-name-directory (buffer-file-name)))))
+	(when (file-regular-p master)
+	  (setq idlwave-shell-master-file master-rel)
+	  (add-file-local-variable 'idlwave-shell-master-file master-rel)))))
 
 (defun idlwave-shell-maybe-update-routine-info (&optional wait file)
   "Update the routine info if the shell is not stopped at an error."
@@ -4586,6 +4608,8 @@ idlwave-shell-electric-debug-mode-map)
 				 'idlwave-shell-get-path-info
 				 'hide)
      t]
+    ["Set Master File" (idlwave-shell-set-master-file) 
+     :active (eq major-mode 'idlwave-mode)]
     ["Reset IDL" idlwave-shell-reset t]
     "--"
     ["Toggle Toolbar" idlwave-shell-toggle-toolbar t]
