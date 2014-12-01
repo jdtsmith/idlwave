@@ -1,5 +1,6 @@
 ;; IDLWAVE: scan routine information provided with IDL, and among the
-;; user's library, as well as open buffers
+;; user's library, as well as in open buffers (for scanning the shell,
+;; see idlw-shell.el)
 
 (require 'timer)
 
@@ -788,7 +789,8 @@ found through other means."
 	 
 	 ;; Dir from root name alias (e.g. CLASS_METHOD.html -> CLASS.html)
 	 ((let ((lfroot
-		 (replace-regexp-in-string "_+[^_]*\.html" ".html" file)))
+		 (replace-regexp-in-string 
+		  "_+[^_]*\.htm\\(l?\\)" ".htm\\1" file)))
 	    (and (not (string= file lfroot))
 		 (setq alias (assoc-ignore-case lfroot alias-list))
 		 (file-exists-p 
@@ -801,13 +803,17 @@ found through other means."
 	 ;; Didn't find it... try a brute-force directory search
 	 (t 
 	  (message "searching for %s" file)
-	  (if (setq linkfile (idlwave-recursive-find-file content-path file))
+	  (if (setq linkfile 
+		    (idlwave-recursive-find-file 
+		     content-path 
+		     (replace-regexp-in-string "\.html$" ".htm" file)))
 	      (progn
 		(setq linkfile (file-relative-name linkfile content-path))
 		;; Save it as an alias in case it is requested again
 		(nconc alias-list (list (cons file linkfile))))
 	    (prog1 nil (message "Could not locate %s" file))))))
     linkfile))
+
 
 (defun idlwave-convert-xml-add-link-path-information ()
   ;; Add path information missing from idl_catalog.xml since IDL 8
@@ -841,19 +847,23 @@ found through other means."
 	  (mapc
 	   (lambda (x)
 	     (let ((class (nth 2 x))
-		   (kwd_blocks (nthcdr 5 x)) link linkfile class-entry)
+		   (kwd_blocks (nthcdr 5 x)) 
+		   link linkfile class-entry)
 	       (while kwd_blocks
 		 (setq link (car kwd_blocks)
 		       kwd_blocks (cdr kwd_blocks))
-		 (when (setq linkfile 
-			     (idlwave-alias-path 
+		 (when (and
+			(car link)
+			(string-match "\.htm\[^.\]*$" (car link))
+			(setq linkfile
+			     (idlwave-alias-path
 			      (car link) alias-list content-path
 			      (if (and class
-				       (setq class-entry 
-					     (assoc class 
+				       (setq class-entry
+					     (assoc class
 						    idlwave-system-class-info)))
 				  (file-name-directory 
-				   (nth 1 (assq 'link class-entry))))))
+				   (nth 1 (assq 'link class-entry)))))))
 		   (setcar link linkfile)))))
 	   idlwave-system-routines)
 	  
