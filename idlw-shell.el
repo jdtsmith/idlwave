@@ -1385,10 +1385,10 @@ Disables line display after state scanning."
      '(progn (idlwave-shell-strip-input)
 	     (setq result idlwave-shell-command-output))
      'hide 'wait nil 'disable)
-    (with-current-buffer ;; DEBUGXXX
-	(get-buffer-create "*idlwave-shell-output*")
-      (goto-char (point-max))
-      (insert (format "--[C.] New result: %s\n" result)))
+    ;; (with-current-buffer ;; DEBUGXXX
+    ;; 	(get-buffer-create "*idlwave-shell-output*")
+    ;;   (goto-char (point-max))
+    ;;   (insert (format "--[C.] New result: %s\n" result)))
     result))
 
 (defun idlwave-shell-send-char (c &optional error)
@@ -2354,10 +2354,12 @@ overlays."
   "Display the source code one step up the calling stack."
   (interactive)
   (incf idlwave-shell-calling-stack-index)
+;  (message "scsi-up: %d" idlwave-shell-calling-stack-index)
   (idlwave-shell-display-level-in-calling-stack 'hide))
 (defun idlwave-shell-stack-down ()
   "Display the source code one step down the calling stack."
   (interactive)
+;  (message "scsi-down: %d" idlwave-shell-calling-stack-index)
   (decf idlwave-shell-calling-stack-index)
   (idlwave-shell-display-level-in-calling-stack 'hide))
 
