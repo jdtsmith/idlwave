@@ -1155,7 +1155,7 @@ Will typically only apply if the buffer isn't visible."
 	(setq idlwave-shell-display-wframe
 	      (if (eq (selected-frame) idlwave-shell-idl-wframe)
 		  (or
-		   (let ((flist (visible-frame-list))
+		   (let ((flist (frames-on-display-list))
 			 (frame (selected-frame)))
 		     (catch 'exit
 		       (while flist
@@ -3427,8 +3427,7 @@ Does not work for a region with multiline blocks - use
   "Display a buffer in a requested (optional) FRAME.
 Resize to no more than BUFFER-HEIGHT-FRAC of the frame buffer if set."
   (save-selected-window
-    (if frame (select-frame frame))
-    (let ((win (display-buffer buf not-this-window-p t)))
+    (let ((win (display-buffer buf not-this-window-p frame)))
       (if buffer-height-frac
 	  (set-window-text-height win (round (* (frame-height frame) 
 						buffer-height-frac))))
