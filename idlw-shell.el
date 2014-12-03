@@ -2420,9 +2420,11 @@ matter what the settings of that variable."
 	(if idlwave-shell-electric-debug-buffers
 	    (idlwave-shell-electric-debug-all-off)))
     (if (not (idlwave-shell-valid-frame frame))
-	;; fixme: errors are dangerous in shell filters.  but i think i
-	;; have never encountered this one.
-        (error "invalid frame - unable to access file: %s" (car frame))
+	;; fixme: errors are dangerous in shell filters.  IDL LAMBDA
+	;; functions are not stored as code, so just silently ignore
+	;; these errors.
+	(unless (string-match-p "^IDL\$LAMBDA" (caddr frame))
+	  (error "invalid frame - unable to access file: %s" (car frame)))
       ;;
       ;; buffer : the buffer to display a line in.
       ;; select-shell: current buffer is the shell.
