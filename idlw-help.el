@@ -200,7 +200,7 @@ It collects and prints the diagnostics messages."
 			       (cdr
 				(assq (idlwave-sintern-sysvartag tag)
 				      (cdr (assq 'tags entry))))))
-	       (link (nth 1 (assq 'link entry))))
+	       (link (cdr (assq 'link entry))))
 	  (if tag-target
 	      (setq link (idlwave-substitute-link-target link 
 							 tag-target)))
