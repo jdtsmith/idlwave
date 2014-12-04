@@ -746,9 +746,10 @@ Cache to disk for quick recovery."
 (defun idlwave-alias-path (file alias-list content-path &optional class-dir)
   "Search for the HTML help file FILE in the help content.
 Uses alias information ALIAS-LIST from Alias.xml to link to the
-help content, in top level CONTENT-PATH.  CLASS-DIR, is set is
+help content, in top level CONTENT-PATH.  CLASS-DIR, if set, is
 the directory of the class of a routine to try if it can't be
-found through other means."
+found through other means.  As a last resort attempt a brute
+force directory search."
   (let (alias linkfile)
     (if (and file (> (length file) 0))
 	(cond
@@ -830,9 +831,10 @@ found through other means."
 		  aliases (cdr aliases))
 	    (when (and (listp elem) (eq (car elem) 'Map))
 	      (setq elem (cadr elem))
-	      (let* ((link (cdr (assoc 'Link elem)))
+	      (let* ((link (car (idlwave-split-link-target
+				 (cdr (assoc 'Link elem)))))
 		     (file (file-name-nondirectory link)))
-		(push (cons file link) alias-list))))
+		(add-to-list 'alias-list (cons file link)))))
 
 	  ;; System class info
 	  (mapc 
@@ -874,7 +876,22 @@ found through other means."
 	       (if alias 
 		   (setcdr x (cdr alias)))))
 	   (append idlwave-help-special-topic-words
-		   idlwave-executive-commands-alist))))
+		   idlwave-executive-commands-alist))
+
+	  ;; System variables
+	  (mapc
+	   (lambda (x)
+	     (let* (linkfile 
+		    linkparts
+		    (linkcell (assq 'link x))
+		    (link (cadr linkcell)))
+	       (if (setq linkparts (idlwave-split-link-target link))
+		   (setq link (car linkparts)))
+	       (if (setq linkfile
+			 (idlwave-alias-path link alias-list content-path))
+		   (setcdr linkcell (idlwave-substitute-link-target 
+				     linkfile (cdr linkparts))))))
+	   idlwave-system-variables-alist)))
     (message "Linking help file info...done")))
 
 (defun idlwave-convert-xml-clean-routine-aliases (aliases)
@@ -1750,7 +1767,8 @@ end
   "Split a given LINK into link file and anchor."
   (if (and (stringp link) (string-match idlwave-html-link-sep link))
       (cons (substring link 0 (match-beginning 0))
-	    (substring link (match-end 0)))))
+	    (substring link (match-end 0)))
+    (list link)))
 
 (defun idlwave-substitute-link-target (link target)
   "Substitute the TARGET anchor for the given LINK."
