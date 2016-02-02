@@ -1085,13 +1085,13 @@ IDL has currently stepped.")
   (set (make-local-variable 'tool-bar-map) nil)
 
   ;; Run the hooks.
-  (run-mode-hooks 'idlwave-shell-mode-hook)
-  (idlwave-shell-send-command idlwave-shell-initial-commands nil 'hide)
   ;; Turn off IDL's paging, and define a system
   ;; variable which knows the version of IDLWAVE
+  (idlwave-shell-send-command idlwave-shell-initial-commands nil 'hide 'wait)
   (idlwave-shell-send-command
    (format "!MORE=0 & defsysv,'!idlwave_version','%s',1" idlwave-mode-version)
    nil 'hide)
+  (run-mode-hooks 'idlwave-shell-mode-hook)
   ;; Read the paths, and save if they changed
   (idlwave-shell-send-command idlwave-shell-path-query
 			      'idlwave-shell-get-path-info
@@ -1155,7 +1155,7 @@ Will typically only apply if the buffer isn't visible."
 	(setq idlwave-shell-display-wframe
 	      (if (eq (selected-frame) idlwave-shell-idl-wframe)
 		  (or
-		   (let ((flist (visible-frame-list))
+		   (let ((flist (frames-on-display-list))
 			 (frame (selected-frame)))
 		     (catch 'exit
 		       (while flist
@@ -1385,10 +1385,10 @@ Disables line display after state scanning."
      '(progn (idlwave-shell-strip-input)
 	     (setq result idlwave-shell-command-output))
      'hide 'wait nil 'disable)
-    (with-current-buffer ;; DEBUGXXX
-	(get-buffer-create "*idlwave-shell-output*")
-      (goto-char (point-max))
-      (insert (format "--[C.] New result: %s\n" result)))
+    ;; (with-current-buffer ;; DEBUGXXX
+    ;; 	(get-buffer-create "*idlwave-shell-output*")
+    ;;   (goto-char (point-max))
+    ;;   (insert (format "--[C.] New result: %s\n" result)))
     result))
 
 (defun idlwave-shell-send-char (c &optional error)
@@ -2354,10 +2354,12 @@ overlays."
   "Display the source code one step up the calling stack."
   (interactive)
   (incf idlwave-shell-calling-stack-index)
+;  (message "scsi-up: %d" idlwave-shell-calling-stack-index)
   (idlwave-shell-display-level-in-calling-stack 'hide))
 (defun idlwave-shell-stack-down ()
   "Display the source code one step down the calling stack."
   (interactive)
+;  (message "scsi-down: %d" idlwave-shell-calling-stack-index)
   (decf idlwave-shell-calling-stack-index)
   (idlwave-shell-display-level-in-calling-stack 'hide))
 
@@ -2418,9 +2420,11 @@ matter what the settings of that variable."
 	(if idlwave-shell-electric-debug-buffers
 	    (idlwave-shell-electric-debug-all-off)))
     (if (not (idlwave-shell-valid-frame frame))
-	;; fixme: errors are dangerous in shell filters.  but i think i
-	;; have never encountered this one.
-        (error "invalid frame - unable to access file: %s" (car frame))
+	;; fixme: errors are dangerous in shell filters.  IDL LAMBDA
+	;; functions are not stored as code, so just silently ignore
+	;; these errors.
+	(unless (string-match-p "^IDL\$LAMBDA" (caddr frame))
+	  (error "invalid frame - unable to access file: %s" (car frame)))
       ;;
       ;; buffer : the buffer to display a line in.
       ;; select-shell: current buffer is the shell.
@@ -3427,8 +3431,7 @@ Does not work for a region with multiline blocks - use
   "Display a buffer in a requested (optional) FRAME.
 Resize to no more than BUFFER-HEIGHT-FRAC of the frame buffer if set."
   (save-selected-window
-    (if frame (select-frame frame))
-    (let ((win (display-buffer buf not-this-window-p t)))
+    (let ((win (display-buffer buf not-this-window-p frame)))
       (if buffer-height-frac
 	  (set-window-text-height win (round (* (frame-height frame) 
 						buffer-height-frac))))
@@ -3961,11 +3964,17 @@ one of the save-and-.. commands."
   (interactive)
   (idlwave-shell-save-and-action 'batch))
 
+(defvar idlwave-shell-master-file nil 
+  "File local variable to compile instead of this file.
+Useful for e.g. top level routines which @include others.")
+(make-variable-buffer-local 'idlwave-shell-master-file)
+
 (defun idlwave-shell-save-and-action (action)
   "Save file and compile it in IDL.
-Runs `save-buffer' and sends a '.RUN' command for the associated file to IDL.
-When called from the shell buffer, re-compile the file which was last
-handled by this command."
+Runs `save-buffer' and sends a '.RUN' command for the associated
+file to IDL.  When called from the shell buffer, re-compile the
+file which was last handled by this command.  If the
+file-local-variable idlwave-shell-master-file is set, act on it instead."
   ;; Remove the stop overlay.
   (if idlwave-shell-stop-line-overlay
       (delete-overlay idlwave-shell-stop-line-overlay))
@@ -3977,7 +3986,11 @@ handled by this command."
     (cond
      ((eq major-mode 'idlwave-mode)
       (save-buffer)
-      (setq idlwave-shell-last-save-and-action-file (buffer-file-name)))
+      (setq idlwave-shell-last-save-and-action-file 
+	    (if idlwave-shell-master-file 
+		(expand-file-name idlwave-shell-master-file 
+				  (file-name-directory (buffer-file-name)))
+	      (buffer-file-name))))
      (idlwave-shell-last-save-and-action-file
       (if (setq buf (idlwave-get-buffer-visiting
 		     idlwave-shell-last-save-and-action-file))
@@ -4003,6 +4016,18 @@ handled by this command."
 		       idlwave-shell-last-save-and-action-file)))
       (setq idlwave-shell-last-save-and-action-file nil)
       (error msg))))
+
+(defun idlwave-shell-set-master-file () 
+  "Set the master file locally for this file"
+  (interactive)
+  (if (eq major-mode 'idlwave-mode)
+      (let* ((master (read-file-name "Select IDL Master file: " nil nil t))
+	     (master-rel (file-relative-name 
+			  master 
+			  (file-name-directory (buffer-file-name)))))
+	(when (file-regular-p master)
+	  (setq idlwave-shell-master-file master-rel)
+	  (add-file-local-variable 'idlwave-shell-master-file master-rel)))))
 
 (defun idlwave-shell-maybe-update-routine-info (&optional wait file)
   "Update the routine info if the shell is not stopped at an error."
@@ -4585,6 +4610,8 @@ idlwave-shell-electric-debug-mode-map)
 				 'idlwave-shell-get-path-info
 				 'hide)
      t]
+    ["Set Master File" (idlwave-shell-set-master-file) 
+     :active (eq major-mode 'idlwave-mode)]
     ["Reset IDL" idlwave-shell-reset t]
     "--"
     ["Toggle Toolbar" idlwave-shell-toggle-toolbar t]

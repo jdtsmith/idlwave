@@ -1,5 +1,6 @@
 ;; IDLWAVE: scan routine information provided with IDL, and among the
-;; user's library, as well as open buffers
+;; user's library, as well as in open buffers (for scanning the shell,
+;; see idlw-shell.el)
 
 (require 'timer)
 
@@ -745,9 +746,10 @@ Cache to disk for quick recovery."
 (defun idlwave-alias-path (file alias-list content-path &optional class-dir)
   "Search for the HTML help file FILE in the help content.
 Uses alias information ALIAS-LIST from Alias.xml to link to the
-help content, in top level CONTENT-PATH.  CLASS-DIR, is set is
+help content, in top level CONTENT-PATH.  CLASS-DIR, if set, is
 the directory of the class of a routine to try if it can't be
-found through other means."
+found through other means.  As a last resort attempt a brute
+force directory search."
   (let (alias linkfile)
     (if (and file (> (length file) 0))
 	(cond
@@ -788,7 +790,8 @@ found through other means."
 	 
 	 ;; Dir from root name alias (e.g. CLASS_METHOD.html -> CLASS.html)
 	 ((let ((lfroot
-		 (replace-regexp-in-string "_+[^_]*\.html" ".html" file)))
+		 (replace-regexp-in-string 
+		  "_+[^_]*\.htm\\(l?\\)" ".htm\\1" file)))
 	    (and (not (string= file lfroot))
 		 (setq alias (assoc-ignore-case lfroot alias-list))
 		 (file-exists-p 
@@ -801,13 +804,17 @@ found through other means."
 	 ;; Didn't find it... try a brute-force directory search
 	 (t 
 	  (message "searching for %s" file)
-	  (if (setq linkfile (idlwave-recursive-find-file content-path file))
+	  (if (setq linkfile 
+		    (idlwave-recursive-find-file 
+		     content-path 
+		     (replace-regexp-in-string "\.html$" ".htm" file)))
 	      (progn
 		(setq linkfile (file-relative-name linkfile content-path))
 		;; Save it as an alias in case it is requested again
 		(nconc alias-list (list (cons file linkfile))))
 	    (prog1 nil (message "Could not locate %s" file))))))
     linkfile))
+
 
 (defun idlwave-convert-xml-add-link-path-information ()
   ;; Add path information missing from idl_catalog.xml since IDL 8
@@ -824,9 +831,10 @@ found through other means."
 		  aliases (cdr aliases))
 	    (when (and (listp elem) (eq (car elem) 'Map))
 	      (setq elem (cadr elem))
-	      (let* ((link (cdr (assoc 'Link elem)))
+	      (let* ((link (car (idlwave-split-link-target
+				 (cdr (assoc 'Link elem)))))
 		     (file (file-name-nondirectory link)))
-		(push (cons file link) alias-list))))
+		(add-to-list 'alias-list (cons file link)))))
 
 	  ;; System class info
 	  (mapc 
@@ -841,19 +849,23 @@ found through other means."
 	  (mapc
 	   (lambda (x)
 	     (let ((class (nth 2 x))
-		   (kwd_blocks (nthcdr 5 x)) link linkfile class-entry)
+		   (kwd_blocks (nthcdr 5 x)) 
+		   link linkfile class-entry)
 	       (while kwd_blocks
 		 (setq link (car kwd_blocks)
 		       kwd_blocks (cdr kwd_blocks))
-		 (when (setq linkfile 
-			     (idlwave-alias-path 
+		 (when (and
+			(car link)
+			(string-match "\.htm\[^.\]*$" (car link))
+			(setq linkfile
+			     (idlwave-alias-path
 			      (car link) alias-list content-path
 			      (if (and class
-				       (setq class-entry 
-					     (assoc class 
+				       (setq class-entry
+					     (assoc class
 						    idlwave-system-class-info)))
 				  (file-name-directory 
-				   (nth 1 (assq 'link class-entry))))))
+				   (nth 1 (assq 'link class-entry)))))))
 		   (setcar link linkfile)))))
 	   idlwave-system-routines)
 	  
@@ -864,7 +876,22 @@ found through other means."
 	       (if alias 
 		   (setcdr x (cdr alias)))))
 	   (append idlwave-help-special-topic-words
-		   idlwave-executive-commands-alist))))
+		   idlwave-executive-commands-alist))
+
+	  ;; System variables
+	  (mapc
+	   (lambda (x)
+	     (let* (linkfile 
+		    linkparts
+		    (linkcell (assq 'link x))
+		    (link (cadr linkcell)))
+	       (if (setq linkparts (idlwave-split-link-target link))
+		   (setq link (car linkparts)))
+	       (if (setq linkfile
+			 (idlwave-alias-path link alias-list content-path))
+		   (setcdr linkcell (idlwave-substitute-link-target 
+				     linkfile (cdr linkparts))))))
+	   idlwave-system-variables-alist)))
     (message "Linking help file info...done")))
 
 (defun idlwave-convert-xml-clean-routine-aliases (aliases)
@@ -1740,7 +1767,8 @@ end
   "Split a given LINK into link file and anchor."
   (if (and (stringp link) (string-match idlwave-html-link-sep link))
       (cons (substring link 0 (match-beginning 0))
-	    (substring link (match-end 0)))))
+	    (substring link (match-end 0)))
+    (list link)))
 
 (defun idlwave-substitute-link-target (link target)
   "Substitute the TARGET anchor for the given LINK."

@@ -200,7 +200,7 @@ It collects and prints the diagnostics messages."
 			       (cdr
 				(assq (idlwave-sintern-sysvartag tag)
 				      (cdr (assq 'tags entry))))))
-	       (link (nth 1 (assq 'link entry))))
+	       (link (cdr (assq 'link entry))))
 	  (if tag-target
 	      (setq link (idlwave-substitute-link-target link 
 							 tag-target)))
@@ -305,6 +305,7 @@ It collects and prints the diagnostics messages."
        ;; Everything else
        (t
 	(setq mod1 (append (list t) module))))
+
       (if mod3
 	  (condition-case nil
 	      (apply 'idlwave-online-help mod1)
@@ -582,7 +583,8 @@ see if a link is set for it.  Try extra help functions if necessary."
     
     ;; If possible, subsume as anchor under idl.htm, new as of IDL 8.3
     (if (file-exists-p alternate)
-	(setq help-loc (concat alternate "#")))
+	(setq link (file-relative-name link help-loc)
+	      help-loc (concat alternate "#")))
 
     (setq full-link (browse-url-file-url (concat help-loc link)))
 
