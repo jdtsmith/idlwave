@@ -798,78 +798,97 @@ static char * file[] = {
     [idlwave-toolbar-compile-icon
      idlwave-shell-save-and-compile
      t
+     "Compile"
      "Save and Compile this file (or recompile last)"]
     [idlwave-toolbar-next-error-icon
      idlwave-shell-goto-next-error
      t
+     "NextErr"
      "Goto Next Error"]
     [idlwave-toolbar-stop-at-icon
      idlwave-shell-break-here
      (eq major-mode 'idlwave-mode)
+     "Break"
      "Set Breakpoint at selected position"]
     [idlwave-toolbar-clear-at-icon
      idlwave-shell-clear-current-bp
      t
+     "Clear"
      "Clear Breakpoint at selected position"]
     [idlwave-toolbar-clear-all-icon
      idlwave-shell-clear-all-bp
      t
+     "ClearAll"
      "Clear all Breakpoints"]
     [idlwave-toolbar-stop-beginning-icon
      idlwave-shell-break-this-module
      (eq major-mode 'idlwave-mode)
+     "BreakRoutine"
      "Stop at beginning of enclosing Routine"]
     [idlwave-toolbar-stop-in-icon
      idlwave-shell-break-in
      t
+     "BreakThis"
      "Stop in Routine with name near point"]
     [idlwave-toolbar-edit-cmd-icon
      idlwave-shell-edit-default-command-line
      t
+     "Default"
      "Edit Default Command Line"]
     [idlwave-toolbar-run-icon
      idlwave-shell-execute-default-command-line
      t
+     "RunDefault"
      "Reset, then Execute Default Command Line"]
     [idlwave-toolbar-cont-icon
      idlwave-shell-cont
      t
+     "Continue"
      "Continue Current Program"]
     [idlwave-toolbar-to-here-icon
      idlwave-shell-to-here
      (eq major-mode 'idlwave-mode)
+     "Here"
      "Continue to Here (cursor position)"]
     [idlwave-toolbar-step-over-icon
      idlwave-shell-stepover
      t
+     "StepOver"
      "Step Over (aka next)"]
     [idlwave-toolbar-step-into-icon
      idlwave-shell-step
      t
+     "StepInto"
      "Step Into (aka step)"]
     [idlwave-toolbar-step-out-icon
      idlwave-shell-out
      t
+     "StepOut"
      "Step Out (of subroutine)"]
     [idlwave-toolbar-eval-icon
      idlwave-shell-print
      t
+     "Print"
      "Print Expression at or before Point"]
     [idlwave-toolbar-stack-up-icon
      idlwave-shell-stack-up
      t
+     "StackUp"
      "Stack Up (towards \"cooler\" - less recently visited - frames)"]
     [idlwave-toolbar-stack-down-icon
      idlwave-shell-stack-down
      t
+     "StackDown"
      "Stack Down (towards \"warmer\" - more recently visited - frames)"]
     [idlwave-toolbar-reset-icon
      idlwave-shell-reset
      t
+     "ResetAll"
      "Reset IDL (RETALL & CLOSE,/ALL and more)"]
     [idlwave-toolbar-electric-debug-icon
      idlwave-shell-electric-debug-mode
      (eq major-mode 'idlwave-mode)
+     "Electric"
      "Toggle Electric Debug Mode"]
     ))
 
@@ -917,10 +936,11 @@ static char * file[] = {
 	      (let* ((icon (aref x 0))
 		     (func (aref x 1))
 		     (show (aref x 2))
-		     (help (aref x 3))
+		     (name (aref x 3))
+		     (help (aref x 4))
 		     (key (vector 'tool-bar func))
 		     (def (list 'menu-item
-				"a"
+				name
 				func
 				:image (symbol-value icon)
 				:visible show
