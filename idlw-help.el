@@ -1039,8 +1039,13 @@ Useful when source code is displayed as help.  See the option
 
 	  ((file-exists-p (setq help-dir 
 				(expand-file-name 
+				 "help/online_help/Subsystems/idl/Content" sys-dir)))
+	   help-dir) ;; IDL 8.6
+	  
+	  ((file-exists-p (setq help-dir 
+				(expand-file-name 
 				 "help/online_help/IDL/Content" sys-dir)))
-	   help-dir) ;; IDL 8.0
+	   help-dir) ;; IDL 8.0-8.5
 
 	  ((file-exists-p (setq help-dir 
 				(expand-file-name "help/online_help/" sys-dir)))
@@ -1108,4 +1113,3 @@ the idlhelp script.")
 
 
 (defvar idlwave-system-routines)
-

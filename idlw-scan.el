@@ -314,6 +314,7 @@ information updated immediately, leave NO-CONCATENATE nil."
 	  ;; Ask the shell about the routines it knows of.
 	  (message "Querying the shell")
 	  (idlwave-shell-update-routine-info nil t)))))))
+
 (defun idlwave-concatenate-rinfo-lists (&optional quiet run-hook)
   "Put the different sources for routine information together."
   ;; The sequence here is important because earlier definitions shadow 
@@ -399,7 +400,8 @@ Cache to disk for quick recovery."
   (let* ((catalog-file (idlwave-xml-system-routine-info-file))
 	 (elem-cnt 0)
 	 props rinfo msg-cnt elem type nelem class-result alias 
-	 routines routine-aliases statement-aliases sysvar-aliases)
+	 routines routine-aliases graphics-keywords
+	 statement-aliases sysvar-aliases)
     (if (not (file-exists-p catalog-file))
 	(error "No such XML routine info file: %s" catalog-file)
       (if (not (file-readable-p catalog-file))
@@ -642,6 +644,7 @@ Cache to disk for quick recovery."
 	 (params (cddr xml-entry))
 	 (syntax-vec (make-vector 3 nil)) ; procedure, function, exec command
 	 (case-fold-search t)
+	 graphics-kws
 	 syntax kwd klink pref-list kwds pelem ptype props result type)
     (if class ;; strip out class name from class method name string
 	(if (string-match (concat class "::") name)
@@ -655,8 +658,18 @@ Cache to disk for quick recovery."
 	 ((eq ptype 'SYNTAX)
 	  (setq syntax (cdr (assq 'name props))
 		type (cdr (assq 'type props)))
-	  (unless (and (string-match "Keyword" syntax)
-		       (string-match "^pro" type))
+	  (if (and (string-match "Graphics *Keywords" syntax)
+		   (string-match "^pro" type))
+	      ;; Unlinked Graphics Keywords masquerading as Syntax :(.
+	      (let ((pos 0))
+		(while
+		    (string-match "\\[, /?\\({X *| *Y *| *Z}\\)?\\([A-Z0-9]+\\)[]=]" syntax pos)
+		  (if (match-string 1 syntax)
+		      (loop for x in '("X" "Y" "Z") do
+			    (push (concat x (match-string 2 syntax)) graphics-kws))
+		    (push (match-string 2 syntax) graphics-kws))
+		  (setq pos (match-end 0)))
+		(message "Parsing Graphics Keywords for %s: %d found" name (length graphics-kws)))
 	    (if (string-match "-&gt;" syntax)
 		(setq syntax (replace-match "->" t nil syntax)))
 	    (push syntax
@@ -697,12 +710,14 @@ Cache to disk for quick recovery."
     ;;         (insert (format "Missing SYNTAX entry for %s::%s\n" class name))
     ;;       (insert (message "Missing SYNTAX entry for %s\n" name)))))
 
-    ;; Executive commands are treated specially
-    (if (aref syntax-vec 2)
+    ;; Build the routine info list
+    (if (aref syntax-vec 2)     ; executive commands are treated specially
 	(cons (substring name 1) link)
       (if extra-kws (setq kwds (nconc kwds extra-kws)))
+      (if graphics-kws
+	  (setq kwds (nconc kwds (idlwave-graphics-keywords graphics-kws))))
       (setq kwds (idlwave-rinfo-group-keywords kwds link))
-      (loop for idx from 0 to 1 do
+      (loop for idx from 0 to 1 do	;add a procedure and function if needed
 	    (if (aref syntax-vec idx)
 		(push (append (list name (if (eq idx 0) 'pro 'fun) 
 				    class '(system)
@@ -710,6 +725,41 @@ Cache to disk for quick recovery."
 				     (aref syntax-vec idx) name class))
 			      kwds) result)))
       result)))
+
+(defvar idlwave-graphics-keywords-links-alist nil)
+(defun idlwave-graphics-keywords (kwds)
+  ;; Given a list of keywords, find links and return a list of (kwd link) lists
+  ;; from the special (and poorly linked) Graphics Keywords help file
+  (unless idlwave-graphics-keywords-links-alist
+    ;; Cache a list of links
+    (let ((gkwfile (idlwave-recursive-find-file (idlwave-html-help-location)
+					     "graphkeyw.htm")))
+      (if (file-exists-p gkwfile)
+	  (save-match-data
+	    (save-excursion
+	      (with-temp-buffer
+		(insert-file-contents gkwfile)
+		(goto-char 1)
+		(while (search-forward-regexp
+			"a href=\"\\(#graphkeyw.[^\"]+\\)\"[^>]*>\\([^ <]+\\)<"
+			nil t)
+		  (let ((anchor (match-string 1))
+			(kwd (match-string 2)) kwds)
+		    (if (string-match "^\\[XYZ\\]" kwd)
+			(progn
+			  (setq kwd (substring kwd (match-end 0)))
+			  (setq kwds (mapcar (lambda (x) (concat x kwd)) '("X" "Y" "Z"))))
+		      (setq kwds (list kwd)))
+		    (loop for kwd in kwds do
+			  (unless (assoc kwd idlwave-graphics-keywords-links-alist)
+			    (push (cons kwd (concat gkwfile anchor))
+				  idlwave-graphics-keywords-links-alist)))))))))))
+  ;; find the keywords and links
+  (mapcar
+   (lambda (kwd)
+     (let ((rec (assoc kwd idlwave-graphics-keywords-links-alist)))
+       (list kwd (if rec (cdr rec)))))
+   kwds))
 
 (defun idlwave-rinfo-group-keywords (kwds master-link)
   ;; Group keywords by link file, as a list with elements (linkfile (
@@ -818,9 +868,8 @@ force directory search."
 
 (defun idlwave-convert-xml-add-link-path-information ()
   ;; Add path information missing from idl_catalog.xml since IDL 8
-  (let* ((help-path  (expand-file-name "help/online_help/IDL/"
-				       (idlwave-sys-dir)))
-	 (content-path (expand-file-name "Content" help-path))
+  (let* ((content-path (idlwave-html-help-location))
+	 (help-path  (file-name-directory content-path))
 	 (alias-file (expand-file-name "Data/Alias.xml" help-path)))
     (message "Linking help file info...")
     (if (file-exists-p alias-file)
