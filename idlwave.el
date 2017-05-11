@@ -1336,7 +1336,7 @@ INFO is as returned by `idlwave-what-function' or `-procedure'."
   (let ((apos (nth 3 info)))
     (if apos
 	(save-excursion (goto-char apos)
-			(looking-at "->[a-zA-Z][a-zA-Z0-9$_]*::")))))
+			(looking-at "\\(->|\\.\\)[a-zA-Z][a-zA-Z0-9$_]*::")))))
 
 ;;----------------------------------------------------
 ;; Indent and indent action
@@ -1715,7 +1715,7 @@ routine definitions, and parenthetical groupings, are treated separately."
 		  ;; A continued Procedure call or definition
 		  ((progn
 		     (idlwave-look-at "^[ \t]*\\(pro\\|function\\)") ;skip over
-		     (looking-at "[ \t]*\\([a-zA-Z0-9.$_]+[ \t]*->[ \t]*\\)?[a-zA-Z][:a-zA-Z0-9$_]*[ \t]*\\(,\\)[ \t]*"))
+		     (looking-at "[ \t]*\\([a-zA-Z0-9.$_]+[ \t]*\\(->|\\.\\)[ \t]*\\)?[a-zA-Z][:a-zA-Z0-9$_]*[ \t]*\\(,\\)[ \t]*"))
 		   (goto-char (match-end 0))
 		   ;; Comment only, or blank line with "$"?  Basic indent.
 		   (if (save-match-data (looking-at "[ \t$]*\\(;.*\\)?$"))

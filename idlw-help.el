@@ -165,9 +165,8 @@ It collects and prints the diagnostics messages."
 	   module keyword cw mod1 mod2 mod3)
       (if (or arg 
 	      (and (not classtag)
-		   (not structtag)
-		   (not (member (string-to-char this-word) '(?! ?.)))))
-	  ;; Need the module information
+		   (not (member (string-to-char this-word) '(?!)))))
+	  ;; Get the module information
 	  (progn
 	    ;; MODULE is (name type class), for this or any inheriting class
 	    (setq module (idlwave-what-module-find-class)
@@ -251,14 +250,16 @@ It collects and prints the diagnostics messages."
        
        ;; A regular structure tag -- only in text, and if
        ;; `complete-structtag' loaded.
-       (structtag
-	(let ((var (match-string 1 this-word))
-	      (tag (substring this-word (match-end 0))))
-	  ;; Check if we need to update the "current" structure
-	  (idlwave-prepare-structure-tag-completion var)
-	  (setq idlwave-help-do-struct-tag
-		idlwave-structtag-struct-location
-		mod1 (list nil nil nil nil tag))))
+       ((and structtag
+	     (let ((var (match-string 1 this-word))
+		   (tag (substring this-word (match-end 0))))
+	       ;; Check if we need to update the "current" structure
+	       (condition-case nil
+		   (idlwave-prepare-structure-tag-completion var)
+		 (error nil))))
+	(setq idlwave-help-do-struct-tag
+	      idlwave-structtag-struct-location
+	      mod1 (list nil nil nil nil tag)))
        
        ;; A routine keyword -- in text or system help
        ((and (memq cw '(function-keyword procedure-keyword))

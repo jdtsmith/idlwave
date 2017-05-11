@@ -45,17 +45,18 @@ this arrow, if any (see `idlwave-store-inquired-class').  With a prefix
 arg, the class property is cleared out."
   (interactive "P")
   (idlwave-routines)
-  (if (string-match "->" (buffer-substring
-			  (max (point-min) (1- (point)))
-			  (min (+ 2 (point)) (point-max))))
-      ;; Cursor is on an arrow
+  (if (or (string-match "->" (buffer-substring
+			      (max (point-min) (1- (point)))
+			      (min (+ 2 (point)) (point-max))))
+	  (looking-at "\\."))
+      ;; Cursor is on an arrow/dot
       (if (get-text-property (point) 'idlwave-class)
 	  ;; arrow has class property
 	  (if arg
 	      ;; Remove property
 	      (save-excursion
 		(backward-char 1)
-		(when (looking-at ".?\\(->\\)")
+		(when (looking-at ".?\\(->\\|\\.\\)")
 		  (remove-text-properties (match-beginning 1) (match-end 1)
 					  '(idlwave-class nil face nil))
 		  (message "Class property removed from arrow")))
@@ -527,7 +528,7 @@ When TYPE is not specified, both procedures and functions will be considered."
   ;; this structure is the class.  When nil, we return nil.  When t,
   ;; try to get the class from text properties at the method call
   ;; arrow.  When the object is "self", we use the class of the
-  ;; current (enclosing) routine.  otherwise prompt the user for a
+  ;; current (enclosing) routine.  Otherwise, we prompt the user for a
   ;; class name.  Also stores the selected class as a text property at
   ;; the arrow.  TYPE is 'fun or 'pro.
   (let* ((class (nth 2 cw-list))
@@ -541,7 +542,13 @@ When TYPE is not specified, both procedures and functions will be considered."
 	 (query (cond (nassoc (cdr nassoc))
 		      (dassoc (cdr dassoc))
 		      (t t)))
-	 (arrow (and apos (string= (buffer-substring apos (+ 2 apos)) "->")))
+	 arrow-len
+	 (arrow (and apos (or (and (string= (buffer-substring apos (min (point-max)
+									(+ 2 apos))) "->")
+				   (setq arrow-len 2))
+			      (and (string= (buffer-substring apos (min (point-max)
+									(+ 1 apos))) ".")
+				   (setq arrow-len 1)))))
 	 (is-self 
 	  (and arrow
 	       (save-excursion (goto-char apos)
@@ -599,7 +606,7 @@ When TYPE is not specified, both procedures and functions will be considered."
 	(when (and store arrow)
 	  (condition-case ()
 	      (add-text-properties 
-	       apos (+ apos 2) 
+	       apos (+ apos arrow-len) 
 	       `(idlwave-class ,class face ,idlwave-class-arrow-face 
 			       rear-nonsticky t))
 	    (error nil)))
@@ -676,7 +683,7 @@ ARROW:  Location of the arrow for method calls"
 	    cw-point pro-point
 	    cw-arrow pro-arrow))
 
-     ;; Complete class inside obj_new statement
+     ;; Complete class name inside obj_new statement
      ((string-match "OBJ_NEW([ \t]*['\"]\\([a-zA-Z0-9$_]*\\)?\\'"
 		    match-string)
       (setq cw 'class))
@@ -714,7 +721,7 @@ ARROW:  Location of the arrow for method calls"
      (t
       (setq cw 'function)
       (save-excursion
-	(if (re-search-backward "->[ \t]*\\(\\$[ \t]*\\(;.*\\)?\n\\s-*\\)?\\(\\([$a-zA-Z0-9_]+\\)::\\)?[$a-zA-Z0-9_]*\\=" bos t)
+	(if (re-search-backward "\\(->\\|\\.\\)[ \t]*\\(\\$[ \t]*\\(;.*\\)?\n\\s-*\\)?\\(\\([$a-zA-Z0-9_]+\\)::\\)?[$a-zA-Z0-9_]*\\=" bos t)
 	    (setq cw-arrow (copy-marker (match-beginning 0))
 		  cw-class (if (match-end 4)
 			       (idlwave-sintern-class (match-string 4))
@@ -751,13 +758,13 @@ ARROW:  Location of the arrow for method calls"
 	     (incf cnt)
 	     (when (and (= (following-char) ?\()
 			(re-search-backward 
-			 "\\(::\\|\\<\\)\\([a-zA-Z][a-zA-Z0-9$_]*\\)[ \t]*\\="
+			 "\\(::\\|\\<\\|\\.\\)\\([a-zA-Z][a-zA-Z0-9$_]*\\)[ \t]*\\="
 			 bound t))
 	       (setq func (match-string 2)
 		     func-point (goto-char (match-beginning 2))
 		     pos func-point)
 	       (if (re-search-backward 
-		    "->[ \t]*\\(\\([a-zA-Z][a-zA-Z0-9$_]*\\)::\\)?\\=" bound t)
+		    "\\(->\\|\\.\\)[ \t]*\\(\\([a-zA-Z][a-zA-Z0-9$_]*\\)::\\)?\\=" bound t)
 		   (setq arrow-start (copy-marker (match-beginning 0))
 			 class (or (match-string 2) t)))
 	       (throw 
@@ -788,7 +795,7 @@ ARROW:  Location of the arrow for method calls"
 	(if (and (idlwave-skip-object)
 		 (setq string (buffer-substring (point) pos))
 		 (string-match 
-		  "\\`[ \t]*\\(->\\)[ \t]*\\(\\([a-zA-Z][a-zA-Z0-9$_]*\\)::\\)?\\([a-zA-Z][a-zA-Z0-9$_]*\\)?[ \t]*\\(,\\|\\(\\$\\s *\\(;.*\\)?\\)?$\\)" 
+		  "\\`[ \t]*\\(->\\|\\.\\)[ \t]*\\(\\([a-zA-Z][a-zA-Z0-9$_]*\\)::\\)?\\([a-zA-Z][a-zA-Z0-9$_]*\\)?[ \t]*\\(,\\|\\(\\$\\s *\\(;.*\\)?\\)?$\\)" 
 		  string))
 	    (setq pro (if (match-beginning 4)
 			  (match-string 4 string))
@@ -815,19 +822,19 @@ ARROW:  Location of the arrow for method calls"
 	     ((eq (following-char) ?\()
 	      nil)
 	     (t (throw 'exit nil)))
-	    (catch 'endwhile
-	      (while t
-		(cond ((eq (following-char) ?.)
-		       (forward-char 1)
-		       (if (not (looking-at idlwave-identifier))
-			   (throw 'exit nil))
-		       (goto-char (match-end 0)))
-		      ((memq (following-char) '(?\( ?\[))
-		       (condition-case nil
-			   (forward-list 1)
-			 (error (throw 'exit nil))))
-		      (t (throw 'endwhile t)))))
-	    (if (looking-at "[ \t]*->")
+	    ;; (catch 'endwhile ; Can't skip dots anymore, they are used for method invocation!
+	    ;;   (while t
+	    ;; 	(cond ((eq (following-char) ?.)
+	    ;; 	       (forward-char 1)
+	    ;; 	       (if (not (looking-at idlwave-identifier))
+	    ;; 		   (throw 'exit nil))
+	    ;; 	       (goto-char (match-end 0)))
+	    ;; 	      ((memq (following-char) '(?\( ?\[))
+	    ;; 	       (condition-case nil
+	    ;; 		   (forward-list 1)
+	    ;; 		 (error (throw 'exit nil))))
+	    ;; 	      (t (throw 'endwhile t)))))
+	    (if (looking-at "[ \t]*\\(->\\|\\.\\)")
 		(throw 'exit (setq pos (match-beginning 0)))
 	      (throw 'exit nil))))
 	(goto-char pos)

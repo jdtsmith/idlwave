@@ -1286,7 +1286,7 @@ blocks starting with a BEGIN statement.  The matches must have associations
 (defconst idlwave-label (concat idlwave-identifier ":")
   "Regular expression matching IDL labels.")
 
-(defconst idlwave-method-call (concat idlwave-identifier  "\\s *->"
+(defconst idlwave-method-call (concat idlwave-identifier  "\\s *\\(->\\|\\.\\)"
 				      "\\(\\s *" idlwave-identifier "::\\)?"
 ))
 

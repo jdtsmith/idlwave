@@ -110,7 +110,7 @@ When we force a method or a method keyword, CLASS can specify the class."
 	      module (substring module (match-end 0))))
 
     (cond
-
+     ;; Just scroll the completions list on repeat commands
      ((and (null arg)
 	   (eq (car-safe last-command) 'idlwave-display-completion-list)
 	   (get-buffer-window "*Completions*"))
@@ -124,12 +124,14 @@ When we force a method or a method keyword, CLASS can specify the class."
 
      ;; Check for any special completion functions
      ((and idlwave-complete-special
-	   (idlwave-call-special idlwave-complete-special)))
-     
+	   (condition-case nil
+	       (idlwave-call-special idlwave-complete-special)
+	     (error nil))))
+
      ((null what)
       (error "Nothing to complete here"))
 
-     ;; Complete a class
+     ;; Complete a class name
      ((eq what 'class)
       (setq idlwave-completion-help-info '(class))
       (idlwave-complete-class))
@@ -182,7 +184,7 @@ When we force a method or a method keyword, CLASS can specify the class."
 
      ((and (memq what '(procedure-keyword function-keyword)) ; Special Case
 	   (equal arg '(4)))
-      (idlwave-complete 3))
+      (idlwave-complete 3)) 		;force function completion
 
      ((eq what 'procedure-keyword)
       ;; Complete a procedure keyword

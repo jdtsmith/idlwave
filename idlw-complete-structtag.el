@@ -24,6 +24,11 @@
 
 ;;; Commentary:
 
+;; NOTA BENE!!! As of IDL v8, a method invocation operator of "." was
+;; introduced (in addition to "->").  As a result, it is no longer
+;; clear if you are completing an implicit structure tag, or a
+;; method procedure.
+
 ;; Completion of structure tags can be done automatically in the
 ;; shell, since the list of tags can be determined dynamically through
 ;; interaction with IDL.
@@ -102,7 +107,7 @@
 (defvar idlwave-current-struct-tags nil)
 (defvar idlwave-sint-structtags nil)
 
-;; Create the sintern type for structure talks
+;; Create the sintern type for structure tags
 (add-hook 'idlwave-load-hook
 	  (lambda () (idlwave-new-sintern-type 'structtag)))
 
@@ -147,7 +152,7 @@ an up-to-date completion list."
 	  (if (or (not (string= var (or idlwave-current-tags-var "@")))
 		  (not (eq (current-buffer) idlwave-current-tags-buffer))
                   (not (equal start idlwave-current-tags-completion-pos)))
-	      (idlwave-prepare-structure-tag-completion var ))
+	      (idlwave-prepare-structure-tag-completion var))
           (setq idlwave-current-tags-completion-pos start)
 	  (setq idlwave-completion-help-info 
 		(list 'idlwave-complete-structure-tag-help))
