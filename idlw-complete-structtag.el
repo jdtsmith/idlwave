@@ -89,7 +89,7 @@
 ;;  - You can force an update of the tag list with the usual command
 ;;    to update routine info in IDLWAVE: C-c C-i
 
-(require 'idlwave)
+;;(require 'idlwave)
 
 (declare-function idlwave-shell-buffer "idlw-shell")
 

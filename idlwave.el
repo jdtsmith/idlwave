@@ -389,6 +389,10 @@ The main features of this mode are
   ;; Run the mode hook
   (run-mode-hooks 'idlwave-mode-hook))
 
+;; Special module
+(if idlwave-complete-structure-tags
+	(require 'idlw-complete-structtag))
+
 ;;;###autoload
 (add-to-list 'auto-mode-alist (cons (purecopy "\\.pro\\'")  'idlwave-mode))
 (eval-after-load "speedbar" '(speedbar-add-supported-extension ".pro"))
@@ -429,9 +433,6 @@ sets the variable to zero afterwards."
     (idlwave-read-paths)  ; we may need these early
 
     (idlwave-help-check-locations)
-    
-    (if idlwave-complete-structure-tags
-	(require 'idlw-complete-structtag))
     (setq idlwave-setup-done t)))
 
 ;;----------------------------------------------------
