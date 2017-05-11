@@ -527,7 +527,7 @@ see if a link is set for it.  Try extra help functions if necessary."
 	    (cond
 	     ;; Try keyword link
 	     ((and keyword 
-		   (setq link (cdr 
+		    (setq link (cdr 
 			       (idlwave-entry-find-keyword entry keyword)))))
 	     ;; Default, regular entry link
 	     (t (setq link (idlwave-entry-has-help entry))))

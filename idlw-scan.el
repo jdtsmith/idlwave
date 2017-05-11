@@ -602,6 +602,11 @@ Cache to disk for quick recovery."
 	    (if init (push (list pname plink) init-props))))
 
 	 ((eq ptype 'METHOD)
+	  (let ((mlink (cdr (assq 'link props)))
+		(case-fold-search t))
+	    (unless (string-match "\.html?$" mlink) ;must be a keyword, use class link
+	      (setf (cdr (assq 'link props))
+		    (idlwave-substitute-link-target link mlink))))
 	  (setq method (cdr (assq 'name props)))
 	  (setq extra-kwds ;;Assume all property keywords are gathered already
 		(cond
@@ -800,7 +805,11 @@ help content, in top level CONTENT-PATH.  CLASS-DIR, if set, is
 the directory of the class of a routine to try if it can't be
 found through other means.  As a last resort attempt a brute
 force directory search."
-  (let (alias linkfile)
+  (let* (alias linkfile
+	       (parts (idlwave-split-link-target file))
+	       (anchor (cdr parts)))
+    (if anchor
+	(setq file (car parts)))
     (if (and file (> (length file) 0))
 	(cond
 	 ;; Directly on the alias list
@@ -863,7 +872,9 @@ force directory search."
 		;; Save it as an alias in case it is requested again
 		(nconc alias-list (list (cons file linkfile))))
 	    (prog1 nil (message "Could not locate %s" file))))))
-    linkfile))
+    (if anchor
+	(idlwave-substitute-link-target linkfile anchor)
+      linkfile)))
 
 
 (defun idlwave-convert-xml-add-link-path-information ()
@@ -1822,11 +1833,13 @@ end
 (defun idlwave-substitute-link-target (link target)
   "Substitute the TARGET anchor for the given LINK."
   (let (main-base)
-    (setq main-base (if (string-match "#" link)
+    (setq main-base (if (string-match idlwave-html-link-sep link)
 			(substring link 0 (match-beginning 0))
 		      link))
     (if target
-	(concat main-base idlwave-html-link-sep target)
+	(if (string-match idlwave-html-link-sep target)
+	    (concat main-base target)
+	  (concat main-base idlwave-html-link-sep target))
       link)))
 
 
