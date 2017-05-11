@@ -931,17 +931,19 @@ Restore the pre-completion window configuration if possible."
   (let* ((var (nth 1 idlwave-completion-help-info))
 	(entry (assoc var idlwave-system-variables-alist))
 	(tags (cdr (assq 'tags entry)))
-	(main (nth 1 (assq 'link entry)))
-	target)
+	(main (cdr (assq 'link entry)))
+	target) 			;N.B.: 'link' is a dynamic value
+    (if (listp main)
+	(setq main (car main)))
     (cond
      ((eq mode 'test) ; we can at least link the main
       (and (stringp word) entry main))
      ((eq mode 'set)
       (if entry 
-	  (setq link 
+	  (setq link ;; setting dynamic!!!
 		(if (setq target (cdr (assoc-ignore-case word tags)))
 		  (idlwave-substitute-link-target main target)
-		main)))) ;; setting dynamic!!!
+		main)))) 
      (t (error "This should not happen")))))
 
 (defvar idlwave-help-do-class-struct-tag nil)
