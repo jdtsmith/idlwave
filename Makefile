@@ -118,7 +118,7 @@ install-lisp:
 	$(CP) $(ELCFILES)  $(lispdir)
 
 .PHONY: install-info
-install-info:
+install-info: info
 	if [ ! -d $(infodir) ]; then $(MKDIR) $(infodir); else true; fi ;
 	$(CP) $(INFOFILES) $(infodir)
 
