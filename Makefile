@@ -15,7 +15,7 @@
 prefix=/usr/local
 
 # Where info files go.
-infodir = $(prefix)/info
+infodir = $(prefix)/share/info
 
 # Where local lisp files go.
 lispdir = $(prefix)/share/emacs/site-lisp
