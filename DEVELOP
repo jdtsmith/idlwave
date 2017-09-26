@@ -1,0 +1,15 @@
+A short guide to the new file structure, introduced in 2014:
+
+NEW 	idlw-bindings.el - Key bindings
+	idlw-complete-structtag.el - Plugin for completing structure tags
+NEW	idlw-complete.el - Completion code (buffer or shell)
+	idlw-help.el - HTML help code (+ vestigial stuff for old IDL help systems)
+NEW	idlw-menus.el - The easymenu menus. 
+	idlw-roprompt.el - optional code to make a RO prompt. 
+NEW	idlw-routine.el - Routine info help
+NEW	idlw-scan.el - scan routine info from IDL’s XML help files, local directories, etc.
+	idlw-shell.el - idlw-shell mode: interact with the IDL shell
+	idlw-toolbar.el - create toolbar
+NEW	idlw-variables.el - various customize and other variables 
+	idlwave.el - main mode code, infer and navigate the IDL syntax, fontification, indentation, utilities
+
