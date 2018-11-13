@@ -1913,7 +1913,7 @@ position if no recognized message is found, unless it is
       ;; If we have a file, return the frame list
       (if file
 	  (list (idlwave-shell-file-name file)
-		(string-to-int number)
+		(string-to-number number)
 		procedure)
 	;; No success finding a file
 	nil))))
@@ -3519,14 +3519,14 @@ the breakpoint overlays."
 		       indmap '(1 6 2 16)))) ; index module line file
 	;; There seems to be a breakpoint listing here, parse breakpoint lines.
 	(while (re-search-forward bp-re nil t)
-	  (setq index (string-to-int (match-string (nth 0 indmap)))
+	  (setq index (string-to-number (match-string (nth 0 indmap)))
 		module (match-string (nth 1 indmap))
-		line (string-to-int (match-string (nth 2 indmap)))
+		line (string-to-number (match-string (nth 2 indmap)))
 		file (idlwave-shell-file-name (match-string (nth 3 indmap))))
 	  (if (eq bp-re bp-re55)
 	      (setq count (if (match-string 10) 1 
 			    (if (match-string 8)
-				(string-to-int (match-string 8))))
+				(string-to-number (match-string 8))))
 		    condition (match-string 13)
 		    disabled (not (null (match-string 15)))))
 		    
@@ -3908,7 +3908,7 @@ only for glyphs)."
 	 ((string-match "Count" select)
 	  (idlwave-shell-break-here (if (or (not count)
 					    (string-match "Change" select))
-					(string-to-int
+					(string-to-number
 					 (read-string "Break After Count: ")))
 				    cmd condition disabled))
 	 ((string-match "able$" select)
@@ -4170,7 +4170,7 @@ of the form:
                      (idlwave-shell-file-name
                       (buffer-substring (match-beginning 1 )
 					(match-end 1))))
-                   (string-to-int
+                   (string-to-number
                     (buffer-substring (match-beginning 2)
                                       (match-end 2)))))
             ;; Try to find the column of the error
@@ -4512,7 +4512,7 @@ idlwave-shell-electric-debug-mode-map)
      ("Set Special Breakpoint"
       ["Set After Count Breakpoint"
        (progn
-	(let ((count (string-to-int (read-string "Break after count: "))))
+	(let ((count (string-to-number (read-string "Break after count: "))))
 	      (if (integerp count) (idlwave-shell-break-here count))))
        :active (eq major-mode 'idlwave-mode)]
       ["Set Condition Breakpoint"
