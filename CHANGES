@@ -4,7 +4,7 @@ The file covers only the changes for Revision 3.0 and later.  Earlier
 changes are documented in the (obsolete) files idl.el and
 idl-shell.el, available at idlwave.org.
 
-Revision 6.5 
+Revision 6.2 
 ================================================================
    - Support for the Windows command-line IDL tool (as of version 7.1)
    - Support for the new Eclipse-based help system, including direct
