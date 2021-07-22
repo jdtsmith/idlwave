@@ -1,8 +1,10 @@
-IDLWAVE is currently not maintained.  In current form it supports IDL v8.6.  If you are interested in taking over IDLWAVE maintenance, please post an issue. 
+IDLWAVE is currently not maintained.  In current form it supports IDL v8.6, and is still in daily use by some users.  
+If you are interested in taking over IDLWAVE maintenance, please post an issue.  See the DEVELOP file for information
+on the file structure layout. 
 
-This is the README file for the IDLWAVE distribution, version VERSIONTAG 
+This is the README file for the IDLWAVE distribution
 
-IDLWAVE is an add-on mode for GNU Emacs which enables feature-rich
+IDLWAVE is an add-on mode built into GNU Emacs which enables feature-rich
 development and interaction with IDL, the Interactive Data Language.
 It provides a compelling, full-featured alternative to the IDLDE
 development environment bundled with IDL.
