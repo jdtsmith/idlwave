@@ -17,4 +17,5 @@ idlwave_catalog     A Perl program to produce your own library catalog
 tutorial.pro        Intentionally buggy practice source code for the 
 		    tutorial.  See the`Getting Started' section in the 
 	            manual.
+		    
 CHANGES             The package history
