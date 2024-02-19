@@ -1,18 +1,19 @@
-;; IDLWAVE menus and associated code
+;;; IDLWAVE menus and associated code  -*- lexical-binding: t; -*-
+
+;;; Code:
+
+;; Define the mode-maps before we modify them.
+(require 'idlw-variables)
+(require 'idlw-bindings)
 
 ;; Define - using easymenu.el
-(defvar idlwave-mode-menu)  
+(defvar idlwave-mode-menu)
 (defvar idlwave-mode-debug-menu)
 
-(defalias 'idlwave-function-menu
-  (condition-case nil
-      (progn
-	(require 'imenu)
-	'imenu)
-    (error nil)))
+(define-obsolete-function-alias 'idlwave-function-menu #'imenu "29.1")
 (defvar idlwave-mode-menu-def
   `("IDLWAVE"
-    ["PRO/FUNC menu" idlwave-function-menu t]
+    ["PRO/FUNC menu" imenu t]
     ("Motion"
      ["Subprogram Start" idlwave-beginning-of-subprogram t]
      ["Subprogram End" idlwave-end-of-subprogram t]
@@ -27,14 +28,14 @@
      ["Block" idlwave-mark-block t]
      ["Header" idlwave-mark-doclib t])
     ("Format"
-     ["Indent Entire Statement" idlwave-indent-statement 
+     ["Indent Entire Statement" idlwave-indent-statement
       :active t :keys "C-u \\[indent-for-tab-command]" ]
      ["Indent Subprogram" idlwave-indent-subprogram t]
      ["(Un)Comment Region" idlwave-toggle-comment-region t]
      ["Continue/Split line" idlwave-split-line t]
      "--"
-     ["Toggle Auto Fill" idlwave-auto-fill-mode :style toggle
-      :selected (symbol-value idlwave-fill-function)])
+     ["Toggle Auto Fill" auto-fill-mode :style toggle
+      :selected auto-fill-function])
     ("Templates"
      ["Procedure" idlwave-procedure t]
      ["Function" idlwave-function t]
@@ -88,7 +89,7 @@
      ["Kill auto-created buffers" idlwave-kill-autoloaded-buffers t]
      "--"
      ["Insert TAB character" idlwave-hard-tab t])
-     "--"
+    "--"
     ("External"
      ["Start IDL shell" idlwave-shell t]
      ["Edit file in IDLDE" idlwave-edit-in-idlde t])
@@ -96,8 +97,7 @@
     ("Customize"
      ["Browse IDLWAVE Group" idlwave-customize t]
      "--"
-     ["Build Full Customize Menu" idlwave-create-customize-menu 
-      (fboundp 'customize-menu-create)])
+     ["Build Full Customize Menu" idlwave-create-customize-menu t])
     ("Documentation"
      ["Describe Mode" describe-mode t]
      ["Abbreviation List" idlwave-list-abbrevs t]
@@ -114,17 +114,15 @@
   '("Debug"
     ["Start IDL shell" idlwave-shell t]
     ["Save and .RUN buffer" idlwave-shell-save-and-run
-     (and (boundp 'idlwave-shell-automatic-start) 
+     (and (boundp 'idlwave-shell-automatic-start)
 	  idlwave-shell-automatic-start)]))
 
-(if (or (featurep 'easymenu) (load "easymenu" t))
-    (progn
-      (easy-menu-define idlwave-mode-menu idlwave-mode-map 
-			"IDL and WAVE CL editing menu" 
-			idlwave-mode-menu-def)
-      (easy-menu-define idlwave-mode-debug-menu idlwave-mode-map 
-			"IDL and WAVE CL editing menu" 
-			idlwave-mode-debug-menu-def)))
+(easy-menu-define idlwave-mode-menu idlwave-mode-map
+  "IDL and WAVE CL editing menu"
+  idlwave-mode-menu-def)
+(easy-menu-define idlwave-mode-debug-menu idlwave-mode-map
+ "IDL and WAVE CL editing menu"
+ idlwave-mode-debug-menu-def)
 
 
 ;;----------------------------------------------------
@@ -132,7 +130,7 @@
 (defun idlwave-customize ()
   "Call the customize function with `idlwave' as argument."
   (interactive)
-  ;; Try to load the code for the shell, so that we can customize it 
+  ;; Try to load the code for the shell, so that we can customize it
   ;; as well.
   (or (featurep 'idlw-shell)
       (load "idlw-shell" t))
@@ -141,24 +139,20 @@
 (defun idlwave-create-customize-menu ()
   "Create a full customization menu for IDLWAVE, insert it into the menu."
   (interactive)
-  (if (fboundp 'customize-menu-create)
-      (progn
-	;; Try to load the code for the shell, so that we can customize it 
-	;; as well.
-	(or (featurep 'idlw-shell)
-	    (load "idlw-shell" t))
-	(easy-menu-change 
-	 '("IDLWAVE") "Customize"
-	 `(["Browse IDLWAVE group" idlwave-customize t]
-	   "--"
-	   ,(customize-menu-create 'idlwave)
-	   ["Set" Custom-set t]
-	   ["Save" Custom-save t]
-	   ["Reset to Current" Custom-reset-current t]
-	   ["Reset to Saved" Custom-reset-saved t]
-	   ["Reset to Standard Settings" Custom-reset-standard t]))
-	(message "\"IDLWAVE\"-menu now contains full customization menu"))
-    (error "Cannot expand menu (outdated version of cus-edit.el)")))
+  ;; Try to load the code for the shell, so that we can customize it
+  ;; as well.
+  (require 'idlw-shell)
+  (easy-menu-change
+   '("IDLWAVE") "Customize"
+   `(["Browse IDLWAVE group" idlwave-customize t]
+     "--"
+     ,(customize-menu-create 'idlwave)
+     ["Set" Custom-set t]
+     ["Save" Custom-save t]
+     ["Reset to Current" Custom-reset-current t]
+     ["Reset to Saved" Custom-reset-saved t]
+     ["Reset to Standard Settings" Custom-reset-standard t]))
+  (message "\"IDLWAVE\"-menu now contains full customization menu"))
 
 (defun idlwave-show-commentary ()
   "Use the finder to view the file documentation from `idlwave.el'."
@@ -189,10 +183,10 @@ With arg, list all abbrevs with the corresponding hook.
 This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 
   (interactive "P")
-  (let ((table (symbol-value 'idlwave-mode-abbrev-table))
+  (let ((table idlwave-mode-abbrev-table)
 	abbrevs
 	str rpl func fmt (len-str 0) (len-rpl 0))
-    (mapatoms 
+    (mapatoms
      (lambda (sym)
        (if (symbol-value sym)
 	   (progn
@@ -218,7 +212,7 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
     (with-output-to-temp-buffer "*Help*"
       (if arg
 	  (progn
-	    (princ "Abbreviations and Actions in IDLWAVE-Mode\n") 
+	    (princ "Abbreviations and Actions in IDLWAVE-Mode\n")
 	    (princ "=========================================\n\n")
 	    (princ (format fmt "KEY" "REPLACE" "HOOK"))
 	    (princ (format fmt "---" "-------" "----")))
@@ -226,13 +220,11 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 	(princ "================================================\n\n")
 	(princ (format fmt "KEY" "ACTION" ""))
 	(princ (format fmt "---" "------" "")))
-      (mapcar
-       (lambda (list)
-	 (setq str (car list)
-	       rpl (nth 1 list)
-	       func (nth 2 list))
-	 (princ (format fmt str rpl func)))
-       abbrevs)))
+      (dolist (list abbrevs)
+	(setq str (car list)
+	      rpl (nth 1 list)
+	      func (nth 2 list))
+	(princ (format fmt str rpl func)))))
   ;; Make sure each abbreviation uses only one display line
   (with-current-buffer "*Help*"
     (setq truncate-lines t)))
@@ -244,9 +236,8 @@ This function was written since `list-abbrevs' looks terrible for IDLWAVE mode."
 
 ;; Define the menu for the Help application
 
-(easy-menu-define
-  idlwave-help-menu idlwave-help-mode-map
-  "Menu for Help IDLWAVE system"
+(easy-menu-define idlwave-help-menu idlwave-help-mode-map
+  "Menu for Help IDLWAVE system."
   '("IDLHelp"
     ["Definition <-> Help Text" idlwave-help-toggle-header-match-and-def t]
     ["Find DocLib Header" idlwave-help-find-header t]
