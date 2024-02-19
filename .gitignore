@@ -2,3 +2,7 @@
 \#*
 .\#*
 *~
+
+# ELPA-generated files
+/idlwave-autoloads.el
+/idlwave-pkg.el

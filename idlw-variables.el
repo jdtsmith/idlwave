@@ -1,9 +1,9 @@
-;; IDLWAVE variables, customizations, and constants
+;; IDLWAVE variables, customizations, and constants  -*- lexical-binding: t; -*-
 (defgroup idlwave nil
   "Major mode for editing IDL .pro files."
   :tag "IDLWAVE"
-  :link '(url-link :tag "Home Page" 
-		   "http://github.com/jdtsmith/idlwave")
+  :link '(url-link :tag "Website"
+		   "https://github.com/jdtsmith/idlwave")
   :link '(emacs-commentary-link :tag "Commentary in idlw-shell.el"
 				"idlw-shell.el")
   :link '(emacs-commentary-link :tag "Commentary in idlwave.el" "idlwave.el")
@@ -13,41 +13,37 @@
 
 
 ;;----------------------------------------------------
-;; Indentation behavior
+;;;; Indentation behavior
 
 (defgroup idlwave-code-formatting nil
   "Indentation and formatting options for IDLWAVE mode."
   :group 'idlwave)
 
 (defcustom idlwave-main-block-indent 2
-  "*Extra indentation for the main block of code.
+  "Extra indentation for the main block of code.
 That is the block between the FUNCTION/PRO statement and the END
 statement for that program unit."
-  :group 'idlwave-code-formatting
   :type 'integer)
 
 (defcustom idlwave-block-indent 3
-  "*Extra indentation applied to block lines.
+  "Extra indentation applied to block lines.
 If you change this, you probably also want to change `idlwave-end-offset'."
-  :group 'idlwave-code-formatting
   :type 'integer)
 
 (defcustom idlwave-end-offset -3
-  "*Extra indentation applied to block END lines.
+  "Extra indentation applied to block END lines.
 A value equal to negative `idlwave-block-indent' will make END lines
 line up with the block BEGIN lines."
-  :group 'idlwave-code-formatting
   :type 'integer)
 
 (defcustom idlwave-continuation-indent 3
-  "*Extra indentation applied to continuation lines.
+  "Extra indentation applied to continuation lines.
 This extra offset applies to the first of a set of continuation lines.
 The following lines receive the same indentation as the first."
-  :group 'idlwave-code-formatting
   :type 'integer)
 
 (defcustom idlwave-max-extra-continuation-indent 40
-  "*Maximum additional indentation for special continuation indent.
+  "Maximum additional indentation for special continuation indent.
 Several special indentations are tried to help line up continuation
 lines in routine calls or definitions, other statements with
 parentheses, or assignment statements.  This variable specifies a
@@ -57,11 +53,10 @@ offset.  Set to 0 to effectively disable all special continuation
 indentation, or to a large number (like 100) to enable it in all
 cases.  See also `idlwave-indent-to-open-paren', which can override
 this variable."
-  :group 'idlwave-code-formatting
   :type 'integer)
 
 (defcustom idlwave-indent-to-open-paren t
-  "*Non-nil means, indent continuation lines to innermost open parenthesis.
+  "Non-nil means, indent continuation lines to innermost open parenthesis.
 This indentation occurs even if otherwise disallowed by
 `idlwave-max-extra-continuation-indent'.  Matching parens and the
 interleaving args are lined up.  Example:
@@ -81,104 +76,92 @@ would yield:
      ], $
      c, d $
      )))"
-  :group 'idlwave-code-formatting
   :type 'boolean)
 
 (defcustom idlwave-indent-parens-nested nil
-  "*Non-nil means, indent continuation lines with parens by nesting
+  "Non-nil means, indent continuation lines with parens by nesting
 lines at consecutively deeper levels."
- :group 'idlwave-code-formatting
   :type 'boolean)
 
 (defcustom idlwave-hanging-indent t
-  "*If set non-nil then comment paragraphs are indented under the
+  "If set non-nil then comment paragraphs are indented under the
 hanging indent given by `idlwave-hang-indent-regexp' match in the first line
 of the paragraph."
-  :group 'idlwave-code-formatting
   :type 'boolean)
 
 (defcustom idlwave-hang-indent-regexp "- "
-  "*Regular expression matching the position of the hanging indent
+  "Regular expression matching the position of the hanging indent
 in the first line of a comment paragraph.  The size of the indent
 extends to the end of the match for the regular expression."
-  :group 'idlwave-code-formatting
   :type 'regexp)
 
 (defcustom idlwave-use-last-hang-indent nil
-  "*If non-nil then use last match on line for `idlwave-indent-regexp'."
-  :group 'idlwave-code-formatting
+  "If non-nil then use last match on line for `idlwave-hang-indent-regexp'."
   :type 'boolean)
 
 (defcustom idlwave-fill-comment-line-only t
-  "*If non-nil then auto fill will only operate on comment lines."
-  :group 'idlwave-code-formatting
+  "If non-nil then auto fill will only operate on comment lines."
   :type 'boolean)
 
 (defcustom idlwave-auto-fill-split-string t
-  "*If non-nil then auto fill will split strings with the IDL `+' operator.
-When the line end falls within a string, string concatenation with the 
-'+' operator will be used to distribute a long string over lines.  
+  "If non-nil then auto fill will split strings with the IDL `+' operator.
+When the line end falls within a string, string concatenation with the
+`+' operator will be used to distribute a long string over lines.
 If nil and a string is split then a terminal beep and warning are issued.
 
 This variable is ignored when `idlwave-fill-comment-line-only' is
 non-nil, since in this case code is not auto-filled."
-  :group 'idlwave-code-formatting
   :type 'boolean)
 
 (defcustom idlwave-split-line-string t
-  "*If non-nil then `idlwave-split-line' will split strings with `+'.
+  "If non-nil then `idlwave-split-line' will split strings with `+'.
 When the splitting point of a line falls inside a string, split the string
 using the `+' string concatenation operator.  If nil and a string is
 split then a terminal beep and warning are issued."
-  :group 'idlwave-code-formatting
   :type 'boolean)
 
 (defcustom idlwave-no-change-comment ";;;"
-  "*The indentation of a comment that starts with this regular
+  "The indentation of a comment that starts with this regular
 expression will not be changed.  Note that the indentation of a comment
 at the beginning of a line is never changed."
-  :group 'idlwave-code-formatting
-  :type 'string)
+  :type 'regexp)
 
 (defcustom idlwave-begin-line-comment nil
-  "*A comment anchored at the beginning of line.
+  "A comment anchored at the beginning of line.
 A comment matching this regular expression will not have its
 indentation changed.  If nil the default is \"^;\", i.e., any line
 beginning with a \";\".  Expressions for comments at the beginning of
 the line should begin with \"^\"."
-  :group 'idlwave-code-formatting
   :type '(choice (const :tag "Any line beginning with `;'" nil)
-		 'regexp))
+		 regexp))
 
 (defcustom idlwave-code-comment ";;[^;]"
-  "*A comment that starts with this regular expression on a line by
+  "A comment that starts with this regular expression on a line by
 itself is indented as if it is a part of IDL code.  As a result if
 the comment is not preceded by whitespace it is unchanged."
-  :group 'idlwave-code-formatting
   :type 'regexp)
 
 ;; Comments not matching any of the above will be indented as a
 ;; right-margin comment, i.e., to a minimum of `comment-column'.
 
 ;;----------------------------------------------------
-;; Routine Info and Completion
+;;;; Routine Info and Completion
 
 (defgroup idlwave-routine-info nil
   "Routine Info options for IDLWAVE mode."
   :group 'idlwave)
 
 (defcustom idlwave-use-library-catalogs t
-  "*Non-nil means search the IDL path for library catalog files.
+  "Non-nil means search the IDL path for library catalog files.
 
 These files, named .idlwave_catalog, document routine information for
 individual directories and libraries of IDL .pro files.  Many popular
 libraries come with catalog files by default, so leaving this on is
 usually a good idea."
-  :group 'idlwave-routine-info
   :type 'boolean)
 
 (defcustom idlwave-init-rinfo-when-idle-after 10
-  "*Seconds of idle time before routine info is automatically initialized.
+  "Seconds of idle time before routine info is automatically initialized.
 Initializing the routine info can take a long time, in particular if a
 large number of library catalogs are involved.  When Emacs is idle for
 more than the number of seconds specified by this variable, it starts
@@ -191,34 +174,31 @@ have a fast machine and no problems with a slow network connection,
 don't hesitate to set this to 2 seconds.  A value of 0 means, don't
 initialize automatically, but instead wait until routine information is
 needed, and initialize then."
-  :group 'idlwave-routine-info
   :type 'number)
 
 (defcustom idlwave-scan-all-buffers-for-routine-info t
-  "*Non-nil means, scan buffers for IDL programs when updating info.
+  "Non-nil means, scan buffers for IDL programs when updating info.
 The scanning is done by the command `idlwave-update-routine-info'.
 The following values are allowed:
 
 nil       Don't scan any buffers.
 t         Scan all `idlwave-mode' buffers in the current editing session.
-current   Scan only the current buffer, but no other buffers."
-  :group 'idlwave-routine-info
+`current' Scan only the current buffer, but no other buffers."
   :type '(choice
 	  (const :tag "No buffer" nil)
 	  (const :tag "All buffers" t)
-	  (const :tag "Current buffer only" 'current)))
+	  (const :tag "Current buffer only" current)))
 
 (defcustom idlwave-query-shell-for-routine-info t
-  "*Non-nil means query the shell for info about compiled routines.
+  "Non-nil means query the shell for info about compiled routines.
 Querying the shell is useful to get information about compiled modules,
 and it is turned on by default.  However, when you have a complete library
 scan, this is not necessary."
-  :group 'idlwave-routine-info
   :type 'boolean)
 
 (defcustom idlwave-auto-routine-info-updates
   '(find-file save-buffer kill-buffer compile-buffer)
-  "*Controls under what circumstances routine info is updated automatically.
+  "Controls under what circumstances routine info is updated automatically.
 Possible values:
 nil       Never
 t         All available
@@ -227,7 +207,6 @@ t         All available
            save-buffer     Update buffer info when buffer is saved
            kill-buffer     Remove buffer info when buffer gets killed
            compile-buffer  Update shell info after `idlwave-shell-save-and...'"
-  :group 'idlwave-routine-info
   :type '(choice
 	  (const :tag "Never" nil)
 	  (const :tag "As often as possible" t)
@@ -236,69 +215,65 @@ t         All available
 	       (const :tag "When saving a buffer" save-buffer)
 	       (const :tag "After a buffer was killed" kill-buffer)
 	       (const :tag "After a buffer was compiled successfully, update shell info" compile-buffer))))
-	       
+
 (defcustom idlwave-rinfo-max-source-lines 5
-  "*Maximum number of source files displayed in the Routine Info window.
+  "Maximum number of source files displayed in the Routine Info window.
 When an integer, it is the maximum number of source files displayed.
 A value of t means to show all source files."
-  :group 'idlwave-routine-info
   :type 'integer)
 
 (defcustom idlwave-library-path nil
-  "Library path for Windows and MacOS (OS9).  Not needed under UNIX.
+  "Library path for Windows and Mac OS (OS9).  Not needed under UNIX.
 When selecting the directories to scan for IDL user catalog routine
 info, IDLWAVE can, under UNIX, query the shell for the exact search
-path \(the value of !PATH).  However, under Windows and MacOS
-\(pre-OSX), the IDLWAVE shell does not work.  In this case, this
+path \(the value of !PATH).  However, under MS-Windows, the
+IDLWAVE shell does not work.  In this case, this
 variable can be set to specify the paths where IDLWAVE can find PRO
 files.  The shell will only be asked for a list of paths when this
 variable is nil.  The value is a list of directories.  A directory
-preceeded by a `+' will be searched recursively.  If you set this
-variable on a UNIX system, the shell will not be queried.  See also
-`idlwave-system-directory'."
-  :group 'idlwave-routine-info
+preceded by a `+' will be searched recursively.  If you set this
+variable on a UNIX system, the shell will not be queried.
+See also `idlwave-system-directory'."
   :type '(repeat (directory)))
 
 (defcustom idlwave-system-directory ""
-  "The IDL system directory for Windows and MacOS.  Not needed under
+  "The IDL system directory for Windows and Mac OS.  Not needed under
 UNIX.  Set this to the value of the `!DIR' system variable in IDL.
 IDLWAVE uses this to find out which of the library routines belong to
 the official system library.  All files inside the `lib' subdirectory
 are considered system library files - so don't install private stuff
 in this directory.  On UNIX systems, IDLWAVE queries the shell for the
 value of `!DIR'.  See also `idlwave-library-path'."
-  :group 'idlwave-routine-info
   :type 'directory)
 
 ;; Configuration files
-(defcustom idlwave-config-directory 
-  (convert-standard-filename "~/.idlwave")
-  "*Directory for configuration files and user-library catalog."
-  :group 'idlwave-routine-info
+(defcustom idlwave-config-directory
+  (locate-user-emacs-file "idlwave" ".idlwave")
+  "Directory for configuration files and user-library catalog."
+  :version "24.4"			; added locate-user-emacs-file
   :type 'file)
 
 (defcustom idlwave-special-lib-alist nil
   "Alist of regular expressions matching special library directories.
 When listing routine source locations, IDLWAVE gives a short hint where
-the file defining the routine is located.  By default it lists `SystemLib' 
+the file defining the routine is located.  By default it lists `SystemLib'
 for routines in the system library `!DIR/lib' and `Library' for anything
 else.  This variable can define additional types.  The car of each entry
 is a regular expression matching the file name (they normally will match
 on the path).  The cdr is the string to be used as identifier.  Max 10
 chars are allowed."
-  :group 'idlwave-routine-info
   :type '(repeat
 	  (cons regexp string)))
 
 (defcustom idlwave-auto-write-paths t
-  "Write out path (!PATH) and system directory (!DIR) info automatically.  
+  "Write out path (!PATH) and system directory (!DIR) info automatically.
 Path info is needed to locate library catalog files.  If non-nil,
 whenever the path-list changes as a result of shell-query, etc., it is
 written to file.  Otherwise, the menu option \"Write Paths\" can be
 used to force a write."
-  :group 'idlwave-routine-info
   :type 'boolean)
 
+;;;; Completion
 (defgroup idlwave-completion nil
   "Completion options for IDLWAVE mode."
   :prefix "idlwave"
@@ -322,7 +297,7 @@ used to force a write."
 This variable determines the case (UPPER/lower/Capitalized...) of
 words inserted into the buffer by completion.  The preferred case can
 be specified separately for routine names, keywords, classes and
-methods. 
+methods.
 This alist should therefore have entries for `routine' (normal
 functions and procedures, i.e. non-methods), `keyword', `class', and
 `method'.  Plausible values are
@@ -350,50 +325,45 @@ lower case (but see the variable `idlwave-completion-force-default-case').
 
 After changing this variable, you need to either restart Emacs or press
 `C-u C-c C-i' to update the internal lists."
-  :group 'idlwave-completion
   :type `(repeat
 	  (cons (symbol :tag "Derive completion case for")
 		,idlwave-tmp)))
 
 (defcustom idlwave-completion-force-default-case nil
-  "*Non-nil means, completion will always honor `idlwave-completion-case'.
+  "Non-nil means, completion will always honor `idlwave-completion-case'.
 When nil, only the completion of a mixed case or upper case string
 will honor the default settings in `idlwave-completion-case', while
 the completion of lower case strings will be completed entirely in
 lower case."
-  :group 'idlwave-completion
   :type 'boolean)
 
 (defcustom idlwave-complete-empty-string-as-lower-case nil
-  "*Non-nil means, the empty string is considered downcase for completion.
+  "Non-nil means, the empty string is considered downcase for completion.
 The case of what is already in the buffer determines the case of completions.
 When this variable is non-nil, the empty string is considered to be downcase.
 Completing on the empty string then offers downcase versions of the possible
 completions."
-  :group 'idlwave-completion
   :type 'boolean)
 
 (defcustom idlwave-buffer-case-takes-precedence nil
-  "*Non-nil means, the case of tokens in buffers dominates over system stuff.
+  "Non-nil means, the case of tokens in buffers dominates over system stuff.
 To make this possible, we need to re-case everything each time we update
 the routine info from the buffers.  This is slow.
 The default is to consider the case given in the system and library files
 first which makes updating much faster."
-  :group 'idlwave-completion
   :type 'boolean)
 
 (defcustom idlwave-highlight-help-links-in-completion t
-  "*Non-nil means, highlight completions for which system help is available.
+  "Non-nil means, highlight completions for which system help is available.
 Help can then be accessed with mouse-3.
 This option is only effective when the online help system is installed."
-  :group 'idlwave-completion
   :type 'boolean)
 
 (defcustom idlwave-support-inheritance t
   "Non-nil means, treat inheritance with completion, online help etc.
 When nil, IDLWAVE only knows about the native methods and tags of a class,
 not about inherited ones."
-  :group 'idlwave-routine-info
+  :group 'idlwave-routine-info          ;FIXME: Is this the right group?
   :type 'boolean)
 
 (defcustom idlwave-keyword-class-inheritance '("^[gs]etproperty$" "^init$")
@@ -403,16 +373,16 @@ up the class tree.  While it cannot be assumed that the presence of an
 _EXTRA or _REF_EXTRA symbol guarantees such chaining will occur, for
 certain methods this assumption is almost always true.  The methods
 for which to assume this can be set here."
-  :group 'idlwave-routine-info
+  :group 'idlwave-routine-info          ;FIXME: Is this the right group?
   :type '(repeat (regexp :tag "Match method:")))
-  
+
 (defcustom idlwave-complete-structure-tags t
   "Whether to complete structure tags in source and shell."
-  :group 'idlwave-routine-info
+  :group 'idlwave-routine-info          ;FIXME: Is this the right group?
   :type 'boolean)
 
 (defcustom idlwave-completion-show-classes 1
-  "*Number of classes to show when completing object methods and keywords.
+  "Number of classes to show when completing object methods and keywords.
 When completing methods or keywords for an object with unknown class,
 the *Completions* buffer will show the valid classes for each completion
 like this:
@@ -420,21 +390,14 @@ like this:
 MyMethod <Class1,Class2,Class3>
 
 The value of this variable may be nil to inhibit display, or an integer to
-indicate the maximum number of classes to display.
-
-On XEmacs, a full list of classes will also be placed into a `help-echo'
-property on the completion items, so that the list of classes for the current
-item is displayed in the echo area.  If the value of this variable is a
-negative integer, the `help-echo' property will be suppressed."
-  :group 'idlwave-completion
+indicate the maximum number of classes to display."
   :type '(choice (const :tag "Don't show" nil)
 		 (integer :tag "Number of classes shown" 1)))
 
 (defcustom idlwave-completion-fontify-classes t
-  "*Non-nil means, fontify the classes in completions buffer.
+  "Non-nil means, fontify the classes in completions buffer.
 This makes it easier to distinguish the completion items from the extra
 class info listed.  See `idlwave-completion-show-classes'."
-  :group 'idlwave-completion
   :type 'boolean)
 
 (defcustom idlwave-query-class '((method-default . nil)
@@ -474,11 +437,10 @@ should contain at least two elements: (method-default . VALUE) and
 specify if the class should be found during method and keyword
 completion, respectively.
 
-The alist may have additional entries specifying exceptions from the 
+The alist may have additional entries specifying exceptions from the
 keyword completion rule for specific methods, like INIT or
 GETPROPERTY.  In order to turn on class specification for the INIT
 method, add an entry (\"INIT\" . t).  The method name must be ALL-CAPS."
-  :group 'idlwave-completion
   :type '(list
 	  (cons (const method-default)
 		(boolean :tag "Determine class when completing METHODS    "))
@@ -491,17 +453,17 @@ method, add an entry (\"INIT\" . t).  The method name must be ALL-CAPS."
 		 (boolean :tag "Determine class for this method")))))
 
 (defcustom idlwave-store-inquired-class t
-  "*Non-nil means, store class of a method call as text property on `->'.
+  "Non-nil means, store class of a method call as text property on `->'.
 IDLWAVE sometimes has to ask the user for the class associated with a
 particular object method call.  This happens during the commands
 `idlwave-routine-info' and `idlwave-complete', depending upon the
 value of the variable `idlwave-query-class'.
 
 When you specify a class, this information can be stored as a text
-property on the `->' arrow in the source code, so that during the same 
+property on the `->' arrow in the source code, so that during the same
 editing session, IDLWAVE will not have to ask again.  When this
 variable is non-nil, IDLWAVE will store and reuse the class information.
-The class stored can be checked and removed with `\\[idlwave-routine-info]'
+The class stored can be checked and removed with \\[idlwave-routine-info]
 on the arrow.
 
 The default of this variable is nil, since the result of commands then
@@ -512,72 +474,64 @@ An arrow which knows the class will be highlighted with
 `idlwave-class-arrow-face'.  The command \\[idlwave-routine-info]
 displays (with prefix arg: deletes) the class stored on the arrow
 at point."
-  :group 'idlwave-completion
   :type 'boolean)
 
 (defcustom idlwave-class-arrow-face 'bold
-  "*Face to highlight object operator arrows `->' which carry a class property.
+  "Face to highlight object operator arrows `->' which carry a class property.
 When IDLWAVE stores a class name as text property on an object arrow
 \(see variable `idlwave-store-inquired-class', it highlights the arrow
 with this font in order to remind the user that this arrow is special."
-  :group 'idlwave-completion
   :type 'symbol)
 
 (defcustom idlwave-resize-routine-help-window t
-  "*Non-nil means, resize the Routine-info *Help* window to fit the content."
-  :group 'idlwave-completion
+  "Non-nil means, resize the Routine-info *Help* window to fit the content."
   :type 'boolean)
 
 (defcustom idlwave-keyword-completion-adds-equal t
-  "*Non-nil means, completion automatically adds `=' after completed keywords."
-  :group 'idlwave-completion
+  "Non-nil means, completion automatically adds `=' after completed keywords."
   :type 'boolean)
 
 (defcustom idlwave-function-completion-adds-paren t
-  "*Non-nil means, completion automatically adds `(' after completed function.
+  "Non-nil means, completion automatically adds `(' after completed function.
 nil means, don't add anything.
 A value of `2' means, also add the closing parenthesis and position cursor
 between the two."
-  :group 'idlwave-completion
   :type '(choice (const :tag "Nothing" nil)
 		 (const :tag "(" t)
 		 (const :tag "()" 2)))
 
 (defcustom idlwave-completion-restore-window-configuration t
-  "*Non-nil means, try to restore the window configuration after completion.
+  "Non-nil means, try to restore the window configuration after completion.
 When completion is not unique, Emacs displays a list of completions.
 This messes up your window configuration.  With this variable set, IDLWAVE
 restores the old configuration after successful completion."
-  :group 'idlwave-completion
   :type 'boolean)
 
 ;;----------------------------------------------------
-;; Abbrev and action
+;;;; Abbrev and action
 (defgroup idlwave-abbrev-and-indent-action nil
   "IDLWAVE performs actions when expanding abbreviations or indenting lines.
 The variables in this group govern this."
   :group 'idlwave)
 
 (defcustom idlwave-do-actions nil
-  "*Non-nil means performs actions when indenting.
+  "Non-nil means performs actions when indenting.
 The actions that can be performed are listed in `idlwave-indent-action-table'."
-  :group 'idlwave-abbrev-and-indent-action
   :type 'boolean)
 
 (defcustom idlwave-abbrev-start-char "\\"
-  "*A single character string used to start abbreviations in abbrev mode.
-Possible characters to chose from: ~`\%
-or even '?'.  '.' is not a good choice because it can make structure
+  "A single character string used to start abbreviations in abbrev mode.
+Possible characters to choose from: ~\\=`%
+or even `?'.  `.' is not a good choice because it can make structure
 field names act like abbrevs in certain circumstances.
 
 Changes to this in `idlwave-mode-hook' will have no effect.  Instead a user
 must set it directly using `setq' in the init file before idlwave.el
 is loaded."
-  :group 'idlwave-abbrev-and-indent-action
   :type 'string)
 
 (defcustom idlwave-surround-by-blank nil
-  "*Non-nil means, enable `idlwave-surround'.
+  "Non-nil means, enable `idlwave-surround'.
 If non-nil, `=',`<',`>',`&',`,', `->' are surrounded with spaces by
 `idlwave-surround'.
 See help for `idlwave-indent-action-table' for symbols using `idlwave-surround'.
@@ -588,62 +542,54 @@ Keys are bound and made into actions calling `idlwave-surround' with
 See help for `idlwave-action-and-binding' for examples.
 
 Also see help for `idlwave-surround'."
-  :group 'idlwave-abbrev-and-indent-action
   :type 'boolean)
 
 (defcustom idlwave-pad-keyword t
-  "*Non-nil means pad '=' in keywords (routine calls or defs) like assignment.
-Whenever `idlwave-surround' is non-nil then this affects how '=' is
+  "Non-nil means pad `=' in keywords (routine calls or defs) like assignment.
+Whenever `idlwave-surround' is non-nil then this affects how `=' is
 padded for keywords and for variables.  If t, pad the same as for
 assignments.  If nil then spaces are removed.  With any other value,
 spaces are left unchanged."
-  :group 'idlwave-abbrev-and-indent-action
   :type '(choice
 	  (const :tag "Pad like assignments" t)
 	  (const :tag "Remove space near `='" nil)
-	  (const :tag "Keep space near `='" 'keep)))
+	  (other :tag "Keep space near `='" keep)))
 
 (defcustom idlwave-show-block t
-  "*Non-nil means point blinks to block beginning for `idlwave-show-begin'."
-  :group 'idlwave-abbrev-and-indent-action
+  "Non-nil means point blinks to block beginning for `idlwave-show-begin'."
   :type 'boolean)
 
 (defcustom idlwave-expand-generic-end nil
-  "*Non-nil means expand generic END to ENDIF/ENDELSE/ENDWHILE etc."
-  :group 'idlwave-abbrev-and-indent-action
+  "Non-nil means expand generic END to ENDIF/ENDELSE/ENDWHILE etc."
   :type 'boolean)
 
 (defcustom idlwave-reindent-end t
-  "*Non-nil means re-indent line after END was typed."
-  :group 'idlwave-abbrev-and-indent-action
+  "Non-nil means re-indent line after END was typed."
   :type 'boolean)
 
 (defcustom idlwave-abbrev-move t
-  "*Non-nil means the abbrev hook can move point.
+  "Non-nil means the abbrev hook can move point.
 Set to nil by `idlwave-expand-region-abbrevs'.  To see the abbrev
 definitions, use the command `list-abbrevs', for abbrevs that move
 point.  Moving point is useful, for example, to place point between
 parentheses of expanded functions.
 
-See `idlwave-check-abbrev'."
-  :group 'idlwave-abbrev-and-indent-action
+See `idlwave-modify-abbrev'."
   :type 'boolean)
 
 (defcustom idlwave-abbrev-change-case nil
-  "*Non-nil means all abbrevs will be forced to either upper or lower case.
+  "Non-nil means all abbrevs will be forced to either upper or lower case.
 If the value t, all expanded abbrevs will be upper case.
-If the value is 'down then abbrevs will be forced to lower case.
+If the value is `down' then abbrevs will be forced to lower case.
 If nil, the case will not change.
 If `idlwave-reserved-word-upcase' is non-nil, reserved words will always be
 upper case, regardless of this variable."
-  :group 'idlwave-abbrev-and-indent-action
   :type 'boolean)
 
 (defcustom idlwave-reserved-word-upcase nil
-  "*Non-nil means, reserved words will be made upper case via abbrev expansion.
+  "Non-nil means, reserved words will be made upper case via abbrev expansion.
 If nil case of reserved words is controlled by `idlwave-abbrev-change-case'.
 Has effect only if in abbrev-mode."
-  :group 'idlwave-abbrev-and-indent-action
   :type 'boolean)
 
 ;;; Action/Expand Tables.
@@ -663,21 +609,22 @@ Has effect only if in abbrev-mode."
 ;; Example actions:
 ;;
 ;;  Capitalize system vars
-;;   (idlwave-action-and-binding idlwave-sysvar '(capitalize-word 1) t)
+;;   (idlwave-action-and-binding idlwave-sysvar
+;;                               (lambda (_) (capitalize-word 1)) t)
 ;;
 ;;  Capitalize procedure name
 ;;   (idlwave-action-and-binding "\\<\\(pro\\|function\\)\\>[ \t]*\\<"
-;;                           '(capitalize-word 1) t)
+;;                               (lambda (_) (capitalize-word 1)) t)
 ;;
 ;;  Capitalize common block name
 ;;   (idlwave-action-and-binding "\\<common\\>[ \t]+\\<"
-;;                           '(capitalize-word 1) t)
+;;                               (lambda (_) (capitalize-word 1)) t)
 ;;  Capitalize label
 ;;   (idlwave-action-and-binding (concat "^[ \t]*" idlwave-label)
-;;                           '(capitalize-word -1) t)
+;;                               (lambda (_) (capitalize-word 1)) t)
 
 (defvar idlwave-indent-action-table nil
-  "*Associated array containing action lists of search string (car),
+  "Associated array containing action lists of search string (car),
 and function as a cdr.  This table is used by `idlwave-indent-line'.
 See documentation for `idlwave-do-action' for a complete description of
 the action lists.
@@ -687,7 +634,7 @@ binding is not requested.
 See help on `idlwave-action-and-binding' for examples.")
 
 (defvar idlwave-indent-expand-table nil
-  "*Associated array containing action lists of search string (car),
+  "Associated array containing action lists of search string (car),
 and function as a cdr.  The table is used by the
 `idlwave-indent-and-action' function.  See documentation for
 `idlwave-do-action' for a complete description of the action lists.
@@ -697,7 +644,7 @@ binding is requested.
 See help on `idlwave-action-and-binding' for examples.")
 
 ;;----------------------------------------------------
-;; Documentation header and history keyword 
+;;;; Documentation header and history keyword
 (defgroup idlwave-documentation nil
   "Options for documenting IDLWAVE files."
   :group 'idlwave)
@@ -765,80 +712,72 @@ See help on `idlwave-action-and-binding' for examples.")
 ;
 ;-
 ")
-  "*A list (PATHNAME STRING) specifying the doc-header template to use for
+  "A list (PATHNAME STRING) specifying the doc-header template to use for
 summarizing a file.  If PATHNAME is non-nil then this file will be included.
 Otherwise STRING is used.  If nil, the file summary will be omitted.
 For example you might set PATHNAME to the path for the
 lib_template.pro file included in the IDL distribution.")
 
 (defcustom idlwave-header-to-beginning-of-file t
-  "*Non-nil means, the documentation header will always be at start of file.
+  "Non-nil means, the documentation header will always be at start of file.
 When nil, the header is positioned between the PRO/FUNCTION line of
 the current routine and the code, allowing several routine headers in
 a file."
-  :group 'idlwave-documentation
   :type 'boolean)
 
 (defcustom idlwave-timestamp-hook 'idlwave-default-insert-timestamp
-  "*The hook function used to update the timestamp of a function."
-  :group 'idlwave-documentation
+  "The hook function used to update the timestamp of a function."
   :type 'function)
 
 (defcustom idlwave-doc-modifications-keyword "HISTORY"
-  "*The modifications keyword to use with the log documentation commands.
-A ':' is added to the keyword end.
+  "The modifications keyword to use with the log documentation commands.
+A `:' is added to the keyword end.
 Inserted by doc-header and used to position logs by doc-modification.
 If nil it will not be inserted."
-  :group 'idlwave-documentation
   :type 'string)
 
 (defcustom idlwave-doclib-start "^;+\\+"
-  "*Regexp matching the start of a document library header."
-  :group 'idlwave-documentation
+  "Regexp matching the start of a document library header."
   :type 'regexp)
 
 (defcustom idlwave-doclib-end "^;+-"
-  "*Regexp matching the end of a document library header."
-  :group 'idlwave-documentation
+  "Regexp matching the end of a document library header."
   :type 'regexp)
 
 ;;----------------------------------------------------
-;; External Programs
+;;;; External Programs
 (defgroup idlwave-external-programs nil
   "Path locations of external commands used by IDLWAVE."
   :group 'idlwave)
 
 (defcustom idlwave-shell-explicit-file-name "idl"
-  "*If non-nil, this is the command to run IDL.
+  "If non-nil, this is the command to run IDL.
 Should be an absolute file path or path relative to the current environment
 execution search path.  If you want to specify command line switches
 for the IDL program, use `idlwave-shell-command-line-options'.
 
 I know the name of this variable is badly chosen, but I cannot change
 it without compromising backwards-compatibility."
-  :group 'idlwave-external-programs
   :type 'string)
 
 (defcustom idlwave-shell-command-line-options nil
-  "*A list of command line options for calling the IDL program.
+  "A list of command line options for calling the IDL program.
 Since IDL is executed directly without going through a shell like /bin/sh,
-this should be a list of strings like '(\"-rt=file\" \"-nw\") with a separate
+this should be a list of strings like (\"-rt=file\" \"-nw\") with a separate
 string for each argument.  But you may also give a single string which
 contains the options whitespace-separated.  Emacs will be kind enough to
 split it for you."
   :type '(choice
 	  string
-	  (repeat (string :value "")))
-  :group 'idlwave-external-programs)
+	  (repeat (string :value ""))))
 
 (defcustom idlwave-help-application "idlhelp"
-  "*The external application providing reference help for programming.
+  "The external application providing reference help for programming.
 Obsolete, if the IDL Assistant is being used for help."
-  :group 'idlwave-external-programs
   :type 'string)
 
 ;;----------------------------------------------------
-;; Help 
+;;;; Help
 (defgroup idlwave-online-help nil
   "Online Help options for IDLWAVE mode."
   :group 'idlwave)
@@ -846,46 +785,39 @@ Obsolete, if the IDL Assistant is being used for help."
 (defcustom idlwave-html-help-pre-v6 nil
   "Whether pre or post-v6.0 IDL help documents are being used.
 OBSOLETE.  The full link anchor is now stored."
-  :group 'idlwave-online-help
   :type 'boolean)
 
 (defcustom idlwave-html-system-help-location  nil
-  "The directory, relative to idlwave-system-directory, where the
-idl HTML help files live, for IDL 7.0 and later.  By default,
+  "The directory, relative to `idlwave-system-directory', where the
+IDL HTML help files live, for IDL 7.0 and later.  By default,
 this location is discovered automatically from the installation.
 This location, if found, is used in preference to the old
-idlwave-html-help-location.  Note that IDL v6.3-v7.0 used
-help/online_help."
-  :group 'idlwave-online-help
+`idlwave-html-help-location'.  Note that IDL v6.3-v7.0 used
+\"help/online_help\"."
   :type 'directory)
 
 (defcustom idlwave-html-help-location
    (if (memq system-type '(ms-dos windows-nt))
       nil
     "/usr/local/etc/")
-  "The directory where the idl_html_help/ dir lives.
-OBSOLETE (see idlwave-html-system-help-location)."
-  :group 'idlwave-online-help
+  "The directory where the \"idl_html_help/\" dir lives.
+OBSOLETE (see `idlwave-html-system-help-location')."
   :type 'directory)
 
 (defcustom idlwave-help-browser-function browse-url-browser-function
-  "Function to use to display html help.
+  "Function to use to display HTML help.
 Defaults to `browse-url-browser-function', which see."
-  :group 'idlwave-online-help
   :type 'function)
 
 (defcustom idlwave-help-browser-generic-program browse-url-generic-program
-  "Program to run if using browse-url-generic-program."
-  :group 'idlwave-online-help
-  :type 'string)
+  "Program to run if using `browse-url-generic-program'."
+  :type '(choice (const nil) string))
 
-(defvar browse-url-generic-args)
-
+;; FIXME: AFAICS, never used since it was introduced in 2004.
 (defcustom idlwave-help-browser-generic-args
   (if (boundp 'browse-url-generic-args)
       browse-url-generic-args "")
   "Program args to use if using browse-url-generic-program."
-  :group 'idlwave-online-help
   :type 'string)
 
 (defcustom idlwave-help-browser-is-local nil
@@ -895,12 +827,10 @@ external programs.  If the browser name contains \"-w3\", it is
 assumed to be local to Emacs.  For other local browsers, this variable
 must be explicitly set non-nil in order for the variable
 `idlwave-help-use-dedicated-frame' to function."
-  :group 'idlwave-online-help
   :type 'boolean)
 
 (defcustom idlwave-help-use-dedicated-frame t
-  "*Non-nil means, use a separate frame for Online Help if possible."
-  :group 'idlwave-online-help
+  "Non-nil means, use a separate frame for Online Help if possible."
   :type 'boolean)
 
 (defcustom idlwave-help-frame-parameters
@@ -909,14 +839,12 @@ must be explicitly set non-nil in order for the variable
 See also `idlwave-help-use-dedicated-frame'.
 If you do not set the frame width here, the value specified in
 `idlw-help.el' will be used."
-  :group 'idlwave-online-help
   :type '(repeat
 	  (cons symbol sexp)))
 
 (defcustom idlwave-max-popup-menu-items 20
   "Maximum number of items per pane in popup menus.
 Currently only used for class selection during completion help."
-  :group 'idlwave-online-help
   :type 'integer)
 
 (defcustom idlwave-extra-help-function 'idlwave-help-with-source
@@ -944,47 +872,42 @@ The default value for this function is `idlwave-help-with-source' which
 loads the routine source file into the help buffer.  If you try to write
 a different function which accesses a special help file or so, it is
 probably a good idea to still call this function as a fallback."
-  :group 'idlwave-online-help
   :type 'symbol)
 
 (defcustom idlwave-help-fontify-source-code t
-  "*Non-nil means, fontify source code displayed as help like normal code."
-  :group 'idlwave-online-help
+  "Non-nil means, fontify source code displayed as help like normal code."
   :type 'boolean)
 
 (defcustom idlwave-help-source-try-header t
-  "*Non-nil means, try to find help in routine header when displaying source.
+  "Non-nil means, try to find help in routine header when displaying source.
 Routines which are not documented in the system manual use their source as
 help text.  When this variable is non-nil, we try to find a description of
 the help item in the first routine doclib header above the routine definition.
 If the variable is nil, or if we cannot find/parse the header, the routine
 definition is displayed instead."
-  :group 'idlwave-online-help
   :type 'boolean)
 
 (defcustom idlwave-help-doclib-name "name"
-  "*A regexp for the heading word to search for in doclib headers
+  "A regexp for the heading word to search for in doclib headers
 which specifies the `name' section.  Can be used for localization
 support."
-  :group 'idlwave-online-help
-  :type 'string)
+  :type 'regexp)
 
 (defcustom idlwave-help-doclib-keyword "KEYWORD"
-  "*A regexp for the heading word to search for in doclib headers
+  "A regexp for the heading word to search for in doclib headers
 which specifies the `keywords' section.  Can be used for localization
 support."
-  :group 'idlwave-online-help
-  :type 'string)
+  :type 'regexp)
 
 ;;----------------------------------------------------
-;; Shell
+;;;; Shell
 (defcustom idlwave-shell-debug-modifiers '()
   "List of modifiers to be used for the debugging commands.
 Will be used to bind debugging commands in the shell buffer and in all
 source buffers.  These are additional convenience bindings, the debugging
-commands are always available with the `C-c C-d' prefix.
-If you set this to '(control shift), this means setting a breakpoint will
-be on `C-S-b', compiling a source file on `C-S-c' etc.  Possible modifiers
+commands are always available with the \\`C-c C-d' prefix.
+If you set this to (control shift), this means setting a breakpoint will
+be on \\`C-S-b', compiling a source file on \\`C-S-c' etc.  Possible modifiers
 are `control', `meta', `super', `hyper', `alt', and `shift'."
   :group 'idlwave-shell-general-setup
   :type '(set :tag "Specify modifiers"
@@ -996,7 +919,7 @@ are `control', `meta', `super', `hyper', `alt', and `shift'."
 	       (const shift)))
 
 (defcustom idlwave-shell-automatic-start nil
-  "*If non-nil attempt invoke `idlwave-shell' if not already running.
+  "If non-nil attempt invoke `idlwave-shell' if not already running.
 This is checked when an attempt to send a command to an
 IDL process is made."
   :group 'idlwave-shell-general-setup
@@ -1004,18 +927,17 @@ IDL process is made."
 
 
 ;;----------------------------------------------------
-;; Miscellaneous variables
+;;;; Miscellaneous variables
 (defgroup idlwave-misc nil
   "Miscellaneous options for IDLWAVE mode."
   :link '(custom-group-link :tag "Font Lock Faces group" font-lock-faces)
   :group 'idlwave)
 
 (defcustom idlwave-startup-message t
-  "*Non-nil displays a startup message when `idlwave-mode' is first called."
-  :group 'idlwave-misc
+  "Non-nil displays a startup message when `idlwave-mode' is first called."
   :type 'boolean)
 
-(defcustom idlwave-default-font-lock-items 
+(defcustom idlwave-default-font-lock-items
   '(pros-and-functions batch-files idlwave-idl-keywords label goto
 		       common-blocks class-arrows)
   "Items which should be fontified on the default fontification level 2.
@@ -1024,17 +946,15 @@ is everything and level 2 is specified by this list.
 This variable must be set before IDLWAVE gets loaded.
 It is a list of symbols; the following symbols are allowed:
 
-pros-and-functions   Procedure and Function definitions
-batch-files          Batch Files
-idlwave-idl-keywords IDL Keywords
-label                Statement Labels
-goto                 Goto Statements
-common-blocks        Common Blocks
-keyword-parameters   Keyword Parameters in routine definitions and calls
-system-variables     System Variables
-fixme                FIXME: Warning in comments (on XEmacs only v. 21.0 and up)
-class-arrows         Object Arrows with class property"
-  :group 'idlwave-misc
+`pros-and-functions'   Procedure and Function definitions
+`batch-files'          Batch Files
+`idlwave-idl-keywords' IDL Keywords
+`label'                Statement Labels
+`goto'                 Goto Statements
+`common-blocks'        Common Blocks
+`keyword-parameters'   Keyword Parameters in routine definitions and calls
+`system-variables'     System Variables
+`class-arrows'         Object Arrows with class property"
   :type '(set
 	  :inline t :greedy t
 	  (const :tag "Procedure and Function definitions" pros-and-functions)
@@ -1047,18 +967,17 @@ class-arrows         Object Arrows with class property"
 	  (const :tag "Common Blocks"                     common-blocks)
 	  (const :tag "Keyword Parameters"                keyword-parameters)
 	  (const :tag "System Variables"                  system-variables)
-	  (const :tag "FIXME: Warning"                    fixme)
 	  (const :tag "Object Arrows with class property " class-arrows)))
 
 (defcustom idlwave-mode-hook nil
   "Normal hook.  Executed when a buffer is put into `idlwave-mode'."
-  :group 'idlwave-misc
   :type 'hook)
 
 (defcustom idlwave-load-hook nil
   "Normal hook.  Executed when idlwave.el is loaded."
-  :group 'idlwave-misc
   :type 'hook)
+(make-obsolete-variable 'idlwave-load-hook
+                        "use `with-eval-after-load' instead." "24.4")
 
 (defvar idlwave-experimental nil
   "Non-nil means turn on a few experimental features.
@@ -1072,30 +991,30 @@ As a user, you should not set this to t.")
 
 ;;; Non customization variables
 
-;;; font-lock mode - Additions by Phil Williams, Ulrik Dickow and
-;;; Simon Marshall <simon_at_gnu.ai.mit.edu>
-;;; and Carsten Dominik...
+;; font-lock mode - Additions by Phil Williams, Ulrik Dickow and
+;; Simon Marshall <simon_at_gnu.ai.mit.edu>
+;; and Carsten Dominik...
 
 ;; The following are the reserved words in IDL.  Maybe we should
-;; highlight some more stuff as well?       
+;; highlight some more stuff as well?
 ;; Procedure declarations.  Fontify keyword plus procedure name.
 (defvar idlwave-idl-keywords
-  ;; To update this regexp, update the list of keywords and 
+  ;; To update this regexp, update the list of keywords and
   ;; evaluate the form.
-  	;; (insert 
+  	;; (insert
   	;;  (prin1-to-string
-  	;;   (concat 
+  	;;   (concat
   	;;    "\\<\\("
-  	;;    (regexp-opt 
+  	;;    (regexp-opt
   	;;     '("||" "&&" "and" "or" "xor" "not"
-  	;;       "eq" "ge" "gt" "le" "lt" "ne" 
+  	;;       "eq" "ge" "gt" "le" "lt" "ne"
   	;;       "for" "do" "endfor" "foreach" "endforeach"
-  	;;       "if" "then" "endif" "else" "endelse" 
+  	;;       "if" "then" "endif" "else" "endelse"
   	;;       "case" "of" "endcase"
   	;;       "switch" "break" "continue" "endswitch"
   	;;       "begin" "end"
   	;;       "repeat" "until" "endrep"
-  	;;       "while" "endwhile" 
+  	;;       "while" "endwhile"
   	;;       "goto" "return"
   	;;       "inherits" "mod"
   	;;       "compile_opt" "forward_function"
@@ -1104,98 +1023,101 @@ As a user, you should not set this to t.")
 
   "\\<\\(\\(?:&&\\|and\\|b\\(?:egin\\|reak\\)\\|c\\(?:ase\\|o\\(?:mpile_opt\\|ntinue\\)\\)\\|do\\|e\\(?:lse\\|nd\\(?:case\\|else\\|for\\(?:each\\)?\\|if\\|rep\\|switch\\|while\\)?\\|q\\)\\|for\\(?:each\\|ward_function\\)?\\|g\\(?:oto\\|[et]\\)\\|i\\(?:f\\|nherits\\)\\|l[et]\\|mod\\|n\\(?:e\\|ot\\)\\|o\\(?:n_\\(?:\\(?:io\\)?error\\)\\|[fr]\\)\\|re\\(?:peat\\|turn\\)\\|switch\\|then\\|until\\|while\\|xor\\|||\\)\\)\\>")
 
-(let* (;; Procedure declarations.  Fontify keyword plus procedure name.
-       ;; Function  declarations.  Fontify keyword plus function  name.
-       (pros-and-functions
-	'("\\<\\(function\\|pro\\)\\>[ \t]+\\(\\sw+\\(::\\sw+\\)?\\)"
-	  (1 font-lock-keyword-face)
-	  (2 font-lock-function-name-face nil t)))
+(defmacro idlwave--dlet (binders &rest body)
+  "Like `dlet' but without warnings about non-prefixed var names."
+  (declare (indent 1) (debug let))
+  (let ((vars (mapcar (lambda (binder)
+                        (if (consp binder) (car binder) binder))
+                      binders)))
+    `(with-suppressed-warnings ((lexical ,@vars))
+       (dlet ,binders ,@body))))
 
-       ;; Common blocks
-       (common-blocks
-	'("\\<\\(common\\)\\>[ \t]*\\(\\sw+\\)?[ \t]*,?"
-	  (1 font-lock-keyword-face)	          ; "common"
-	  (2 font-lock-constant-face nil t)      ; block name
-	  ("[ \t]*\\(\\sw+\\)[ ,]*"
-	   ;; Start with point after block name and comma
-	   (goto-char (match-end 0))  ; needed for XEmacs, could be nil 
-	   nil
-	   (1 font-lock-variable-name-face)       ; variable names
-	   )))
+(idlwave--dlet
+    (;; Procedure declarations.  Fontify keyword plus procedure name.
+     ;; Function  declarations.  Fontify keyword plus function  name.
+     (pros-and-functions
+      '("\\<\\(function\\|pro\\)\\>[ \t]+\\(\\sw+\\(::\\sw+\\)?\\)"
+	(1 'font-lock-keyword-face)
+	(2 'font-lock-function-name-face nil t)))
 
-       ;; Batch files
-       (batch-files
-	'("^[ \t]*\\(@[^ \t\n]+\\)" (1 font-lock-string-face)))
+     ;; Common blocks
+     (common-blocks
+      '("\\<\\(common\\)\\>[ \t]*\\(\\sw+\\)?[ \t]*,?"
+	(1 'font-lock-keyword-face)          ; "common"
+	(2 'font-lock-constant-face nil t)   ; block name
+	("[ \t]*\\(\\sw+\\)[ ,]*"
+	 ;; Start with point after block name and comma
+	 nil nil (1 'font-lock-variable-name-face)))) ; variable names
 
-       ;; FIXME warning.
-       (fixme
-	'("\\<FIXME:" (0 font-lock-warning-face t)))
+     ;; Batch files
+     (batch-files
+      '("^[ \t]*\\(@[^ \t\n]+\\)" (1 'font-lock-string-face)))
 
-       ;; Labels
-       (label
-	'("^[ \t]*\\([a-zA-Z]\\sw*:\\)" (1 font-lock-constant-face)))
+     ;; Labels
+     (label
+      '("^[ \t]*\\([a-zA-Z]\\sw*:\\)" (1 'font-lock-constant-face)))
 
-       ;; The goto statement and its label
-       (goto
-	'("\\(goto\\)[ \t]*,[ \t]*\\([a-zA-Z]\\sw*\\)"
-	  (1 font-lock-keyword-face)
-	  (2 font-lock-constant-face)))
+     ;; The goto statement and its label
+     (goto
+      '("\\(goto\\)[ \t]*,[ \t]*\\([a-zA-Z]\\sw*\\)"
+	(1 'font-lock-keyword-face)
+	(2 'font-lock-constant-face)))
 
-       ;; Tags in structure definitions.  Note that this definition
-       ;; actually collides with labels, so we have to use the same
-       ;; face.  It also matches named subscript ranges,
-       ;; e.g. vec{bottom:top].  No good way around this.
-       (structtag
-	'("\\<\\([a-zA-Z][a-zA-Z0-9_]*:\\)[^:]" (1 font-lock-constant-face)))
+     ;; Tags in structure definitions.  Note that this definition
+     ;; actually collides with labels, so we have to use the same
+     ;; face.  It also matches named subscript ranges,
+     ;; e.g. vec{bottom:top].  No good way around this.
+     (structtag
+      '("\\<\\([a-zA-Z][a-zA-Z0-9_]*:\\)[^:]" (1 'font-lock-constant-face)))
 
-       ;; Structure names
-       (structname
-	'("\\({\\|\\<inherits\\s-\\)\\s-*\\([a-zA-Z][a-zA-Z0-9_]*\\)[},\t \n]"
-	  (2 font-lock-function-name-face)))
+     ;; Structure names
+     (structname
+      '("\\({\\|\\<inherits\\s-\\)\\s-*\\([a-zA-Z][a-zA-Z0-9_]*\\)[},\t \n]"
+	(2 'font-lock-function-name-face)))
 
-       ;; Keyword parameters, like /xlog or ,xrange=[]
-       ;; This is anchored to the comma preceeding the keyword.
-       ;; Treats continuation lines, works only during whole buffer
-       ;; fontification.  Slow, use it only in fancy fontification.
-       (keyword-parameters
-	'("\\(,\\|[a-zA-Z0-9_](\\)[ \t]*\\(\\$[ \t]*\\(;.*\\)?\n\\([ \t]*\\(;.*\\)?\n\\)*[ \t]*\\)?\\(/[a-zA-Z_]\\sw*\\|[a-zA-Z_]\\sw*[ \t]*=\\)"
-	  (6 font-lock-constant-face)))
-       
-       ;; System variables start with a bang.
-       (system-variables
-	'("\\(![a-zA-Z_0-9]+\\(\\.\\sw+\\)?\\)"
-	  (1 font-lock-variable-name-face)))
+     ;; Keyword parameters, like /xlog or ,xrange=[]
+     ;; This is anchored to the comma preceding the keyword.
+     ;; Treats continuation lines, works only during whole buffer
+     ;; fontification.  Slow, use it only in fancy fontification.
+     (keyword-parameters
+      '("\\(,\\|[a-zA-Z0-9_](\\)[ \t]*\\(\\$[ \t]*\\(;.*\\)?\n\\([ \t]*\\(;.*\\)?\n\\)*[ \t]*\\)?\\(/[a-zA-Z_]\\sw*\\|[a-zA-Z_]\\sw*[ \t]*=\\)"
+	(6 'font-lock-constant-face)))
 
-       ;; Special and unusual operators (not used because too noisy)
-       ;; (special-operators
-       ;;  '("[<>#]" (0 font-lock-keyword-face)))
+     ;; System variables start with a bang.
+     (system-variables
+      '("\\(![a-zA-Z_0-9]+\\(\\.\\sw+\\)?\\)"
+	(1 'font-lock-variable-name-face)))
 
-       ;; All operators (not used because too noisy)
-       ;; (all-operators
-       ;;  '("[-*^#+<>/]" (0 font-lock-keyword-face)))
-	
-       ;; Arrows with text property `idlwave-class'
-       (class-arrows
-	'(idlwave-match-class-arrows (0 idlwave-class-arrow-face))))
+     ;; Special and unusual operators (not used because too noisy)
+     ;; (special-operators
+     ;;  '("[<>#]" (0 font-lock-keyword-face)))
+
+     ;; All operators (not used because too noisy)
+     ;; (all-operators
+     ;;  '("[-*^#+<>/]" (0 font-lock-keyword-face)))
+
+     ;; Arrows with text property `idlwave-class'
+     (class-arrows
+      '(idlwave-match-class-arrows (0 idlwave-class-arrow-face))))
 
   (defconst idlwave-font-lock-keywords-1
     (list pros-and-functions batch-files)
     "Subdued level highlighting for IDLWAVE mode.")
 
   (defconst idlwave-font-lock-keywords-2
-    (mapcar 'symbol-value idlwave-default-font-lock-items)
+    (mapcar #'symbol-value idlwave-default-font-lock-items)
     "Medium level highlighting for IDLWAVE mode.")
 
   (defconst idlwave-font-lock-keywords-3
-	(list pros-and-functions
-	      batch-files
-	      idlwave-idl-keywords
-	      label goto
-	      structtag
-	      structname
-	      common-blocks
-	      keyword-parameters
-	      system-variables
+    (list pros-and-functions
+	  batch-files
+	  idlwave-idl-keywords
+	  label goto
+	  structtag
+	  structname
+	  common-blocks
+	  keyword-parameters
+	  system-variables
 	  class-arrows)
     "Gaudy level highlighting for IDLWAVE mode."))
 
@@ -1210,30 +1132,27 @@ As a user, you should not set this to t.")
 
 (defvar idlwave-font-lock-defaults
   '((idlwave-font-lock-keywords
-     idlwave-font-lock-keywords-1 
+     idlwave-font-lock-keywords-1
      idlwave-font-lock-keywords-2
      idlwave-font-lock-keywords-3)
-    nil t 
-    ((?$ . "w") (?_ . "w") (?. . "w") (?| . "w") (?& . "w")) 
+    nil t
+    ((?$ . "w") (?_ . "w") (?. . "w") (?| . "w") (?& . "w"))
     beginning-of-line))
-
-(put 'idlwave-mode 'font-lock-defaults 
-     idlwave-font-lock-defaults) ; XEmacs
 
 (defconst idlwave-comment-line-start-skip "^[ \t]*;"
   "Regexp to match the start of a full-line comment.
 That is the _beginning_ of a line containing a comment delimiter `;' preceded
 only by whitespace.")
 
-(defconst idlwave-begin-block-reg 
+(defconst idlwave-begin-block-reg
   "\\<\\(pro\\|function\\|begin\\|case\\|switch\\)\\>"
-  "Regular expression to find the beginning of a block. 
+  "Regular expression to find the beginning of a block.
 The case does not matter. The search skips matches in comments.")
 
 (defconst idlwave-profun-reg "^\\s-*\\(pro\\|function\\)\\>")
 
 (defconst idlwave-begin-unit-reg (concat idlwave-profun-reg "\\|\\`")
-  "Regular expression to find the beginning of a unit. 
+  "Regular expression to find the beginning of a unit.
 The case does not matter.")
 
 (defconst idlwave-end-unit-reg "^\\s-*\\(pro\\|function\\)\\>\\|\\'"
@@ -1246,7 +1165,7 @@ case does not matter. The search skips matches in comments.")
 
 (defconst idlwave-end-block-reg
   "\\<end\\(\\|case\\|switch\\|else\\|for\\|foreach\\|if\\|rep\\|while\\)\\>"
-  "Regular expression to find the end of a block. 
+  "Regular expression to find the end of a block.
 The case does not matter. The search skips matches found in
 comments.")
 
@@ -1307,17 +1226,20 @@ blocks starting with a BEGIN statement.  The matches must have associations
    '(goto . ("goto\\>" nil))
    '(case . ("case\\>" nil))
    '(switch . ("switch\\>" nil))
-   (cons 'call (list (concat "\\(" idlwave-variable "\\) *= *" 
+   (cons 'call (list (concat "\\(" idlwave-variable "\\) *= *"
 			     "\\(" idlwave-method-call "\\s *\\)?"
 			     idlwave-identifier
-			     "\\s *(") nil))
-   (cons 'call (list (concat 
+			     "\\s *(")
+		     nil))
+   (cons 'call (list (concat
 		      "\\(" idlwave-method-call "\\s *\\)?"
-		      idlwave-identifier 
-		      "\\( *\\($\\|\\$\\)\\|\\s *,\\)") nil))
-   (cons 'assign (list (concat 
-			"\\(" idlwave-variable "\\) *=") nil)))
-  
+		      idlwave-identifier
+		      "\\( *\\($\\|\\$\\)\\|\\s *,\\)")
+		     nil))
+   (cons 'assign (list (concat
+			"\\(" idlwave-variable "\\) *=")
+		       nil)))
+
   "Associated list of statement matching regular expressions.
 Each regular expression matches the start of an IDL statement.
 The first element of each association is a symbol giving the statement
@@ -1331,24 +1253,19 @@ list order matters since matching an assignment statement exactly is
 not possible without parsing.  Thus assignment statement become just
 the leftover unidentified statements containing an equal sign.")
 
-(defvar idlwave-fill-function 'auto-fill-function
-  "IDL mode auto fill function.")
-
 (defvar idlwave-comment-indent-function 'comment-indent-function
   "IDL mode comment indent function.")
 
 ;; Note that this is documented in the v18 manuals as being a string
 ;; of length one rather than a single character.
 ;; The code in this file accepts either format for compatibility.
-(defvar idlwave-comment-indent-char ?\ 
+(defvar idlwave-comment-indent-char ?\s
   "Character to be inserted for IDL comment indentation.
 Normally a space.")
 
 (defconst idlwave-continuation-char ?$
   "Character which is inserted as a last character on previous line by
-   \\[idlwave-split-line] to begin a continuation line.  Normally $.")
-
-(defconst idlwave-mode-version "VERSIONTAG")
+\\[idlwave-split-line] to begin a continuation line.  Normally $.")
 
 (provide 'idlw-variables)
 (provide 'idlwave-variables)

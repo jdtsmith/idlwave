@@ -1,42 +1,44 @@
-;; IDLWAVE keyboard/mouse bindings, syntax tables, templates, and abbreviations.
+;; IDLWAVE keyboard/mouse bindings, syntax tables, templates, and abbreviations.  -*- lexical-binding: t; -*-
 
-(fset 'idlwave-debug-map (make-sparse-keymap))
+(require 'idlw-variables)   ;At least for `idlwave-abbrev-start-char'.
+
+(defalias 'idlwave-debug-map (make-sparse-keymap))
 
 ;;----------------------------------------------------
 ;; Keyboard bindings, in buffer
 (defvar idlwave-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "\C-c "    'idlwave-hard-tab)
-    (define-key map [(control tab)] 'idlwave-hard-tab)
-    ;;(define-key map "\C-c\C- " 'idlwave-hard-tab)
-    (define-key map "'"        'idlwave-show-matching-quote)
-    (define-key map "\""       'idlwave-show-matching-quote)
-    (define-key map "\C-g"     'idlwave-keyboard-quit)
-    (define-key map "\C-c;"    'idlwave-toggle-comment-region)
-    (define-key map "\C-\M-a"  'idlwave-beginning-of-subprogram)
-    (define-key map "\C-\M-e"  'idlwave-end-of-subprogram)
-    (define-key map "\C-c{"    'idlwave-beginning-of-block)
-    (define-key map "\C-c}"    'idlwave-end-of-block)
-    (define-key map "\C-c]"    'idlwave-close-block)
-    (define-key map [(meta control h)] 'idlwave-mark-subprogram)
-    (define-key map "\M-\C-n"  'idlwave-forward-block)
-    (define-key map "\M-\C-p"  'idlwave-backward-block)
-    (define-key map "\M-\C-d"  'idlwave-down-block)
-    (define-key map "\M-\C-u"  'idlwave-backward-up-block)
-    (define-key map "\M-\r"    'idlwave-split-line)
-    (define-key map "\M-\C-q"  'idlwave-indent-subprogram)
-    (define-key map "\C-c\C-p" 'idlwave-previous-statement)
-    (define-key map "\C-c\C-n" 'idlwave-next-statement)
-    ;; (define-key map "\r"       'idlwave-newline)
-    ;; (define-key map "\t"       'idlwave-indent-line)
-    (define-key map [(shift iso-lefttab)] 'idlwave-indent-statement)
-    (define-key map "\C-c\C-a" 'idlwave-auto-fill-mode)
-    (define-key map "\M-q"     'idlwave-fill-paragraph)
-    (define-key map "\M-s"     'idlwave-edit-in-idlde)
-    (define-key map "\C-c\C-h" 'idlwave-doc-header)
-    (define-key map "\C-c\C-m" 'idlwave-doc-modification)
-    (define-key map "\C-c\C-c" 'idlwave-case)
-    (define-key map "\C-c\C-d" 'idlwave-debug-map)
+    (define-key map "\C-c "    #'idlwave-hard-tab)
+    (define-key map [(control tab)] #'idlwave-hard-tab)
+    ;;(define-key map "\C-c\C- " #'idlwave-hard-tab)
+    (define-key map "'"        #'idlwave-show-matching-quote)
+    (define-key map "\""       #'idlwave-show-matching-quote)
+    (define-key map "\C-g"     #'idlwave-keyboard-quit)
+    (define-key map "\C-c;"    #'idlwave-toggle-comment-region)
+    (define-key map "\C-\M-a"  #'idlwave-beginning-of-subprogram)
+    (define-key map "\C-\M-e"  #'idlwave-end-of-subprogram)
+    (define-key map "\C-c{"    #'idlwave-beginning-of-block)
+    (define-key map "\C-c}"    #'idlwave-end-of-block)
+    (define-key map "\C-c]"    #'idlwave-close-block)
+    (define-key map [(meta control h)] #'idlwave-mark-subprogram)
+    (define-key map "\M-\C-n"  #'idlwave-forward-block)
+    (define-key map "\M-\C-p"  #'idlwave-backward-block)
+    (define-key map "\M-\C-d"  #'idlwave-down-block)
+    (define-key map "\M-\C-u"  #'idlwave-backward-up-block)
+    (define-key map "\M-\r"    #'idlwave-split-line)
+    (define-key map "\M-\C-q"  #'idlwave-indent-subprogram)
+    (define-key map "\C-c\C-p" #'idlwave-previous-statement)
+    (define-key map "\C-c\C-n" #'idlwave-next-statement)
+    ;; (define-key map "\r"       #'idlwave-newline)
+    ;; (define-key map "\t"       #'idlwave-indent-line)
+    (define-key map [(shift iso-lefttab)] #'idlwave-indent-statement)
+    (define-key map "\C-c\C-a" #'auto-fill-mode)
+    (define-key map "\M-q"     #'idlwave-fill-paragraph)
+    (define-key map "\M-s"     #'idlwave-edit-in-idlde)
+    (define-key map "\C-c\C-h" #'idlwave-doc-header)
+    (define-key map "\C-c\C-m" #'idlwave-doc-modification)
+    (define-key map "\C-c\C-c" #'idlwave-case)
+    (define-key map "\C-c\C-d" #'idlwave-debug-map)
     (when (and (listp idlwave-shell-debug-modifiers)
                (not (equal idlwave-shell-debug-modifiers '())))
       ;; Bind the debug commands also with the special modifiers.
@@ -45,79 +47,78 @@
              (delq 'shift (copy-sequence idlwave-shell-debug-modifiers))))
         (define-key map
           (vector (append mods-noshift (list (if shift ?C ?c))))
-          'idlwave-shell-save-and-run)
+          #'idlwave-shell-save-and-run)
         (define-key map
           (vector (append mods-noshift (list (if shift ?B ?b))))
-          'idlwave-shell-break-here)
+          #'idlwave-shell-break-here)
         (define-key map
           (vector (append mods-noshift (list (if shift ?E ?e))))
-          'idlwave-shell-run-region)))
-    (define-key map "\C-c\C-d\C-c" 'idlwave-shell-save-and-run)
-    (define-key map "\C-c\C-d\C-b" 'idlwave-shell-break-here)
-    (define-key map "\C-c\C-d\C-e" 'idlwave-shell-run-region)
-    (define-key map "\C-c\C-f" 'idlwave-for)
-    ;;  (define-key map "\C-c\C-f" 'idlwave-function)
-    ;;  (define-key map "\C-c\C-p" 'idlwave-procedure)
-    (define-key map "\C-c\C-r" 'idlwave-repeat)
-    (define-key map "\C-c\C-w" 'idlwave-while)
-    (define-key map "\C-c\C-k" 'idlwave-kill-autoloaded-buffers)
-    (define-key map "\C-c\C-s" 'idlwave-shell)
-    (define-key map "\C-c\C-l" 'idlwave-shell-recenter-shell-window)
-    (define-key map "\C-c\C-b" 'idlwave-list-buffer-load-path-shadows)
-    (define-key map "\C-c\C-v"   'idlwave-find-module)
-    (define-key map "\C-c\C-t"   'idlwave-find-module-this-file)
-    (define-key map "\C-c?"      'idlwave-routine-info)
-    (define-key map "\M-?"       'idlwave-context-help)
+          #'idlwave-shell-run-region)))
+    (define-key map "\C-c\C-d\C-c" #'idlwave-shell-save-and-run)
+    (define-key map "\C-c\C-d\C-b" #'idlwave-shell-break-here)
+    (define-key map "\C-c\C-d\C-e" #'idlwave-shell-run-region)
+    (define-key map "\C-c\C-f" #'idlwave-for)
+    ;;  (define-key map "\C-c\C-f" #'idlwave-function)
+    ;;  (define-key map "\C-c\C-p" #'idlwave-procedure)
+    (define-key map "\C-c\C-r" #'idlwave-repeat)
+    (define-key map "\C-c\C-w" #'idlwave-while)
+    (define-key map "\C-c\C-k" #'idlwave-kill-autoloaded-buffers)
+    (define-key map "\C-c\C-s" #'idlwave-shell)
+    (define-key map "\C-c\C-l" #'idlwave-shell-recenter-shell-window)
+    (define-key map "\C-c\C-b" #'idlwave-list-buffer-load-path-shadows)
+    (define-key map "\C-c\C-v"   #'idlwave-find-module)
+    (define-key map "\C-c\C-t"   #'idlwave-find-module-this-file)
+    (define-key map "\C-c?"      #'idlwave-routine-info)
+    (define-key map "\M-?"       #'idlwave-context-help)
     (define-key map [(control meta ?\?)]
-      'idlwave-help-with-topic)
-    ;; Pickup both forms of Esc/Meta binding
-    (define-key map [(meta tab)] 'idlwave-complete)
-    (define-key map [?\e?\t] 'idlwave-complete)
-    (define-key map "\M-\C-i" 'idlwave-complete)
-    (define-key map "\C-c\C-i" 'idlwave-update-routine-info)
-    (define-key map "\C-c="    'idlwave-resolve)
-    (define-key map
-      (if (featurep 'xemacs) [(shift button3)] [(shift mouse-3)])
-      'idlwave-mouse-context-help)
+      #'idlwave-help-with-topic)
+    ;; Don't pickup both forms of Esc/Meta binding, since that overrides
+    ;; the tab => \t remap and thus other \t bindings of higher priority!
+    ;; (define-key map [(meta tab)] #'idlwave-complete)
+    ;; FIXME: Use `completion-at-point'!
+    (define-key map [?\e?\t] #'idlwave-complete)
+    (define-key map "\M-\C-i" #'idlwave-complete)
+    (define-key map "\C-c\C-i" #'idlwave-update-routine-info)
+    (define-key map "\C-c="    #'idlwave-resolve)
+    (define-key map [(shift mouse-3)] #'idlwave-mouse-context-help)
     map)
   "Keymap used in IDL mode.")
 
 ;;----------------------------------------------------
 ;; Keyboard bindings, in routine info window
-(defvar idlwave-rinfo-mouse-map (make-sparse-keymap))
-(defvar idlwave-rinfo-map (make-sparse-keymap))
-(define-key idlwave-rinfo-mouse-map 
-  (if (featurep 'xemacs) [button2] [mouse-2])
-  'idlwave-mouse-active-rinfo)
-(define-key idlwave-rinfo-mouse-map 
-  (if (featurep 'xemacs) [(shift button2)] [(shift mouse-2)])
-  'idlwave-mouse-active-rinfo-shift)
-(define-key idlwave-rinfo-mouse-map 
-  (if (featurep 'xemacs) [button3] [mouse-3])
-  'idlwave-mouse-active-rinfo-right)
-(define-key idlwave-rinfo-mouse-map " " 'idlwave-active-rinfo-space)
-(define-key idlwave-rinfo-map "q" 'idlwave-quit-help)
-(define-key idlwave-rinfo-mouse-map "q" 'idlwave-quit-help)
+(defvar idlwave-rinfo-mouse-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mouse-2] #'idlwave-mouse-active-rinfo)
+    (define-key map [(shift mouse-2)] #'idlwave-mouse-active-rinfo-shift)
+    (define-key map [mouse-3] #'idlwave-mouse-active-rinfo-right)
+    (define-key map " " #'idlwave-active-rinfo-space)
+    (define-key map "q" #'idlwave-quit-help)
+    map))
+(defvar idlwave-rinfo-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "q" #'idlwave-quit-help)
+    map))
 
 ;;----------------------------------------------------
 ;;  Keyboard bindings, in source-help window
-(defvar idlwave-help-mode-map (make-sparse-keymap)
-  "The keymap used in idlwave-help-mode.")
-
-(define-key idlwave-help-mode-map "q" 'idlwave-help-quit)
-(define-key idlwave-help-mode-map "w" 'widen)
-(define-key idlwave-help-mode-map "\C-m" (lambda (arg)
-					   (interactive "p")
-					   (scroll-up arg)))
-(define-key idlwave-help-mode-map " " 'scroll-up)
-(define-key idlwave-help-mode-map [delete] 'scroll-down)
-(define-key idlwave-help-mode-map "h" 'idlwave-help-find-header)
-(define-key idlwave-help-mode-map "H" 'idlwave-help-find-first-header)
-(define-key idlwave-help-mode-map "." 'idlwave-help-toggle-header-match-and-def)
-(define-key idlwave-help-mode-map "F" 'idlwave-help-fontify)
-(define-key idlwave-help-mode-map "\M-?" 'idlwave-help-return-to-calling-frame)
-(define-key idlwave-help-mode-map "x" 'idlwave-help-return-to-calling-frame)
-
+(defvar idlwave-help-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "q" #'idlwave-help-quit)
+    (define-key map "w" #'widen)
+    (define-key map "\C-m" (lambda (arg)
+			     (interactive "p")
+			     (scroll-up arg)))
+    (define-key map " " #'scroll-up-command)
+    (define-key map [?\S-\ ] #'scroll-down-command)
+    (define-key map [delete] #'scroll-down-command)
+    (define-key map "h" #'idlwave-help-find-header)
+    (define-key map "H" #'idlwave-help-find-first-header)
+    (define-key map "." #'idlwave-help-toggle-header-match-and-def)
+    (define-key map "F" #'idlwave-help-fontify)
+    (define-key map "\M-?" #'idlwave-help-return-to-calling-frame)
+    (define-key map "x" #'idlwave-help-return-to-calling-frame)
+    map)
+  "The keymap used in `idlwave-help-mode'.")
 
 ;;----------------------------------------------------
 ;; Keyboard utility callbacks
@@ -166,86 +167,64 @@
     st)
   "Syntax table that treats symbol characters as word characters.")
 
-(defmacro idlwave-with-special-syntax (&rest body)
-  "Execute BODY with a different syntax table."
-  `(let ((saved-syntax (syntax-table)))
-     (unwind-protect
-	 (progn
-	   (set-syntax-table idlwave-find-symbol-syntax-table)
-	   ,@body)
-       (set-syntax-table saved-syntax))))
-
-;(defmacro idlwave-with-special-syntax1 (&rest body)
-;  "Execute BODY with a different syntax table."
-;  `(let ((saved-syntax (syntax-table)))
-;     (unwind-protect
-;	  (progn
-;	    (set-syntax-table idlwave-find-symbol-syntax-table)
-;	    ,@body)
-;	(set-syntax-table saved-syntax))))
-
 (defun idlwave-action-and-binding (key cmd &optional select)
   "KEY and CMD are made into a key binding and an indent action.
 KEY is a string - same as for the `define-key' function.  CMD is a
-function of no arguments or a list to be evaluated.  CMD is bound to
+function of one argument.  CMD is bound to
 KEY in `idlwave-mode-map' by defining an anonymous function calling
 `self-insert-command' followed by CMD.  If KEY contains more than one
-character a binding will only be set if SELECT is 'both.
+character a binding will only be set if SELECT is `both'.
 
-\(KEY . CMD\) is also placed in the `idlwave-indent-expand-table',
+\(KEY . CMD) is also placed in the `idlwave-indent-expand-table',
 replacing any previous value for KEY.  If a binding is not set then it
 will instead be placed in `idlwave-indent-action-table'.
 
 If the optional argument SELECT is nil then an action and binding are
-created.  If SELECT is 'noaction, then a binding is always set and no
-action is created.  If SELECT is 'both then an action and binding
+created.  If SELECT is `noaction', then a binding is always set and no
+action is created.  If SELECT is `both' then an action and binding
 will both be created even if KEY contains more than one character.
 Otherwise, if SELECT is non-nil then only an action is created.
 
 Some examples:
 No spaces before and 1 after a comma
-   (idlwave-action-and-binding \",\"  '(idlwave-surround 0 1))
+   (idlwave-action-and-binding \",\"  (lambda (_) (idlwave-surround 0 1)))
 A minimum of 1 space before and after `=' (see `idlwave-expand-equal').
-   (idlwave-action-and-binding \"=\"  '(idlwave-expand-equal -1 -1))
+   (idlwave-action-and-binding \"=\"  (lambda (_) (idlwave-expand-equal -1 -1)))
 Capitalize system variables - action only
-   (idlwave-action-and-binding idlwave-sysvar '(capitalize-word 1) t)"
+   (idlwave-action-and-binding idlwave-sysvar
+                               (lambda (_) (capitalize-word 1) t) t)"
   (if (not (equal select 'noaction))
       ;; Add action
       (let* ((table (if select 'idlwave-indent-action-table
                       'idlwave-indent-expand-table))
-	     (table-key (regexp-quote key))
-             (cell (assoc table-key (eval table))))
-        (if cell
-            ;; Replace action command
-            (setcdr cell cmd)
-          ;; New action
-          (set table (append (eval table) (list (cons table-key cmd)))))))
+	     (table-key (regexp-quote key)))
+        (setf (alist-get table-key (symbol-value table) nil nil #'equal) cmd)))
   ;; Make key binding for action
-  (if (or (and (null select) (= (length key) 1))
-          (equal select 'noaction)
-          (equal select 'both))
+  (if (if (null select) (= (length key) 1)
+        (memq select '(noaction both)))
+      ;; FIXME: Use `post-self-insert-hook'!
       (define-key idlwave-mode-map key
-        `(lambda ()
-	   (interactive)
-	   (self-insert-command 1)
-	   ,(if (listp cmd) cmd (list cmd))))))
+        (lambda ()
+	  (interactive)
+	  (self-insert-command 1)
+	  (if (functionp cmd) (funcall cmd nil) (eval cmd t))))))
 
 ;; Set action and key bindings.
 ;; See description of the function `idlwave-action-and-binding'.
 ;; Automatically add spaces for the following characters
 
 ;; Actions for & are complicated by &&
-(idlwave-action-and-binding "&"  'idlwave-custom-ampersand-surround)
+(idlwave-action-and-binding "&"  #'idlwave-custom-ampersand-surround)
 
 ;; Automatically add spaces to equal sign if not keyword.  This needs
 ;; to go ahead of > and <, so >= and <= will be treated correctly
-(idlwave-action-and-binding "="  '(idlwave-expand-equal -1 -1))
+(idlwave-action-and-binding "="  (lambda (_) (idlwave-expand-equal -1 -1)))
 
-;; Actions for > and < are complicated by >=, <=, and ->... 
-(idlwave-action-and-binding "<"  '(idlwave-custom-ltgtr-surround nil))
-(idlwave-action-and-binding ">"  '(idlwave-custom-ltgtr-surround 'gtr))
+;; Actions for > and < are complicated by >=, <=, and ->...
+(idlwave-action-and-binding "<"  (lambda (a) (idlwave-custom-ltgtr-surround nil a)))
+(idlwave-action-and-binding ">"  (lambda (a) (idlwave-custom-ltgtr-surround t a)))
 
-(idlwave-action-and-binding ","  '(idlwave-surround 0 -1 1))
+(idlwave-action-and-binding ","  (lambda (a) (idlwave-surround 0 -1 1 a)))
 
 
 ;;----------------------------------------------------
@@ -254,39 +233,38 @@ Capitalize system variables - action only
 ;; When expanding abbrevs and the abbrev hook moves backward, an extra
 ;; space is inserted (this is the space typed by the user to expanded
 ;; the abbrev).
+;; FIXME: This can be controlled with `no-self-insert' property.
 ;;
-(defvar idlwave-mode-abbrev-table nil
-  "Abbreviation table used for IDLWAVE mode.")
-(define-abbrev-table 'idlwave-mode-abbrev-table ())
+(define-abbrev-table 'idlwave-mode-abbrev-table ()
+  "Abbreviation table used for IDLWAVE mode."
+  :enable-function (lambda () (not (idlwave-quoted))))
 
-(defun idlwave-check-abbrev (arg &optional reserved)
-  "Reverse abbrev expansion if in comment or string.
+(defun idlwave-modify-abbrev (arg &optional reserved)
+  "Tweak the abbrev we just expanded.
 Argument ARG is the number of characters to move point
 backward if `idlwave-abbrev-move' is non-nil.
 If optional argument RESERVED is non-nil then the expansion
 consists of reserved words, which will be capitalized if
 `idlwave-reserved-word-upcase' is non-nil.
 Otherwise, the abbrev will be capitalized if `idlwave-abbrev-change-case'
-is non-nil, unless its value is \`down in which case the abbrev will be
+is non-nil, unless its value is `down' in which case the abbrev will be
 made into all lowercase.
 Returns non-nil if abbrev is left expanded."
-  (if (idlwave-quoted)
-      (progn (unexpand-abbrev)
-             nil)
-    (if (and reserved idlwave-reserved-word-upcase)
-        (upcase-region last-abbrev-location (point))
-      (cond
-       ((equal idlwave-abbrev-change-case 'down)
-        (downcase-region last-abbrev-location (point)))
-       (idlwave-abbrev-change-case
-        (upcase-region last-abbrev-location (point)))))
-    (if (and idlwave-abbrev-move (> arg 0))
-        (if (boundp 'post-command-hook)
-            (setq idlwave-command-hook (list 'backward-char (1+ arg)))
-          (backward-char arg)))
-    t))
+  (require 'idlwave)
+  (defvar idlwave--command-function)
+  (if (and reserved idlwave-reserved-word-upcase)
+      (upcase-region last-abbrev-location (point))
+    (cond
+     ((equal idlwave-abbrev-change-case 'down)
+      (downcase-region last-abbrev-location (point)))
+     (idlwave-abbrev-change-case
+      (upcase-region last-abbrev-location (point)))))
+  (if (and idlwave-abbrev-move (> arg 0))
+      (setq idlwave--command-function (lambda () (backward-char (1+ arg)))))
+  t)
 
 (defun idlwave-define-abbrev (name expansion hook &optional noprefix table)
+  ;; FIXME: `table' is never passed.
   "Define-abbrev with backward compatibility.
 
 If NOPREFIX is non-nil, don't prepend prefix character.  Installs into
@@ -297,8 +275,8 @@ If NOPREFIX is non-nil, don't prepend prefix character.  Installs into
 		    expansion
 		    hook)))
     (condition-case nil
-	(apply 'define-abbrev (append args '(0 t)))
-      (error (apply 'define-abbrev args)))))
+	(apply #'define-abbrev (append args '(0 t)))
+      (error (apply #'define-abbrev args)))))
 
 (defun idlwave-expand-region-abbrevs (start end)
   "Expand each abbrev occurrence in the region.
@@ -310,32 +288,12 @@ Calling from a program, arguments are START END."
           (idlwave-abbrev-move nil))        ;Do not move
       (expand-region-abbrevs start end 'noquery))))
 
-(defmacro idlwave-keyword-abbrev (&rest args)
-  "Creates a function for abbrev hooks to call `idlwave-check-abbrev' with args."
-  `(quote (lambda ()
-	    ,(append '(idlwave-check-abbrev) args))))
-
-;; If I take the time I can replace idlwave-keyword-abbrev with
-;; idlwave-code-abbrev and remove the quoted abbrev check from
-;; idlwave-check-abbrev.  Then, e.g, (idlwave-keyword-abbrev 0 t) becomes
-;; (idlwave-code-abbrev idlwave-check-abbrev 0 t).  In fact I should change
-;; the name of idlwave-check-abbrev to something like idlwave-modify-abbrev.
-
-(defmacro idlwave-code-abbrev (&rest args)
-  "Creates a function for abbrev hooks that ensures abbrevs are not quoted.
-Specifically, if the abbrev is in a comment or string it is unexpanded.
-Otherwise ARGS forms a list that is evaluated."
-  ;; FIXME: it would probably be better to rely on the new :enable-function
-  ;; to enforce the "don't expand in comments or strings".
-  `(lambda ()
-     ,(prin1-to-string args)  ;; Puts the code in the doc string
-     (if (idlwave-quoted)
-         (progn (unexpand-abbrev) nil)
-       ,(append args))))
-
+(defun idlwave-keyword-abbrev (&rest args)
+  "Create a function for abbrev hooks to call `idlwave-check-abbrev' with ARGS."
+  (lambda () (apply #'idlwave-modify-abbrev args)))
 
 (condition-case nil
-    (modify-syntax-entry (string-to-char idlwave-abbrev-start-char) 
+    (modify-syntax-entry (string-to-char idlwave-abbrev-start-char)
 			 "w" idlwave-mode-syntax-table)
   (error nil))
 
@@ -343,16 +301,16 @@ Otherwise ARGS forms a list that is evaluated."
 ;;----------------------------------------------------
 ;; Templates
 
-(idlwave-define-abbrev "c"   "" (idlwave-code-abbrev idlwave-case))
-(idlwave-define-abbrev "sw"  "" (idlwave-code-abbrev idlwave-switch))
-(idlwave-define-abbrev "f"   "" (idlwave-code-abbrev idlwave-for))
-(idlwave-define-abbrev "fe"  "" (idlwave-code-abbrev idlwave-foreach))
-(idlwave-define-abbrev "fu"  "" (idlwave-code-abbrev idlwave-function))
-(idlwave-define-abbrev "pr"  "" (idlwave-code-abbrev idlwave-procedure))
-(idlwave-define-abbrev "r"   "" (idlwave-code-abbrev idlwave-repeat))
-(idlwave-define-abbrev "w"   "" (idlwave-code-abbrev idlwave-while))
-(idlwave-define-abbrev "i"   "" (idlwave-code-abbrev idlwave-if))
-(idlwave-define-abbrev "elif" "" (idlwave-code-abbrev idlwave-elif))
+(idlwave-define-abbrev "c"    "" #'idlwave-case)
+(idlwave-define-abbrev "sw"   "" #'idlwave-switch)
+(idlwave-define-abbrev "f"    "" #'idlwave-for)
+(idlwave-define-abbrev "fe"   "" #'idlwave-foreach)
+(idlwave-define-abbrev "fu"   "" #'idlwave-function)
+(idlwave-define-abbrev "pr"   "" #'idlwave-procedure)
+(idlwave-define-abbrev "r"    "" #'idlwave-repeat)
+(idlwave-define-abbrev "w"    "" #'idlwave-while)
+(idlwave-define-abbrev "i"    "" #'idlwave-if)
+(idlwave-define-abbrev "elif" "" #'idlwave-elif)
 ;;
 ;; Keywords, system functions, conversion routines
 ;;
@@ -367,15 +325,15 @@ Otherwise ARGS forms a list that is evaluated."
 (idlwave-define-abbrev "cc" "complex()"    (idlwave-keyword-abbrev 1))
 (idlwave-define-abbrev "cd" "double()"     (idlwave-keyword-abbrev 1))
 (idlwave-define-abbrev "e"  "else"         (idlwave-keyword-abbrev 0 t))
-(idlwave-define-abbrev "ec" "endcase"      'idlwave-show-begin)
-(idlwave-define-abbrev "es" "endswitch"    'idlwave-show-begin)
-(idlwave-define-abbrev "ee" "endelse"      'idlwave-show-begin)
-(idlwave-define-abbrev "ef" "endfor"       'idlwave-show-begin)
-(idlwave-define-abbrev "ei" "endif else if" 'idlwave-show-begin)
-(idlwave-define-abbrev "el" "endif else"   'idlwave-show-begin)
-(idlwave-define-abbrev "en" "endif"        'idlwave-show-begin)
-(idlwave-define-abbrev "er" "endrep"       'idlwave-show-begin)
-(idlwave-define-abbrev "ew" "endwhile"     'idlwave-show-begin)
+(idlwave-define-abbrev "ec" "endcase"      #'idlwave-show-begin)
+(idlwave-define-abbrev "es" "endswitch"    #'idlwave-show-begin)
+(idlwave-define-abbrev "ee" "endelse"      #'idlwave-show-begin)
+(idlwave-define-abbrev "ef" "endfor"       #'idlwave-show-begin)
+(idlwave-define-abbrev "ei" "endif else if" #'idlwave-show-begin)
+(idlwave-define-abbrev "el" "endif else"   #'idlwave-show-begin)
+(idlwave-define-abbrev "en" "endif"        #'idlwave-show-begin)
+(idlwave-define-abbrev "er" "endrep"       #'idlwave-show-begin)
+(idlwave-define-abbrev "ew" "endwhile"     #'idlwave-show-begin)
 (idlwave-define-abbrev "g"  "goto,"        (idlwave-keyword-abbrev 0 t))
 (idlwave-define-abbrev "h"  "help,"        (idlwave-keyword-abbrev 0))
 (idlwave-define-abbrev "k"  "keyword_set()" (idlwave-keyword-abbrev 1))
@@ -423,16 +381,16 @@ Otherwise ARGS forms a list that is evaluated."
 (idlwave-define-abbrev "continue"   "continue"  (idlwave-keyword-abbrev 0 t) t)
 (idlwave-define-abbrev "do"         "do"        (idlwave-keyword-abbrev 0 t) t)
 (idlwave-define-abbrev "else"       "else"      (idlwave-keyword-abbrev 0 t) t)
-(idlwave-define-abbrev "end"        "end"       'idlwave-show-begin-check t)
-(idlwave-define-abbrev "endcase"    "endcase"   'idlwave-show-begin-check t)
-(idlwave-define-abbrev "endelse"    "endelse"   'idlwave-show-begin-check t)
-(idlwave-define-abbrev "endfor"     "endfor"    'idlwave-show-begin-check t)
-(idlwave-define-abbrev "endforeach" "endforeach" 'idlwave-show-begin-check t)
-(idlwave-define-abbrev "endif"      "endif"     'idlwave-show-begin-check t)
-(idlwave-define-abbrev "endrep"     "endrep"    'idlwave-show-begin-check t)
-(idlwave-define-abbrev "endswitch"  "endswitch" 'idlwave-show-begin-check t)
-(idlwave-define-abbrev "endwhi"     "endwhi"    'idlwave-show-begin-check t)
-(idlwave-define-abbrev "endwhile"   "endwhile"  'idlwave-show-begin-check t)
+(idlwave-define-abbrev "end"        "end"       #'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endcase"    "endcase"   #'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endelse"    "endelse"   #'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endfor"     "endfor"    #'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endforeach" "endforeach" #'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endif"      "endif"     #'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endrep"     "endrep"    #'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endswitch"  "endswitch" #'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endwhi"     "endwhi"    #'idlwave-show-begin-check t)
+(idlwave-define-abbrev "endwhile"   "endwhile"  #'idlwave-show-begin-check t)
 (idlwave-define-abbrev "eq"         "eq"        (idlwave-keyword-abbrev 0 t) t)
 (idlwave-define-abbrev "for"        "for"       (idlwave-keyword-abbrev 0 t) t)
 (idlwave-define-abbrev "function"   "function"  (idlwave-keyword-abbrev 0 t) t)
