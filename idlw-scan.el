@@ -3,7 +3,7 @@
 ;; see idlw-shell.el)
 
 (require 'timer)
-
+(require 'cl-lib)
 ;; idlwave-routines format (whether system, library, or userlib)
 ;; ("ROUTINE" type class
 ;;  (system) | (lib pro_file dir "LIBNAME") | (user pro_file dir "USERLIB") |
@@ -670,7 +670,7 @@ Cache to disk for quick recovery."
 		(while
 		    (string-match "\\[, /?\\({X *| *Y *| *Z}\\)?\\([A-Z0-9]+\\)[]=]" syntax pos)
 		  (if (match-string 1 syntax)
-		      (loop for x in '("X" "Y" "Z") do
+		      (cl-loop for x in '("X" "Y" "Z") do
 			    (push (concat x (match-string 2 syntax)) graphics-kws))
 		    (push (match-string 2 syntax) graphics-kws))
 		  (setq pos (match-end 0)))
@@ -699,7 +699,7 @@ Cache to disk for quick recovery."
 		(setq pref-list 
 		      (if (match-string 1 kwd) '("X" "Y" "Z") '("X" "Y"))
 		      kwd (substring kwd (match-end 0)))
-		(loop for x in pref-list do
+		(cl-loop for x in pref-list do
 		      (push (list (concat x kwd) klink) kwds)))
 	    (push (list kwd klink) kwds)))
 
@@ -722,7 +722,7 @@ Cache to disk for quick recovery."
       (if graphics-kws
 	  (setq kwds (nconc kwds (idlwave-graphics-keywords graphics-kws))))
       (setq kwds (idlwave-rinfo-group-keywords kwds link))
-      (loop for idx from 0 to 1 do	;add a procedure and function if needed
+      (cl-loop for idx from 0 to 1 do	;add a procedure and function if needed
 	    (if (aref syntax-vec idx)
 		(push (append (list name (if (eq idx 0) 'pro 'fun) 
 				    class '(system)
@@ -755,7 +755,7 @@ Cache to disk for quick recovery."
 			  (setq kwd (substring kwd (match-end 0)))
 			  (setq kwds (mapcar (lambda (x) (concat x kwd)) '("X" "Y" "Z"))))
 		      (setq kwds (list kwd)))
-		    (loop for kwd in kwds do
+		    (cl-loop for kwd in kwds do
 			  (unless (assoc kwd idlwave-graphics-keywords-links-alist)
 			    (push (cons kwd (concat gkwfile anchor))
 				  idlwave-graphics-keywords-links-alist)))))))))))
@@ -792,7 +792,7 @@ Cache to disk for quick recovery."
   ;; Clean up the syntax of routines which are actually aliases by
   ;; removing the "OR" from the statements
   (let (syntax entry)
-    (loop for x in aliases do
+    (cl-loop for x in aliases do
 	  (setq entry (assoc x idlwave-system-routines))
 	  (when entry
 	    (while (string-match " +or +" (setq syntax (nth 4 entry)))
@@ -814,7 +814,7 @@ force directory search."
 	(cond
 	 ;; Directly on the alias list
 	 ((and
-	   (setq alias (assoc-ignore-case file alias-list))
+	   (setq alias (assoc-string file alias-list t))
 	   (file-exists-p (setq linkfile 
 				(expand-file-name (cdr alias) content-path)))))
 	 
@@ -852,7 +852,7 @@ force directory search."
 		 (replace-regexp-in-string 
 		  "_+[^_]*\.htm\\(l?\\)" ".htm\\1" file)))
 	    (and (not (string= file lfroot))
-		 (setq alias (assoc-ignore-case lfroot alias-list))
+		 (setq alias (assoc-string lfroot alias-list t))
 		 (file-exists-p 
 		  (setq linkfile 
 			(expand-file-name 	   
@@ -932,7 +932,7 @@ force directory search."
 	  ;; Executive commands/special topics
 	  (mapc 
 	   (lambda (x)
-	     (let ((alias (assoc-ignore-case (cdr x) alias-list)))
+	     (let ((alias (assoc-string (cdr x) alias-list t)))
 	       (if alias 
 		   (setcdr x (cdr alias)))))
 	   (append idlwave-help-special-topic-words
@@ -958,7 +958,7 @@ force directory search."
   ;; Duplicate and trim original routine aliases from rinfo list
   ;; This if for, e.g. OPENR/OPENW/OPENU 
   (let (alias remove-list new parts all-parts)
-    (loop for x in aliases do
+    (cl-loop for x in aliases do
 	  (when (setq parts (split-string (cdr x) "/"))
 	    (setq new (assoc (cdr x) all-parts))
 	    (unless new
@@ -967,30 +967,30 @@ force directory search."
 	    (setcdr new (delete (car x) (cdr new)))))
     
     ;; Add any missing aliases (separate by slashes)
-    (loop for x in all-parts do
+    (cl-loop for x in all-parts do
 	  (if (cdr x)
 	      (push (cons (nth 1 x) (car x)) aliases)))
 
-    (loop for x in aliases do
+    (cl-loop for x in aliases do
 	  (when (setq alias (assoc (cdr x) idlwave-system-routines))
 	    (unless (memq alias remove-list) (push alias remove-list))
 	    (setq alias (copy-sequence alias))
 	    (setcar alias (car x))
 	    (push alias idlwave-system-routines)))
-    (loop for x in remove-list do
+    (cl-loop for x in remove-list do
 	  (delq x idlwave-system-routines))))
 
 (defun idlwave-convert-xml-clean-sysvar-aliases (aliases)
   ;; Duplicate and trim original routine aliases from rinfo list
   ;; This if for, e.g. !X, !Y, !Z.
   (let (alias remove-list)
-    (loop for x in aliases do
+    (cl-loop for x in aliases do
 	  (when (setq alias (assoc (cdr x) idlwave-system-variables-alist))
 	    (unless (memq alias remove-list) (push alias remove-list))
 	    (setq alias (copy-sequence alias))
 	    (setcar alias (car x))
 	    (push alias idlwave-system-variables-alist)))
-    (loop for x in remove-list do
+    (cl-loop for x in remove-list do
 	  (delq x idlwave-system-variables-alist))))
 
 (defun idlwave-xml-create-sysvar-alist (xml-entry)

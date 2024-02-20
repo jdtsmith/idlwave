@@ -989,24 +989,26 @@ IDL has currently stepped.")
   (setq major-mode 'idlwave-shell-mode)
   (setq mode-name "IDL-Shell")
   (setq idlwave-shell-mode-line-info nil)
-  (setq mode-line-format
-	'(""
-	  mode-line-modified
-	  mode-line-buffer-identification
-	  "   "
-	  global-mode-string
-	  "   %[("
-	  mode-name
-	  mode-line-process
-	  minor-mode-alist
-	  "%n"
-	  ")%]-"
-	  idlwave-shell-mode-line-info
-	  "---"
-	  (line-number-mode "L%l--")
-	  (column-number-mode "C%c--")
-	  (-3 . "%p")
-	  "-%-"))
+  (cl-pushnew 'idlwave-shell-mode-line-info
+	      (buffer-local-value mode-line-misc-info))
+  ;; (setq mode-line-format
+  ;; 	'(""
+  ;; 	  mode-line-modified
+  ;; 	  mode-line-buffer-identification
+  ;; 	  "   "
+  ;; 	  global-mode-string
+  ;; 	  "   %[("
+  ;; 	  mode-name
+  ;; 	  mode-line-process
+  ;; 	  minor-mode-alist
+  ;; 	  "%n"
+  ;; 	  ")%]-"
+  ;; 	  idlwave-shell-mode-line-info
+  ;; 	  "---"
+  ;; 	  (line-number-mode "L%l--")
+  ;; 	  (column-number-mode "C%c--")
+  ;; 	  (-3 . "%p")
+  ;; 	  "-%-"))
   ;; (make-local-variable 'idlwave-shell-bp-alist)
   (setq idlwave-shell-halt-frame nil
         idlwave-shell-trace-frame nil
@@ -2241,8 +2243,8 @@ Change the default directory for the process buffer to concur."
        'hide 'wait)
       ;; If we don't know anything about the class, update shell routines
       (if (and idlwave-shell-get-object-class
-	       (not (assoc-ignore-case idlwave-shell-get-object-class
-				  (idlwave-class-alist))))
+	       (not (assoc-string idlwave-shell-get-object-class
+				  (idlwave-class-alist) t)))
 	  (idlwave-shell-maybe-update-routine-info))
       idlwave-shell-get-object-class)))
 
@@ -3443,7 +3445,6 @@ Resize to no more than BUFFER-HEIGHT-FRAC of the frame buffer if set."
 (defvar idlwave-shell-command-buffer " *idlwave-shell-command*"
   "Scratch IDLWAVE mode buffer for parsing IDL statements.")
 
-
 (defun idlwave-shell-bp-query (&optional no-show)
   "Reconcile idlwave-shell's breakpoint list with IDL's.
 Queries IDL using the string in `idlwave-shell-bp-query'."
@@ -4325,8 +4326,8 @@ Otherwise, just expand the file name."
 	  ([(control ?t)]   ?t   idlwave-shell-toggle-toolbar)
 	  ([(control up)]   up   idlwave-shell-stack-up)
 	  ([(control down)] down idlwave-shell-stack-down)
-	  ([(        ?[)]   ?[   idlwave-shell-goto-previous-bp t t)
-	  ([(        ?])]   ?]   idlwave-shell-goto-next-bp t t)
+	  ([(        ?\[)]   ?\[   idlwave-shell-goto-previous-bp t t)
+	  ([(        ?\])]   ?\]   idlwave-shell-goto-next-bp t t)
 	  ([(control ?f)]   ?f   idlwave-shell-window)))
        (mod (cond ((and idlwave-shell-debug-modifiers
 			(listp idlwave-shell-debug-modifiers)

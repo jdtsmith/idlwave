@@ -155,8 +155,8 @@ It collects and prints the diagnostics messages."
 	   (beg (save-excursion (skip-chars-backward chars) (point)))
 	   (end (save-excursion (skip-chars-forward chars) (point)))
 	   (this-word (buffer-substring-no-properties beg end))
-	   (st-ass (assoc-ignore-case this-word
-				      idlwave-help-special-topic-words))
+	   (st-ass (assoc-string this-word
+				 idlwave-help-special-topic-words t))
 	   (classtag (and (string-match "self\\." this-word)
 			  (< beg (- end 4))))
 	   (structtag (and (fboundp 'idlwave-complete-structure-tag)
@@ -208,9 +208,9 @@ It collects and prints the diagnostics messages."
        ;; An executive command -- only system help
        ((string-match "^\\.\\([A-Z_]+\\)" this-word)
 	(let* ((word  (match-string 1 this-word))
-	       (link  (cdr (assoc-ignore-case 
+	       (link  (cdr (assoc-string 
 			    word
-			    idlwave-executive-commands-alist))))
+			    idlwave-executive-commands-alist t))))
 	  (setq mod1 (list link))))
        
        ;; A class -- system OR in-text help (via class__define).
@@ -431,8 +431,8 @@ Those words in `idlwave-completion-help-links' have links.  The
 		  (setq doit (funcall what 'test word))
 		;; Look for special link property passed in help-links
 		(if idlwave-completion-help-links
-		    (setq doit (assoc-ignore-case
-				word idlwave-completion-help-links))))
+		    (setq doit (assoc-string
+				word idlwave-completion-help-links t))))
 	      (when doit
 		(if (consp doit)
 		    (setq props (append props `(link ,(cdr doit)))))
