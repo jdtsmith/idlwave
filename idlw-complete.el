@@ -941,7 +941,7 @@ Restore the pre-completion window configuration if possible."
      ((eq mode 'set)
       (if entry 
 	  (setq link ;; setting dynamic!!!
-		(if (setq target (cdr (assoc-ignore-case word tags)))
+		(if (setq target (cdr (assoc-string word tags t)))
 		  (idlwave-substitute-link-target main target)
 		main)))) 
      (t (error "This should not happen")))))
