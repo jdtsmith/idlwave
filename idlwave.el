@@ -2,11 +2,11 @@
 
 ;; Copyright (C) 1999-2024  Free Software Foundation, Inc.
 
-;; Authors: J.D. Smith <jdsmith _AT_ alum.mit.edu>
-;;          Carsten Dominik <dominik _AT_ science.uva.nl>
-;;          Chris Chase <chase _AT_ att.com>
-;; Maintainer: J.D. Smith <jdsmith _AT_ alum.mit.edu>
-;; Version: 6.5
+;; Authors: J.D. Smith
+;;          Carsten Dominik
+;;          Chris Chase
+;; Maintainer: J.D. Smith
+;; Version: 6.5.0
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
@@ -172,7 +172,7 @@
 (defconst idlwave-mode-version
   (if (fboundp 'package-get-version)
       (package-get-version)
-    "VERSIONTAG"))
+    "6.5.0"))
 
 
 ;;;###autoload

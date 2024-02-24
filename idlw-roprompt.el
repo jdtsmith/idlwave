@@ -1,10 +1,9 @@
-;;; idlw-reprompt.el --- run IDL as an inferior process of Emacs.  -*- lexical-binding: t; -*-
+;;; idlw-roprompt.el --- Make IDL shell prompt read only  -*- lexical-binding: t; -*-
 ;; Copyright (c) 2002-2024 Free Software Foundation
 
-;; Author: J.D. Smith <jdsmith@as.arizona.edu>
-;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
-;; Version: 1.0
-;; Date: $Date: 2003/05/13 18:42:27 $
+;; Author: J.D. Smith
+;; Maintainer: J.D. Smith
+;; Version: 6.5.0
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.

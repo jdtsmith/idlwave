@@ -1,9 +1,8 @@
 ;;; idlw-toolbar.el --- a debugging toolbar for IDLWAVE  -*- lexical-binding: t; -*-
 ;; Copyright (c) 1999-2024  Free Software Foundation
-;; Author: Carsten Dominik <dominik _AT_ astro.uva.nl>
-;; Maintainer: J.D. Smith <jdtsmith _AT_ gmail.com>
-;; Version: VERSIONTAG
-;; Date: $Date: 2006/08/22 05:15:26 $
+;; Author: Carsten Dominik
+;; Maintainer: J.D. Smith
+;; Version: 6.5.0
 ;; Keywords: processes
 ;; Package: idlwave
 
