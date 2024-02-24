@@ -1,8 +1,8 @@
 ;;; idlw-complete-structtag.el --- Completion of structure tags.  -*- lexical-binding: t; -*-
 ;; Copyright (c) 2001-2024  Free Software Foundation, Inc.
 ;;
-;; Author: Carsten Dominik <dominik _AT_ astro.uva.nl>
-;; Maintainer: J.D. Smith <jdsmith _AT_ alum.mit.edu>
+;; Author: Carsten Dominik
+;; Maintainer: J.D. Smith
 ;; Old-Version: 1.2
 ;; Keywords: languages
 ;; Package: idlwave

@@ -1,12 +1,11 @@
-;; idlw-shell.el --- run IDL as an inferior process of Emacs.  -*- lexical-binding: t; -*-
-
+;; idlw-shell.el --- run IDL as an inferior process  -*- lexical-binding: t; -*-
 ;; Copyright (C) 1999-2024  Free Software Foundation, Inc.
 
 ;; Authors: J.D. Smith
 ;;          Carsten Dominik
 ;;          Chris Chase
 ;; Maintainer: J.D. Smith
-;; Version: VERSIONTAG
+;; Version: 6.5.0
 ;; Keywords: processes
 ;; Package: idlwave
 

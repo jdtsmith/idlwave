@@ -2,10 +2,10 @@
 
 ;; Copyright (c) 2000-2024 Free Software Foundation, Inc.
 ;;
-;; Authors: J.D. Smith <jdtsmith _AT_ gmail.com>
-;;          Carsten Dominik <dominik _AT_ science.uva.nl>
+;; Authors: J.D. Smith
+;;          Carsten Dominik
 ;; Maintainer: J.D. Smith
-;; Version: VERSIONTAG
+;; Version: 6.5.0
 ;; Package: idlwave
 
 ;; This file is part of GNU Emacs.
