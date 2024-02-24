@@ -923,9 +923,9 @@ IDL has currently stepped.")
   (setq comint-input-ignoredups t)
   (setq comint-input-sender (function idlwave-shell-sender))
 
+  (make-local-variable 'idlwave-shell-mode-line-info)
   (setq idlwave-shell-mode-line-info nil)
-  (cl-pushnew 'idlwave-shell-mode-line-info
-	      (buffer-local-value mode-line-misc-info))
+  (cl-pushnew 'idlwave-shell-mode-line-info mode-line-misc-info)
   ;; (setq mode-line-format
   ;; 	'(""
   ;; 	  mode-line-modified
