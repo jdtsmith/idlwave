@@ -1033,7 +1033,7 @@ Useful when source code is displayed as help.  See the option
 		(> (length idlwave-html-system-help-location) 0)
 		(file-exists-p (setq help-dir
 				     (expand-file-name
-				      idlwave-system-html-help-location
+				      idlwave-html-system-help-location
 				      sys-dir))))
 	   help-dir) ;; And explicitly specified directory
 
