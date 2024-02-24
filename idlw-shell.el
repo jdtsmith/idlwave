@@ -81,6 +81,7 @@
 
 (require 'comint)
 (require 'idlwave)
+(require 'idlw-help)
 
 (eval-when-compile (require 'cl-lib))
 
@@ -817,9 +818,9 @@ IDL has currently stepped.")
     map)
   "Keymap for `idlwave-mode'.")
 
-
 (define-key idlwave-mode-map "\C-c\C-y" #'idlwave-shell-char-mode-loop)
 (define-key idlwave-mode-map "\C-c\C-x" #'idlwave-shell-send-char)
+(defvar idlwave-shell-hide-output)
 
 (define-derived-mode idlwave-shell-mode comint-mode "IDL-Shell"
   "Major mode for interacting with an inferior IDL process.

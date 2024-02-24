@@ -174,7 +174,6 @@
       (package-get-version)
     "6.5.0"))
 
-
 ;;;###autoload
 (define-derived-mode idlwave-mode prog-mode "IDLWAVE"
   "Major mode for editing IDL source files.
