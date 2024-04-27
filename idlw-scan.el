@@ -880,6 +880,7 @@ force directory search."
   (let* ((content-path (idlwave-html-help-location))
 	 (help-path  (file-name-directory content-path))
 	 (alias-file (expand-file-name "Data/Alias.xml" help-path)))
+    
     (message "Linking help file info...")
     (if (file-exists-p alias-file)
 	(let ((aliases (cdar (xml-parse-file alias-file))) elem alias-list)
@@ -917,14 +918,14 @@ force directory search."
 			(car link)
 			(string-match "\\.htm[^.]*\\'" (car link))
 			(setq linkfile
-			     (idlwave-alias-path
-			      (car link) alias-list content-path
-			      (if (and class
-				       (setq class-entry
-					     (assoc class
-						    idlwave-system-class-info)))
-				  (file-name-directory
-				   (nth 1 (assq 'link class-entry)))))))
+			      (idlwave-alias-path
+			       (car link) alias-list content-path
+			       (if (and class
+					(setq class-entry
+					      (assoc class
+						     idlwave-system-class-info)))
+				   (file-name-directory
+				    (nth 1 (assq 'link class-entry)))))))
 		   (setcar link linkfile)))))
 	   idlwave-system-routines)
 
