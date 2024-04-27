@@ -590,7 +590,9 @@ see if a link is set for it.  Try extra help functions if necessary."
 	(setq link (file-relative-name link help-loc)
 	      help-loc (concat alternate "#")))
 
-    (setq full-link (browse-url-file-url (concat help-loc link)))
+    (setq full-link 			; idl.htm likes the #
+	  (let ((url-unreserved-chars (cons ?# url-unreserved-chars)))
+	      (browse-url-file-url (concat help-loc link))))
 
     ;; Select the browser
     (cond
