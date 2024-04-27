@@ -816,7 +816,7 @@ IDL has currently stepped.")
                 (lambda () (interactive (idlwave-split-line 'noindent))))
     (define-key map [(shift mouse-3)] #'idlwave-mouse-context-help)
     map)
-  "Keymap for `idlwave-mode'.")
+  "Keymap for `idlwave-shell-mode'.")
 
 (define-key idlwave-mode-map "\C-c\C-y" #'idlwave-shell-char-mode-loop)
 (define-key idlwave-mode-map "\C-c\C-x" #'idlwave-shell-send-char)
