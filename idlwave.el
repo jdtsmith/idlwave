@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 1999-2024  Free Software Foundation, Inc.
 
-;; Authors: J.D. Smith
+;; Authors: J.D. Smith <jdtsmith@gmail.com>
 ;;          Carsten Dominik
 ;;          Chris Chase
 ;; Maintainer: J.D. Smith
