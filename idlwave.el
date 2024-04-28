@@ -5,7 +5,7 @@
 ;; Authors: J.D. Smith <jdtsmith@gmail.com>
 ;;          Carsten Dominik
 ;;          Chris Chase
-;; Maintainer: J.D. Smith
+;; Maintainer: J.D. Smith <jdtsmith@gmail.com>
 ;; Version: 6.5.0
 ;; Keywords: languages
 
