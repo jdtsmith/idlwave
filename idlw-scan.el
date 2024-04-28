@@ -1,7 +1,12 @@
-;; IDLWAVE: scan routine information provided with IDL, and among the  -*- lexical-binding: t; -*-
+;;; idlw-scan.el --- Scan routine code information for IDLWAVE -*- lexical-binding: t; -*-
+;; Copyright (C) 2014-2024  Free Software Foundation, Inc.
+
+;;; Comentary
+;; IDLWAVE: scan routine information provided with IDL, and among the
 ;; user's library, as well as in open buffers (for scanning the shell,
 ;; see idlw-shell.el)
 
+;;; Code
 (require 'timer)
 (eval-when-compile (require 'cl-lib))
 (require 'idlw-variables)

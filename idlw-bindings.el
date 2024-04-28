@@ -1,5 +1,7 @@
-;; IDLWAVE keyboard/mouse bindings, syntax tables, templates, and abbreviations.  -*- lexical-binding: t; -*-
+;;; idlw-bindings ---  IDLWAVE bindings  -*- lexical-binding: t; -*-
+;; Copyright (C) 2014-2024  Free Software Foundation, Inc.
 
+;;; Code
 (require 'idlw-variables)   ;At least for `idlwave-abbrev-start-char'.
 
 (defalias 'idlwave-debug-map (make-sparse-keymap))

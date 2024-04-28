@@ -1,7 +1,7 @@
-;;; IDLWAVE menus and associated code  -*- lexical-binding: t; -*-
+;;; idlw-menus.el --- IDLWAVE menus -*- lexical-binding: t; -*-
+;; Copyright (C) 2014-2024  Free Software Foundation, Inc.
 
 ;;; Code:
-
 ;; Define the mode-maps before we modify them.
 (require 'idlw-variables)
 (require 'idlw-bindings)

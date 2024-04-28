@@ -1,7 +1,10 @@
-;; IDLWAVE Routine Information code and variables  -*- lexical-binding: t; -*-
+;;; idlw-routine.el --- IDLWAVE routine information code and variables  -*- lexical-binding: t; -*-
+;; Copyright (C) 2014-2024  Free Software Foundation, Inc.
 
-;; The list format for all routine info user catalog, library
-;; catalogs, etc.:
+;;; Commentary
+
+;; Develeport note: the list format for all routine info user catalog,
+;; library catalogs, etc. is:
 ;;
 ;; ("ROUTINE" type class
 ;;  (system nil nil nil) | (lib pro_file dir "LIBNAME") | (user pro_file dir "USERLIB") |

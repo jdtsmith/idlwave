@@ -1,6 +1,7 @@
-;; IDLWAVE code for completion  -*- lexical-binding: t; -*-
+;;; idlw-complete --- IDLWAVE completion  -*- lexical-binding: t; -*-
+;; Copyright (C) 2014-2024  Free Software Foundation, Inc.
 
-;; ---------------------------------------------------------------------------
+;;; Comentary
 ;;
 ;; Completion and displaying routine calling sequences
 

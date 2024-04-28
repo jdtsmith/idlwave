@@ -1,4 +1,10 @@
-;; IDLWAVE variables, customizations, and constants  -*- lexical-binding: t; -*-
+;;; idlw-variable.el --- Shared variables for IDLWAVE -*- lexical-binding: t; -*-
+;; Copyright (C) 2014-2024  Free Software Foundation, Inc.
+
+;;; Commentary
+;; IDLWAVE variables, customizations, and constants
+
+;;; Code
 (defgroup idlwave nil
   "Major mode for editing IDL .pro files."
   :tag "IDLWAVE"
