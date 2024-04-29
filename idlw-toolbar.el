@@ -1,5 +1,5 @@
 ;;; idlw-toolbar.el --- a debugging toolbar for IDLWAVE  -*- lexical-binding: t; -*-
-;; Copyright (c) 1999-2024  Free Software Foundation
+;; Copyright (c) 1999-2024  Free Software Foundation, Inc.
 ;; Author: Carsten Dominik
 ;; Maintainer: J.D. Smith
 ;; Version: 6.5.0
