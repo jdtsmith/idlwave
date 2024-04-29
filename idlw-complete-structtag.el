@@ -51,17 +51,6 @@
 ;; completion.  It is also an example which shows how completion plugins
 ;; should be programmed.
 ;;
-;; New versions of IDLWAVE, documentation, and more information available
-;; from:
-;;                 https://github.com/jdtsmith/idlwave
-;;
-;; INSTALLATION
-;; ============
-;; Load it with the following line in your init file:
-;;
-;;   (with-eval-after-load 'idlwave
-;;     (require 'idlw-complete-structtag))
-;;
 ;; DESCRIPTION
 ;; ===========
 ;; Suppose your IDL program contains something like
