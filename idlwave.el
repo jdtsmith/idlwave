@@ -34,10 +34,6 @@
 ;; See the mode description ("C-h m" in idlwave-mode or "C-h f
 ;; idlwave-mode") for features, key bindings, and info.
 ;;
-;; New versions of IDLWAVE, documentation, and more information
-;; available from:
-;;                 https://github.com/jdtsmith/idlwave
-;;
 ;; INSTALLATION
 ;; ============
 ;;

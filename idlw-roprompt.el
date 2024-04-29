@@ -29,29 +29,6 @@
 ;; read-only.  This functionality may be available in future versions
 ;; of comint directy, in which case this file will be obviated.
 ;;
-;; New versions of IDLWAVE, documentation, and more information
-;; available from:
-;;                 https://github.com/jdtsmith/idlwave
-;;
-;; INSTALLATION:
-;; =============
-;;
-;; Follow the instructions in the INSTALL file of the distribution.
-;; In short, put this file on your load path and add the following
-;; lines to your .emacs file:
-;;
-;;   (add-hook 'idlwave-shell-mode-hook
-;;             (lambda () (require 'idlw-roprompt)))
-;;
-;;
-;; SOURCE
-;; ======
-;;
-;;   The newest version of this file can be found on the maintainers
-;;   web site.
-;;
-;;     https://github.com/jdtsmith/idlwave
-;;
 ;; DOCUMENTATION
 ;; =============
 ;;

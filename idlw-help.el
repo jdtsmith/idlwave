@@ -29,11 +29,7 @@
 ;; system routines is extracted automatically from the IDL
 ;; documentation, and is available, along with general routine
 ;; information, in the file idlw-rinfo.el.  The HTML help file
-;; themselves are not distributable with Emacs, but are available,
-;; along with new versions of IDLWAVE, documentation, and more
-;; information, at:
-;;
-;;           https://github.com/jdtsmith/idlwave
+;; themselves are not distributable with Emacs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 

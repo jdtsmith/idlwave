@@ -8,8 +8,6 @@
 (defgroup idlwave nil
   "Major mode for editing IDL .pro files."
   :tag "IDLWAVE"
-  :link '(url-link :tag "Website"
-		   "https://github.com/jdtsmith/idlwave")
   :link '(emacs-commentary-link :tag "Commentary in idlw-shell.el"
 				"idlw-shell.el")
   :link '(emacs-commentary-link :tag "Commentary in idlwave.el" "idlwave.el")

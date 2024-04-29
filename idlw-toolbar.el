@@ -26,10 +26,6 @@
 ;; This file implements a debugging toolbar for IDLWAVE.
 ;; It requires toolbar and xpm support.
 
-;; New versions of IDLWAVE, documentation, and more information
-;; available from:
-;;                 https://github.com/jdtsmith/idlwave
-
 
 ;;; Code:
 
