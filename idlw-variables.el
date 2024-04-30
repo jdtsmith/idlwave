@@ -5,6 +5,9 @@
 ;; IDLWAVE variables, customizations, and constants
 
 ;;; Code
+
+(require 'browse-url)
+
 (defgroup idlwave nil
   "Major mode for editing IDL .pro files."
   :tag "IDLWAVE"
