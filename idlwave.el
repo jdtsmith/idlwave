@@ -6,7 +6,7 @@
 ;;          Carsten Dominik
 ;;          Chris Chase
 ;; Maintainer: J.D. Smith <jdtsmith@gmail.com>
-;; Version: 6.5.0
+;; Version: 6.5.1
 ;; Keywords: languages
 
 ;; This file is part of GNU Emacs.
