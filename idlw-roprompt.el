@@ -3,7 +3,7 @@
 
 ;; Author: J.D. Smith
 ;; Maintainer: J.D. Smith
-;; Version: 6.5.0
+;; Version: 6.5.1
 ;; Keywords: processes
 
 ;; This file is part of GNU Emacs.

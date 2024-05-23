@@ -2,7 +2,7 @@
 ;; Copyright (c) 1999-2024  Free Software Foundation, Inc.
 ;; Author: Carsten Dominik
 ;; Maintainer: J.D. Smith
-;; Version: 6.5.0
+;; Version: 6.5.1
 ;; Keywords: processes
 ;; Package: idlwave
 

@@ -10,9 +10,9 @@
 @synindex ky cp
 @syncodeindex vr cp
 @syncodeindex fn cp
-@set VERSION 6.5
-@set EDITION 6.5
-@set IDLVERSION 8.3
+@set VERSION 6.5.2
+@set EDITION 6.5.2
+@set IDLVERSION 9.0
 @set NSYSROUTINES 2611
 @set DATE Februare, 2014
 @set AUTHOR J.D. Smith & Carsten Dominik

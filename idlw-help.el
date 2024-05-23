@@ -5,7 +5,7 @@
 ;; Authors: J.D. Smith
 ;;          Carsten Dominik
 ;; Maintainer: J.D. Smith
-;; Version: 6.5.0
+;; Version: 6.5.1
 ;; Package: idlwave
 
 ;; This file is part of GNU Emacs.
